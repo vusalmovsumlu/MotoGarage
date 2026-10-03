@@ -1,20 +1,30 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+ï»¿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MotoGarage.API.Hubs;
+using MotoGarage.API.Middleware;
+using MotoGarage.Application.Interfaces.Repository;
+using MotoGarage.Application.Interfaces.Services;
+using MotoGarage.Application.Interfaces.Services.Auth;
+using MotoGarage.Application.Mapping;
+using MotoGarage.Application.Services;
 using MotoGarage.Domain.Entities;
+using MotoGarage.Infrastructure.Authentication;
 using MotoGarage.Infrastructure.Data;
+using MotoGarage.Infrastructure.Repositories;
 using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // =========================
 // Controllers
 // =========================
 
-builder.Services.AddControllers()
+builder.Services
+    .AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions
@@ -33,8 +43,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    );
+        builder.Configuration.GetConnectionString(
+            "DefaultConnection"));
 });
 
 
@@ -73,12 +83,16 @@ builder.Services
 // JWT Authentication
 // =========================
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT Key is missing.");
+var jwtKey =
+    builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException(
+        "JWT Key tapÄ±lmadÄ±.");
 
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtIssuer =
+    builder.Configuration["Jwt:Issuer"];
 
-var jwtAudience = builder.Configuration["Jwt:Audience"];
+var jwtAudience =
+    builder.Configuration["Jwt:Audience"];
 
 builder.Services
     .AddAuthentication(options =>
@@ -100,38 +114,42 @@ builder.Services
                 ValidateIssuerSigningKey = true,
 
                 ValidIssuer = jwtIssuer,
+
                 ValidAudience = jwtAudience,
 
                 IssuerSigningKey =
                     new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtKey)
-                    ),
+                        Encoding.UTF8.GetBytes(jwtKey)),
 
                 ClockSkew = TimeSpan.Zero
             };
 
-        // SignalR üçün JWT
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
+        // SignalR JWT
+        options.Events =
+            new JwtBearerEvents
             {
-                var accessToken =
-                    context.Request.Query["access_token"];
-
-                var path =
-                    context.HttpContext.Request.Path;
-
-                if (
-                    !string.IsNullOrEmpty(accessToken) &&
-                    path.StartsWithSegments("/hubs")
-                )
+                OnMessageReceived = context =>
                 {
-                    context.Token = accessToken;
-                }
+                    var accessToken =
+                        context.Request.Query[
+                            "access_token"];
 
-                return Task.CompletedTask;
-            }
-        };
+                    var path =
+                        context.HttpContext
+                            .Request.Path;
+
+                    if (!string.IsNullOrEmpty(
+                            accessToken) &&
+                        path.StartsWithSegments(
+                            "/hubs"))
+                    {
+                        context.Token =
+                            accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
     });
 
 
@@ -143,20 +161,172 @@ builder.Services.AddAuthorization();
 
 
 // =========================
+// AutoMapper
+// =========================
+
+builder.Services.AddAutoMapper(
+    cfg => { },
+    typeof(MappingProfile).Assembly);
+
+
+// =========================
+// Generic Repository
+// =========================
+
+builder.Services.AddScoped(
+    typeof(IRepository<>),
+    typeof(Repository<>));
+
+
+// =========================
+// Repositories
+// =========================
+
+builder.Services.AddScoped<
+    IVehicleRepository,
+    VehicleRepository>();
+
+builder.Services.AddScoped<
+    IServiceRecordRepository,
+    ServiceRecordRepository>();
+
+builder.Services.AddScoped<
+    IFuelRecordRepository,
+    FuelRecordRepository>();
+
+builder.Services.AddScoped<
+    IExpenseRepository,
+    ExpenseRepository>();
+
+builder.Services.AddScoped<
+    IReminderRepository,
+    ReminderRepository>();
+
+builder.Services.AddScoped<
+    IMechanicRepository,
+    MechanicRepository>();
+
+builder.Services.AddScoped<
+    IAppointmentRepository,
+    AppointmentRepository>();
+
+builder.Services.AddScoped<
+    IReviewRepository,
+    ReviewRepository>();
+
+builder.Services.AddScoped<
+    IStoreRepository,
+    StoreRepository>();
+
+builder.Services.AddScoped<
+    IProductRepository,
+    ProductRepository>();
+
+builder.Services.AddScoped<
+    IOrderRepository,
+    OrderRepository>();
+
+builder.Services.AddScoped<
+    IOrderItemRepository,
+    OrderItemRepository>();
+
+builder.Services.AddScoped<
+    IConversationRepository,
+    ConversationRepository>();
+
+builder.Services.AddScoped<
+    IMessageRepository,
+    MessageRepository>();
+
+builder.Services.AddScoped<
+    IRefreshTokenRepository,
+    RefreshTokenRepository>();
+
+
+// =========================
+// Authentication Services
+// =========================
+
+builder.Services.AddScoped<
+    ITokenService,
+    TokenService>();
+
+builder.Services.AddScoped<
+    IAuthService,
+    AuthService>();
+
+
+// =========================
+// Application Services
+// =========================
+
+builder.Services.AddScoped<
+    IVehicleService,
+    VehicleService>();
+
+builder.Services.AddScoped<
+    IServiceRecordService,
+    ServiceRecordService>();
+
+builder.Services.AddScoped<
+    IFuelRecordService,
+    FuelRecordService>();
+
+builder.Services.AddScoped<
+    IExpenseService,
+    ExpenseService>();
+
+builder.Services.AddScoped<
+    IReminderService,
+    ReminderService>();
+
+builder.Services.AddScoped<
+    IMechanicService,
+    MechanicService>();
+
+builder.Services.AddScoped<
+    IAppointmentService,
+    AppointmentService>();
+
+builder.Services.AddScoped<
+    IReviewService,
+    ReviewService>();
+
+builder.Services.AddScoped<
+    IStoreService,
+    StoreService>();
+
+builder.Services.AddScoped<
+    IProductService,
+    ProductService>();
+
+builder.Services.AddScoped<
+    IOrderService,
+    OrderService>();
+
+builder.Services.AddScoped<
+    IChatService,
+    ChatService>();
+
+
+// =========================
 // CORS
-// React frontend üçün
+// React frontend
 // =========================
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("ReactClient", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+    options.AddPolicy(
+        "ReactClient",
+        policy =>
+        {
+            policy
+                .WithOrigins(
+                    "http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
 });
 
 
@@ -180,7 +350,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+// Global Exception Handling
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
 
 app.UseCors("ReactClient");
 
@@ -188,11 +364,15 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+
+// =========================
+// Endpoints
+// =========================
+
 app.MapControllers();
 
-
-// Chat Hub
-app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>(
+    "/hubs/chat");
 
 
 app.Run();

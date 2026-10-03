@@ -1,8 +1,15 @@
 ﻿using AutoMapper;
+using MotoGarage.Application.DTOs.Appointment;
+using MotoGarage.Application.DTOs.Chat;
 using MotoGarage.Application.DTOs.Expense;
 using MotoGarage.Application.DTOs.FuelRecord;
+using MotoGarage.Application.DTOs.Mechanic;
+using MotoGarage.Application.DTOs.Order;
+using MotoGarage.Application.DTOs.Product;
 using MotoGarage.Application.DTOs.Reminder;
+using MotoGarage.Application.DTOs.Review;
 using MotoGarage.Application.DTOs.ServiceRecord;
+using MotoGarage.Application.DTOs.Store;
 using MotoGarage.Application.DTOs.Vehicle;
 using MotoGarage.Domain.Entities;
 
@@ -17,9 +24,7 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<Vehicle, VehicleDto>();
-
         CreateMap<CreateVehicleDto, Vehicle>();
-
         CreateMap<UpdateVehicleDto, Vehicle>();
 
 
@@ -28,9 +33,7 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<ServiceRecord, ServiceRecordDto>();
-
         CreateMap<CreateServiceRecordDto, ServiceRecord>();
-
         CreateMap<UpdateServiceRecordDto, ServiceRecord>();
 
 
@@ -58,9 +61,7 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<Expense, ExpenseDto>();
-
         CreateMap<CreateExpenseDto, Expense>();
-
         CreateMap<UpdateExpenseDto, Expense>();
 
 
@@ -69,9 +70,79 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<Reminder, ReminderDto>();
-
         CreateMap<CreateReminderDto, Reminder>();
-
         CreateMap<UpdateReminderDto, Reminder>();
+
+
+        // =========================
+        // Mechanic
+        // =========================
+
+        CreateMap<Mechanic, MechanicDto>();
+        CreateMap<CreateMechanicDto, Mechanic>();
+        CreateMap<UpdateMechanicDto, Mechanic>();
+
+
+        // =========================
+        // Appointment
+        // =========================
+
+        CreateMap<Appointment, AppointmentDto>();
+        CreateMap<CreateAppointmentDto, Appointment>();
+
+
+        // =========================
+        // Review
+        // =========================
+
+        CreateMap<Review, ReviewDto>();
+        CreateMap<CreateReviewDto, Review>();
+        CreateMap<UpdateReviewDto, Review>();
+
+
+        // =========================
+        // Store
+        // =========================
+
+        CreateMap<Store, StoreDto>();
+        CreateMap<CreateStoreDto, Store>();
+        CreateMap<UpdateStoreDto, Store>();
+
+
+        // =========================
+        // Product
+        // =========================
+
+        CreateMap<Product, ProductDto>();
+        CreateMap<CreateProductDto, Product>();
+        CreateMap<UpdateProductDto, Product>();
+
+
+        // =========================
+        // Order
+        // =========================
+
+        CreateMap<OrderItem, OrderItemDto>()
+            .ForMember(
+                dest => dest.ProductName,
+                opt => opt.MapFrom(src =>
+                    src.Product != null
+                        ? src.Product.Name
+                        : string.Empty));
+
+        CreateMap<Order, OrderDto>()
+            .ForMember(
+                dest => dest.Items,
+                opt => opt.MapFrom(src =>
+                    src.OrderItems));
+
+
+        // =========================
+        // Chat
+        // =========================
+
+        CreateMap<Conversation, ConversationDto>();
+
+        CreateMap<Message, MessageDto>();
     }
 }
