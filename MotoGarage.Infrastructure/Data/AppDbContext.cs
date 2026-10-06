@@ -27,6 +27,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

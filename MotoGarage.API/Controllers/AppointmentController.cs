@@ -16,52 +16,60 @@ public class AppointmentController : ControllerBase
     public AppointmentController(
         IAppointmentService appointmentService)
     {
-        _appointmentService = appointmentService;
+        _appointmentService =
+            appointmentService;
     }
 
     // =========================
-    // User appointments
+    // User Appointments
     // =========================
 
     // GET: api/appointments/my
     [HttpGet("my")]
     public async Task<IActionResult> GetMyAppointments()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var appointments =
-            await _appointmentService.GetMyAppointmentsAsync(
-                userId);
+            await _appointmentService
+                .GetMyAppointmentsAsync(userId);
 
         return Ok(appointments);
     }
 
     // =========================
-    // Mechanic appointments
+    // Mechanic Appointments
     // =========================
 
     // GET: api/appointments/mechanic
     [HttpGet("mechanic")]
-    public async Task<IActionResult> GetMechanicAppointments()
+    [Authorize(Roles = "Mechanic")]
+    public async Task<IActionResult>
+        GetMechanicAppointments()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var appointments =
             await _appointmentService
-                .GetMechanicAppointmentsAsync(userId);
+                .GetMechanicAppointmentsAsync(
+                    userId);
 
         return Ok(appointments);
     }
 
     // =========================
-    // Appointment details
+    // Details
     // =========================
 
     // GET: api/appointments/5
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(
+        int id)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var appointment =
             await _appointmentService.GetByIdAsync(
@@ -72,7 +80,7 @@ public class AppointmentController : ControllerBase
     }
 
     // =========================
-    // Create appointment
+    // Create Appointment
     // =========================
 
     // POST: api/appointments
@@ -80,7 +88,8 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> Create(
         CreateAppointmentDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var appointment =
             await _appointmentService.CreateAsync(
@@ -89,21 +98,26 @@ public class AppointmentController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetById),
-            new { id = appointment.Id },
+            new
+            {
+                id = appointment.Id
+            },
             appointment);
     }
 
     // =========================
-    // Mechanic changes status
+    // Mechanic Changes Status
     // =========================
 
     // PATCH: api/appointments/5/status
     [HttpPatch("{id}/status")]
+    [Authorize(Roles = "Mechanic")]
     public async Task<IActionResult> UpdateStatus(
         int id,
         UpdateAppointmentStatusDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _appointmentService.UpdateStatusAsync(
             id,
@@ -114,7 +128,7 @@ public class AppointmentController : ControllerBase
     }
 
     // =========================
-    // User cancellation
+    // User Cancellation
     // =========================
 
     // PATCH: api/appointments/5/cancel
@@ -122,7 +136,8 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> Cancel(
         int id)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _appointmentService.CancelAsync(
             id,

@@ -230,6 +230,41 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.ToTable("Conversations");
                 });
 
+            modelBuilder.Entity("MotoGarage.Domain.Entities.EmailVerificationCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("EmailVerificationCodes");
+                });
+
             modelBuilder.Entity("MotoGarage.Domain.Entities.Expense", b =>
                 {
                     b.Property<int>("Id")
@@ -394,6 +429,47 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.HasIndex("SenderUserId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("MotoGarage.Domain.Entities.Order", b =>
@@ -965,6 +1041,17 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MotoGarage.Domain.Entities.EmailVerificationCode", b =>
+                {
+                    b.HasOne("MotoGarage.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MotoGarage.Domain.Entities.Expense", b =>
                 {
                     b.HasOne("MotoGarage.Domain.Entities.Vehicle", "Vehicle")
@@ -1015,6 +1102,17 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.Navigation("Conversation");
 
                     b.Navigation("SenderUser");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("MotoGarage.Domain.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MotoGarage.Domain.Entities.Order", b =>
@@ -1178,6 +1276,8 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.Navigation("Mechanic");
 
                     b.Navigation("Messages");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("Orders");
 

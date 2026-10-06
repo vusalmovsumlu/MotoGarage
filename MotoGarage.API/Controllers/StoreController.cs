@@ -30,18 +30,18 @@ public class StoreController : ControllerBase
         if (!string.IsNullOrWhiteSpace(search) ||
             !string.IsNullOrWhiteSpace(address))
         {
-            var filteredStores =
+            var stores =
                 await _storeService.SearchAsync(
                     search,
                     address);
 
-            return Ok(filteredStores);
+            return Ok(stores);
         }
 
-        var stores =
+        var result =
             await _storeService.GetAllAsync();
 
-        return Ok(stores);
+        return Ok(result);
     }
 
     // GET: api/stores/motoparts-baku
@@ -50,29 +50,35 @@ public class StoreController : ControllerBase
         string slug)
     {
         var store =
-            await _storeService.GetBySlugAsync(slug);
+            await _storeService.GetBySlugAsync(
+                slug);
 
         return Ok(store);
     }
 
     // GET: api/stores/my-profile
     [HttpGet("my-profile")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> GetMyProfile()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var store =
-            await _storeService.GetMyProfileAsync(userId);
+            await _storeService.GetMyProfileAsync(
+                userId);
 
         return Ok(store);
     }
 
     // POST: api/stores
     [HttpPost]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> Create(
         CreateStoreDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var store =
             await _storeService.CreateAsync(
@@ -81,16 +87,21 @@ public class StoreController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetBySlug),
-            new { slug = store.Slug },
+            new
+            {
+                slug = store.Slug
+            },
             store);
     }
 
     // PUT: api/stores/my-profile
     [HttpPut("my-profile")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> UpdateMyProfile(
         UpdateStoreDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _storeService.UpdateAsync(
             userId,
@@ -101,11 +112,14 @@ public class StoreController : ControllerBase
 
     // DELETE: api/stores/my-profile
     [HttpDelete("my-profile")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> DeleteMyProfile()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
-        await _storeService.DeleteAsync(userId);
+        await _storeService.DeleteAsync(
+            userId);
 
         return NoContent();
     }

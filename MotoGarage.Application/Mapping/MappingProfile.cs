@@ -4,6 +4,7 @@ using MotoGarage.Application.DTOs.Chat;
 using MotoGarage.Application.DTOs.Expense;
 using MotoGarage.Application.DTOs.FuelRecord;
 using MotoGarage.Application.DTOs.Mechanic;
+using MotoGarage.Application.DTOs.Notification;
 using MotoGarage.Application.DTOs.Order;
 using MotoGarage.Application.DTOs.Product;
 using MotoGarage.Application.DTOs.Reminder;
@@ -46,14 +47,18 @@ public class MappingProfile : Profile
         CreateMap<CreateFuelRecordDto, FuelRecord>()
             .ForMember(
                 dest => dest.TotalPrice,
-                opt => opt.MapFrom(src =>
-                    src.Liters * src.PricePerLiter));
+                opt => opt.MapFrom(
+                    src =>
+                        src.Liters *
+                        src.PricePerLiter));
 
         CreateMap<UpdateFuelRecordDto, FuelRecord>()
             .ForMember(
                 dest => dest.TotalPrice,
-                opt => opt.MapFrom(src =>
-                    src.Liters * src.PricePerLiter));
+                opt => opt.MapFrom(
+                    src =>
+                        src.Liters *
+                        src.PricePerLiter));
 
 
         // =========================
@@ -125,16 +130,17 @@ public class MappingProfile : Profile
         CreateMap<OrderItem, OrderItemDto>()
             .ForMember(
                 dest => dest.ProductName,
-                opt => opt.MapFrom(src =>
-                    src.Product != null
-                        ? src.Product.Name
-                        : string.Empty));
+                opt => opt.MapFrom(
+                    src =>
+                        src.Product != null
+                            ? src.Product.Name
+                            : string.Empty));
 
         CreateMap<Order, OrderDto>()
             .ForMember(
                 dest => dest.Items,
-                opt => opt.MapFrom(src =>
-                    src.OrderItems));
+                opt => opt.MapFrom(
+                    src => src.OrderItems));
 
 
         // =========================
@@ -144,5 +150,12 @@ public class MappingProfile : Profile
         CreateMap<Conversation, ConversationDto>();
 
         CreateMap<Message, MessageDto>();
+
+
+        // =========================
+        // Notification
+        // =========================
+
+        CreateMap<Notification, NotificationDto>();
     }
 }

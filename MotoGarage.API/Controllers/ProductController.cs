@@ -21,7 +21,12 @@ public class ProductController : ControllerBase
 
     // GET:
     // api/products
-    // api/products?search=brake&brand=Brembo&minPrice=50&maxPrice=300
+    //
+    // api/products?
+    // search=brake
+    // &brand=Brembo
+    // &minPrice=50
+    // &maxPrice=300
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search,
@@ -37,20 +42,20 @@ public class ProductController : ControllerBase
 
         if (hasFilter)
         {
-            var filteredProducts =
+            var products =
                 await _productService.SearchAsync(
                     search,
                     brand,
                     minPrice,
                     maxPrice);
 
-            return Ok(filteredProducts);
+            return Ok(products);
         }
 
-        var products =
+        var result =
             await _productService.GetAllAsync();
 
-        return Ok(products);
+        return Ok(result);
     }
 
     // GET: api/products/brembo-brake-pad
@@ -59,12 +64,14 @@ public class ProductController : ControllerBase
         string slug)
     {
         var product =
-            await _productService.GetBySlugAsync(slug);
+            await _productService.GetBySlugAsync(
+                slug);
 
         return Ok(product);
     }
 
-    // GET: api/products/store/motoparts-baku
+    // GET:
+    // api/products/store/motoparts-baku
     [HttpGet("store/{storeSlug}")]
     public async Task<IActionResult> GetByStoreSlug(
         string storeSlug)
@@ -78,10 +85,12 @@ public class ProductController : ControllerBase
 
     // POST: api/products
     [HttpPost]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> Create(
         CreateProductDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var product =
             await _productService.CreateAsync(
@@ -90,17 +99,23 @@ public class ProductController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetBySlug),
-            new { slug = product.Slug },
+            new
+            {
+                slug = product.Slug
+            },
             product);
     }
 
-    // PUT: api/products/brembo-brake-pad
+    // PUT:
+    // api/products/brembo-brake-pad
     [HttpPut("{slug}")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> Update(
         string slug,
         UpdateProductDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _productService.UpdateAsync(
             slug,
@@ -110,13 +125,16 @@ public class ProductController : ControllerBase
         return NoContent();
     }
 
-    // PATCH: api/products/brembo-brake-pad/stock
+    // PATCH:
+    // api/products/brembo-brake-pad/stock
     [HttpPatch("{slug}/stock")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> UpdateStock(
         string slug,
         UpdateStockDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _productService.UpdateStockAsync(
             slug,
@@ -126,12 +144,15 @@ public class ProductController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/products/brembo-brake-pad
+    // DELETE:
+    // api/products/brembo-brake-pad
     [HttpDelete("{slug}")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> Delete(
         string slug)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _productService.DeleteAsync(
             slug,

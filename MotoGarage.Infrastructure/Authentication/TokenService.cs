@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Application.Interfaces.Services.Auth;
 using MotoGarage.Domain.Entities;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,66 +14,64 @@ public class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
 
-    public TokenService(IConfiguration configuration)
+    public TokenService(
+        IConfiguration configuration)
     {
         _configuration = configuration;
     }
 
     public string CreateAccessToken(User user)
     {
-        var jwtKey = _configuration["Jwt:Key"]
-            ?? throw new InvalidOperationException("JWT Key tapılmadı.");
-
-        var issuer = _configuration["Jwt:Issuer"];
-        var audience = _configuration["Jwt:Audience"];
-
-        var expireMinutes = int.Parse(
-            _configuration["Jwt:ExpireMinutes"]
+        var key =
+            _configuration["Jwt:Key"]
             ?? throw new InvalidOperationException(
-                "JWT ExpireMinutes tapılmadı.")
-        );
+                "JWT Key tapılmadı.");
 
-        var claims = new List<Claim>
-        {
-            new(
-                ClaimTypes.NameIdentifier,
-                user.Id.ToString()
-            ),
+        var issuer =
+            _configuration["Jwt:Issuer"];
 
-            new(
-                ClaimTypes.Name,
-                user.FullName
-            ),
+        var audience =
+            _configuration["Jwt:Audience"];
 
-            new(
-                ClaimTypes.Email,
-                user.Email ?? string.Empty
-            ),
+        var claims =
+            new List<Claim>
+            {
+                new Claim(
+                    ClaimTypes.NameIdentifier,
+                    user.Id.ToString()),
 
-            new(
-                ClaimTypes.Role,
-                user.Role.ToString()
-            )
-        };
+                new Claim(
+                    ClaimTypes.Name,
+                    user.FullName),
+
+                new Claim(
+                    ClaimTypes.Email,
+                    user.Email ?? string.Empty),
+
+                // Rol üçün vacibdir
+                new Claim(
+                    ClaimTypes.Role,
+                    user.Role.ToString())
+            };
 
         var securityKey =
             new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey)
-            );
+                Encoding.UTF8.GetBytes(key));
 
         var credentials =
             new SigningCredentials(
                 securityKey,
-                SecurityAlgorithms.HmacSha256
-            );
+                SecurityAlgorithms.HmacSha256);
 
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expireMinutes),
-            signingCredentials: credentials
-        );
+        var token =
+            new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires:
+                    GetAccessTokenExpiration(),
+                signingCredentials:
+                    credentials);
 
         return new JwtSecurityTokenHandler()
             .WriteToken(token);
@@ -80,35 +79,35 @@ public class TokenService : ITokenService
 
     public string CreateRefreshToken()
     {
-        var randomBytes = new byte[64];
+        var randomBytes =
+            RandomNumberGenerator
+                .GetBytes(64);
 
-        using var randomNumberGenerator =
-            RandomNumberGenerator.Create();
-
-        randomNumberGenerator.GetBytes(randomBytes);
-
-        return Convert.ToBase64String(randomBytes);
+        return Convert.ToBase64String(
+            randomBytes);
     }
 
     public DateTime GetAccessTokenExpiration()
     {
-        var expireMinutes = int.Parse(
-            _configuration["Jwt:ExpireMinutes"]
-            ?? throw new InvalidOperationException(
-                "JWT ExpireMinutes tapılmadı.")
-        );
+        var expireMinutes =
+            int.Parse(
+                _configuration[
+                    "Jwt:ExpireMinutes"]
+                ?? "30");
 
-        return DateTime.UtcNow.AddMinutes(expireMinutes);
+        return DateTime.UtcNow
+            .AddMinutes(expireMinutes);
     }
 
     public DateTime GetRefreshTokenExpiration()
     {
-        var expireDays = int.Parse(
-            _configuration["Jwt:RefreshTokenExpireDays"]
-            ?? throw new InvalidOperationException(
-                "RefreshTokenExpireDays tapılmadı.")
-        );
+        var expireDays =
+            int.Parse(
+                _configuration[
+                    "Jwt:RefreshTokenExpireDays"]
+                ?? "7");
 
-        return DateTime.UtcNow.AddDays(expireDays);
+        return DateTime.UtcNow
+            .AddDays(expireDays);
     }
 }

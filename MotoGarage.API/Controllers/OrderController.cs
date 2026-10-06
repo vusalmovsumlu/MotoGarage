@@ -20,14 +20,15 @@ public class OrderController : ControllerBase
     }
 
     // =========================
-    // User orders
+    // User Orders
     // =========================
 
     // GET: api/orders/my
     [HttpGet("my")]
     public async Task<IActionResult> GetMyOrders()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var orders =
             await _orderService.GetMyOrdersAsync(
@@ -37,14 +38,16 @@ public class OrderController : ControllerBase
     }
 
     // =========================
-    // Store orders
+    // Store Orders
     // =========================
 
     // GET: api/orders/store
     [HttpGet("store")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> GetStoreOrders()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var orders =
             await _orderService.GetStoreOrdersAsync(
@@ -54,7 +57,7 @@ public class OrderController : ControllerBase
     }
 
     // =========================
-    // Order details
+    // Order Details
     // =========================
 
     // GET: api/orders/5
@@ -62,7 +65,8 @@ public class OrderController : ControllerBase
     public async Task<IActionResult> GetById(
         int id)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var order =
             await _orderService.GetByIdAsync(
@@ -73,7 +77,7 @@ public class OrderController : ControllerBase
     }
 
     // =========================
-    // Create order
+    // Create Order
     // =========================
 
     // POST: api/orders
@@ -81,7 +85,8 @@ public class OrderController : ControllerBase
     public async Task<IActionResult> Create(
         CreateOrderDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var order =
             await _orderService.CreateAsync(
@@ -90,21 +95,26 @@ public class OrderController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetById),
-            new { id = order.Id },
+            new
+            {
+                id = order.Id
+            },
             order);
     }
 
     // =========================
-    // Store changes status
+    // Store Changes Status
     // =========================
 
     // PATCH: api/orders/5/status
     [HttpPatch("{id}/status")]
+    [Authorize(Roles = "Store")]
     public async Task<IActionResult> UpdateStatus(
         int id,
         UpdateOrderStatusDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _orderService.UpdateStatusAsync(
             id,
@@ -115,7 +125,7 @@ public class OrderController : ControllerBase
     }
 
     // =========================
-    // User cancels order
+    // User Cancels
     // =========================
 
     // PATCH: api/orders/5/cancel
@@ -123,7 +133,8 @@ public class OrderController : ControllerBase
     public async Task<IActionResult> Cancel(
         int id)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _orderService.CancelAsync(
             id,

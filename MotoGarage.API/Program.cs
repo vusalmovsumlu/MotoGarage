@@ -15,7 +15,10 @@ using MotoGarage.Infrastructure.Data;
 using MotoGarage.Infrastructure.Repositories;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Infrastructure.Storage;
+using MotoGarage.Infrastructure.Identity;
+using MotoGarage.Infrastructure.Administration;
 using Microsoft.OpenApi.Models;
+using MotoGarage.Infrastructure.Email;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -221,6 +224,10 @@ builder.Services.AddScoped(
 // =========================
 
 builder.Services.AddScoped<
+    IEmailVerificationCodeRepository,
+    EmailVerificationCodeRepository>();
+
+builder.Services.AddScoped<
     IVehicleRepository,
     VehicleRepository>();
 
@@ -280,6 +287,10 @@ builder.Services.AddScoped<
     IRefreshTokenRepository,
     RefreshTokenRepository>();
 
+builder.Services.AddScoped<
+    INotificationRepository,
+    NotificationRepository>();
+
 
 // =========================
 // Authentication Services
@@ -293,14 +304,34 @@ builder.Services.AddScoped<
     IAuthService,
     AuthService>();
 
+builder.Services.AddScoped<
+    IEmailService,
+    SmtpEmailService>();
+
 
 // =========================
 // Application Services
 // =========================
 
 builder.Services.AddScoped<
+    IAdminService,
+    AdminService>();
+
+builder.Services.AddScoped<
+    IUserProfileService,
+    UserProfileService>();
+
+builder.Services.AddScoped<
+    IDashboardService,
+    DashboardService>();
+
+builder.Services.AddScoped<
     IVehicleService,
     VehicleService>();
+
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
 
 builder.Services.AddScoped<
     IServiceRecordService,
@@ -380,6 +411,10 @@ builder.Services.AddSignalR();
 
 
 var app = builder.Build();
+
+await AdminSeeder.SeedAsync(
+    app.Services,
+    app.Configuration);
 
 
 // =========================

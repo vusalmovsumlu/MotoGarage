@@ -30,18 +30,18 @@ public class MechanicController : ControllerBase
         if (!string.IsNullOrWhiteSpace(search) ||
             !string.IsNullOrWhiteSpace(address))
         {
-            var filteredMechanics =
+            var mechanics =
                 await _mechanicService.SearchAsync(
                     search,
                     address);
 
-            return Ok(filteredMechanics);
+            return Ok(mechanics);
         }
 
-        var mechanics =
+        var result =
             await _mechanicService.GetAllAsync();
 
-        return Ok(mechanics);
+        return Ok(result);
     }
 
     // GET: api/mechanics/eli-auto-service
@@ -50,16 +50,19 @@ public class MechanicController : ControllerBase
         string slug)
     {
         var mechanic =
-            await _mechanicService.GetBySlugAsync(slug);
+            await _mechanicService.GetBySlugAsync(
+                slug);
 
         return Ok(mechanic);
     }
 
     // GET: api/mechanics/my-profile
     [HttpGet("my-profile")]
+    [Authorize(Roles = "Mechanic")]
     public async Task<IActionResult> GetMyProfile()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var mechanic =
             await _mechanicService.GetMyProfileAsync(
@@ -70,10 +73,12 @@ public class MechanicController : ControllerBase
 
     // POST: api/mechanics
     [HttpPost]
+    [Authorize(Roles = "Mechanic")]
     public async Task<IActionResult> Create(
         CreateMechanicDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         var mechanic =
             await _mechanicService.CreateAsync(
@@ -82,16 +87,21 @@ public class MechanicController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetBySlug),
-            new { slug = mechanic.Slug },
+            new
+            {
+                slug = mechanic.Slug
+            },
             mechanic);
     }
 
     // PUT: api/mechanics/my-profile
     [HttpPut("my-profile")]
+    [Authorize(Roles = "Mechanic")]
     public async Task<IActionResult> UpdateMyProfile(
         UpdateMechanicDto dto)
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
         await _mechanicService.UpdateAsync(
             userId,
@@ -102,11 +112,14 @@ public class MechanicController : ControllerBase
 
     // DELETE: api/mechanics/my-profile
     [HttpDelete("my-profile")]
+    [Authorize(Roles = "Mechanic")]
     public async Task<IActionResult> DeleteMyProfile()
     {
-        var userId = GetCurrentUserId();
+        var userId =
+            GetCurrentUserId();
 
-        await _mechanicService.DeleteAsync(userId);
+        await _mechanicService.DeleteAsync(
+            userId);
 
         return NoContent();
     }

@@ -35,4 +35,7 @@ public class User : IdentityUser<int>
 
     public ICollection<RefreshToken> RefreshTokens { get; set; }
         = new List<RefreshToken>();
+
+    public ICollection<Notification> Notifications { get; set; }
+        = new List<Notification>();
 }

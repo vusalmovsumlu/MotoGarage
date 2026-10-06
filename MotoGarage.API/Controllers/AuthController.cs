@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.Auth;
 using MotoGarage.Application.Interfaces.Services;
-using MotoGarage.Application.Interfaces.Services.Auth;
 
 namespace MotoGarage.API.Controllers;
 
@@ -31,6 +30,42 @@ public class AuthController : ControllerBase
             await _authService.RegisterAsync(dto);
 
         return Ok(result);
+    }
+
+    // =========================
+    // Verify Email OTP
+    // =========================
+
+    // POST: api/auth/verify-email
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyEmail(
+        VerifyEmailDto dto)
+    {
+        var result =
+            await _authService.VerifyEmailAsync(dto);
+
+        return Ok(result);
+    }
+
+    // =========================
+    // Resend OTP
+    // =========================
+
+    // POST: api/auth/resend-verification-code
+    [HttpPost("resend-verification-code")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResendVerificationCode(
+        ResendVerificationCodeDto dto)
+    {
+        await _authService
+            .ResendVerificationCodeAsync(dto);
+
+        return Ok(new
+        {
+            message =
+                "Yeni təsdiqləmə kodu email ünvanınıza göndərildi."
+        });
     }
 
     // =========================
