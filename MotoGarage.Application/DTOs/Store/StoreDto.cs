@@ -8,6 +8,8 @@ public class StoreDto
 
     public string StoreName { get; set; } = null!;
 
+    public string Slug { get; set; } = null!;
+
     public string Description { get; set; } = null!;
 
     public string PhoneNumber { get; set; } = null!;

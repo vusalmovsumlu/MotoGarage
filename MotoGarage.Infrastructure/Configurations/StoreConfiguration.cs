@@ -37,5 +37,12 @@ public class StoreConfiguration : IEntityTypeConfiguration<Store>
             .WithOne(x => x.Store)
             .HasForeignKey<Store>(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(x => x.Slug)
+    .IsRequired()
+    .HasMaxLength(200);
+
+        builder.HasIndex(x => x.Slug)
+            .IsUnique();
     }
 }

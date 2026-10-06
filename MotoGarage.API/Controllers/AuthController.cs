@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.Auth;
+using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Application.Interfaces.Services.Auth;
 
 namespace MotoGarage.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
@@ -19,11 +21,14 @@ public class AuthController : ControllerBase
     // Register
     // =========================
 
+    // POST: api/auth/register
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(
+    [AllowAnonymous]
+    public async Task<IActionResult> Register(
         RegisterDto dto)
     {
-        var result = await _authService.RegisterAsync(dto);
+        var result =
+            await _authService.RegisterAsync(dto);
 
         return Ok(result);
     }
@@ -32,11 +37,30 @@ public class AuthController : ControllerBase
     // Login
     // =========================
 
+    // POST: api/auth/login
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(
+    [AllowAnonymous]
+    public async Task<IActionResult> Login(
         LoginDto dto)
     {
-        var result = await _authService.LoginAsync(dto);
+        var result =
+            await _authService.LoginAsync(dto);
+
+        return Ok(result);
+    }
+
+    // =========================
+    // Google Login
+    // =========================
+
+    // POST: api/auth/google
+    [HttpPost("google")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GoogleLogin(
+        GoogleLoginDto dto)
+    {
+        var result =
+            await _authService.GoogleLoginAsync(dto);
 
         return Ok(result);
     }
@@ -45,11 +69,14 @@ public class AuthController : ControllerBase
     // Refresh Token
     // =========================
 
+    // POST: api/auth/refresh-token
     [HttpPost("refresh-token")]
-    public async Task<ActionResult<AuthResponseDto>> RefreshToken(
+    [AllowAnonymous]
+    public async Task<IActionResult> RefreshToken(
         RefreshTokenRequestDto dto)
     {
-        var result = await _authService.RefreshTokenAsync(dto);
+        var result =
+            await _authService.RefreshTokenAsync(dto);
 
         return Ok(result);
     }
@@ -58,11 +85,14 @@ public class AuthController : ControllerBase
     // Logout
     // =========================
 
+    // POST: api/auth/logout
     [HttpPost("logout")]
+    [Authorize]
     public async Task<IActionResult> Logout(
         RefreshTokenRequestDto dto)
     {
-        await _authService.LogoutAsync(dto.RefreshToken);
+        await _authService.LogoutAsync(
+            dto.RefreshToken);
 
         return NoContent();
     }

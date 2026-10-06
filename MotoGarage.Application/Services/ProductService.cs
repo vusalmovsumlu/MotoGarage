@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using MotoGarage.Application.DTOs.Product;
-using MotoGarage.Application.Interfaces.Repository;
+using MotoGarage.Application.Helpers;
+using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Domain.Exceptions;
@@ -25,21 +26,25 @@ public class ProductService : IProductService
 
     public async Task<IEnumerable<ProductDto>> GetAllAsync()
     {
-        var products = await _productRepository.SearchAsync(
-            null,
-            null,
-            null,
-            null);
+        var products =
+            await _productRepository.SearchAsync(
+                null,
+                null,
+                null,
+                null);
 
         return _mapper.Map<IEnumerable<ProductDto>>(products);
     }
 
-    public async Task<ProductDto> GetByIdAsync(int id)
+    public async Task<ProductDto> GetBySlugAsync(
+        string slug)
     {
         var product =
-            await _productRepository.GetDetailsByIdAsync(id);
+            await _productRepository.GetBySlugAsync(slug);
 
-        if (product is null || !product.IsActive)
+        if (product is null ||
+            !product.IsActive ||
+            !product.Store.IsActive)
         {
             throw new KeyNotFoundException(
                 "Məhsul tapılmadı.");
@@ -48,11 +53,12 @@ public class ProductService : IProductService
         return _mapper.Map<ProductDto>(product);
     }
 
-    public async Task<IEnumerable<ProductDto>> GetByStoreIdAsync(
-        int storeId)
+    public async Task<IEnumerable<ProductDto>>
+        GetByStoreSlugAsync(string storeSlug)
     {
         var store =
-            await _storeRepository.GetByIdAsync(storeId);
+            await _storeRepository.GetBySlugAsync(
+                storeSlug);
 
         if (store is null || !store.IsActive)
         {
@@ -61,9 +67,11 @@ public class ProductService : IProductService
         }
 
         var products =
-            await _productRepository.GetByStoreIdAsync(storeId);
+            await _productRepository
+                .GetByStoreIdAsync(store.Id);
 
-        return _mapper.Map<IEnumerable<ProductDto>>(products);
+        return _mapper.Map<IEnumerable<ProductDto>>(
+            products);
     }
 
     public async Task<IEnumerable<ProductDto>> SearchAsync(
@@ -73,8 +81,22 @@ public class ProductService : IProductService
         decimal? maxPrice)
     {
         if (minPrice.HasValue &&
+            minPrice.Value < 0)
+        {
+            throw new DomainException(
+                "Minimum qiymət mənfi ola bilməz.");
+        }
+
+        if (maxPrice.HasValue &&
+            maxPrice.Value < 0)
+        {
+            throw new DomainException(
+                "Maksimum qiymət mənfi ola bilməz.");
+        }
+
+        if (minPrice.HasValue &&
             maxPrice.HasValue &&
-            minPrice > maxPrice)
+            minPrice.Value > maxPrice.Value)
         {
             throw new DomainException(
                 "Minimum qiymət maksimum qiymətdən böyük ola bilməz.");
@@ -87,7 +109,8 @@ public class ProductService : IProductService
                 minPrice,
                 maxPrice);
 
-        return _mapper.Map<IEnumerable<ProductDto>>(products);
+        return _mapper.Map<IEnumerable<ProductDto>>(
+            products);
     }
 
     public async Task<ProductDto> CreateAsync(
@@ -113,6 +136,11 @@ public class ProductService : IProductService
             _mapper.Map<Product>(dto);
 
         product.StoreId = store.Id;
+
+        product.Slug =
+            await GenerateUniqueSlugAsync(
+                dto.Name);
+
         product.IsActive = true;
         product.CreatedAt = DateTime.UtcNow;
 
@@ -124,7 +152,7 @@ public class ProductService : IProductService
     }
 
     public async Task UpdateAsync(
-        int id,
+        string slug,
         int storeUserId,
         UpdateProductDto dto)
     {
@@ -132,7 +160,7 @@ public class ProductService : IProductService
             await GetStoreByUserIdAsync(storeUserId);
 
         var product =
-            await _productRepository.GetByIdAsync(id);
+            await _productRepository.GetBySlugAsync(slug);
 
         if (product is null)
         {
@@ -148,7 +176,20 @@ public class ProductService : IProductService
                 "Məhsulun qiyməti 0-dan böyük olmalıdır.");
         }
 
+        var oldName = product.Name;
+
         _mapper.Map(dto, product);
+
+        if (!string.Equals(
+                oldName,
+                dto.Name,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            product.Slug =
+                await GenerateUniqueSlugAsync(
+                    dto.Name,
+                    product.Id);
+        }
 
         await _productRepository.UpdateAsync(product);
 
@@ -156,7 +197,7 @@ public class ProductService : IProductService
     }
 
     public async Task UpdateStockAsync(
-        int id,
+        string slug,
         int storeUserId,
         UpdateStockDto dto)
     {
@@ -164,7 +205,7 @@ public class ProductService : IProductService
             await GetStoreByUserIdAsync(storeUserId);
 
         var product =
-            await _productRepository.GetByIdAsync(id);
+            await _productRepository.GetBySlugAsync(slug);
 
         if (product is null)
         {
@@ -188,14 +229,14 @@ public class ProductService : IProductService
     }
 
     public async Task DeleteAsync(
-        int id,
+        string slug,
         int storeUserId)
     {
         var store =
             await GetStoreByUserIdAsync(storeUserId);
 
         var product =
-            await _productRepository.GetByIdAsync(id);
+            await _productRepository.GetBySlugAsync(slug);
 
         if (product is null)
         {
@@ -212,7 +253,8 @@ public class ProductService : IProductService
         await _productRepository.SaveChangesAsync();
     }
 
-    private async Task<Store> GetStoreByUserIdAsync(int userId)
+    private async Task<Store> GetStoreByUserIdAsync(
+        int userId)
     {
         var store =
             await _storeRepository.GetByUserIdAsync(userId);
@@ -234,6 +276,33 @@ public class ProductService : IProductService
         {
             throw new UnauthorizedAccessException(
                 "Bu məhsulu idarə etmək icazən yoxdur.");
+        }
+    }
+
+    private async Task<string> GenerateUniqueSlugAsync(
+        string value,
+        int? currentProductId = null)
+    {
+        var baseSlug =
+            SlugHelper.Generate(value);
+
+        var slug = baseSlug;
+        var counter = 2;
+
+        while (true)
+        {
+            var existing =
+                await _productRepository
+                    .GetBySlugAsync(slug);
+
+            if (existing is null ||
+                existing.Id == currentProductId)
+            {
+                return slug;
+            }
+
+            slug = $"{baseSlug}-{counter}";
+            counter++;
         }
     }
 }

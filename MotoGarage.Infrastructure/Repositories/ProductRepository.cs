@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MotoGarage.Application.Interfaces.Repository;
+using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Infrastructure.Data;
 
@@ -16,7 +16,17 @@ public class ProductRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Product>> GetByStoreIdAsync(int storeId)
+    public async Task<Product?> GetBySlugAsync(
+        string slug)
+    {
+        return await _context.Products
+            .Include(x => x.Store)
+            .FirstOrDefaultAsync(x =>
+                x.Slug == slug);
+    }
+
+    public async Task<IEnumerable<Product>>
+        GetByStoreIdAsync(int storeId)
     {
         return await _context.Products
             .Where(x =>
@@ -33,21 +43,30 @@ public class ProductRepository
         decimal? maxPrice)
     {
         var query = _context.Products
-            .Where(x => x.IsActive)
+            .Where(x =>
+                x.IsActive &&
+                x.Store.IsActive)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
+            search = search.Trim();
+
             query = query.Where(x =>
                 x.Name.Contains(search) ||
                 (x.Description != null &&
-                 x.Description.Contains(search)));
+                 x.Description.Contains(search)) ||
+                (x.VehicleCompatibility != null &&
+                 x.VehicleCompatibility.Contains(search)));
         }
 
         if (!string.IsNullOrWhiteSpace(brand))
         {
+            brand = brand.Trim();
+
             query = query.Where(x =>
-                x.Brand == brand);
+                x.Brand != null &&
+                x.Brand.Contains(brand));
         }
 
         if (minPrice.HasValue)
@@ -67,7 +86,8 @@ public class ProductRepository
             .ToListAsync();
     }
 
-    public async Task<Product?> GetDetailsByIdAsync(int id)
+    public async Task<Product?> GetDetailsByIdAsync(
+        int id)
     {
         return await _context.Products
             .Include(x => x.Store)

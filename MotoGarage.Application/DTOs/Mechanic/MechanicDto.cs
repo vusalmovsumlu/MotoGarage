@@ -8,6 +8,8 @@ public class MechanicDto
 
     public string BusinessName { get; set; } = null!;
 
+    public string Slug { get; set; } = null!;
+
     public string Description { get; set; } = null!;
 
     public string PhoneNumber { get; set; } = null!;

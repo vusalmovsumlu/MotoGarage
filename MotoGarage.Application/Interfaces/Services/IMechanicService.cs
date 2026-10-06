@@ -6,7 +6,7 @@ public interface IMechanicService
 {
     Task<IEnumerable<MechanicDto>> GetAllAsync();
 
-    Task<MechanicDto> GetByIdAsync(int id);
+    Task<MechanicDto> GetBySlugAsync(string slug);
 
     Task<MechanicDto> GetMyProfileAsync(int userId);
 

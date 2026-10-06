@@ -21,12 +21,7 @@ public class StoreController : ControllerBase
 
     // GET:
     // api/stores
-    //
-    // GET:
-    // api/stores?search=avto
-    //
-    // GET:
-    // api/stores?search=avto&address=Baku
+    // api/stores?search=parts&address=Baku
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search,
@@ -49,12 +44,13 @@ public class StoreController : ControllerBase
         return Ok(stores);
     }
 
-    // GET: api/stores/5
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    // GET: api/stores/motoparts-baku
+    [HttpGet("{slug}")]
+    public async Task<IActionResult> GetBySlug(
+        string slug)
     {
         var store =
-            await _storeService.GetByIdAsync(id);
+            await _storeService.GetBySlugAsync(slug);
 
         return Ok(store);
     }
@@ -84,8 +80,8 @@ public class StoreController : ControllerBase
                 dto);
 
         return CreatedAtAction(
-            nameof(GetById),
-            new { id = store.Id },
+            nameof(GetBySlug),
+            new { slug = store.Slug },
             store);
     }
 

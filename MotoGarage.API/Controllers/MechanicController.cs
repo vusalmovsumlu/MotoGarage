@@ -21,11 +21,6 @@ public class MechanicController : ControllerBase
 
     // GET:
     // api/mechanics
-    //
-    // GET:
-    // api/mechanics?search=elektrik
-    //
-    // GET:
     // api/mechanics?search=elektrik&address=Baku
     [HttpGet]
     public async Task<IActionResult> GetAll(
@@ -49,12 +44,13 @@ public class MechanicController : ControllerBase
         return Ok(mechanics);
     }
 
-    // GET: api/mechanics/5
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    // GET: api/mechanics/eli-auto-service
+    [HttpGet("{slug}")]
+    public async Task<IActionResult> GetBySlug(
+        string slug)
     {
         var mechanic =
-            await _mechanicService.GetByIdAsync(id);
+            await _mechanicService.GetBySlugAsync(slug);
 
         return Ok(mechanic);
     }
@@ -85,8 +81,8 @@ public class MechanicController : ControllerBase
                 dto);
 
         return CreatedAtAction(
-            nameof(GetById),
-            new { id = mechanic.Id },
+            nameof(GetBySlug),
+            new { slug = mechanic.Slug },
             mechanic);
     }
 
@@ -110,8 +106,7 @@ public class MechanicController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        await _mechanicService.DeleteAsync(
-            userId);
+        await _mechanicService.DeleteAsync(userId);
 
         return NoContent();
     }

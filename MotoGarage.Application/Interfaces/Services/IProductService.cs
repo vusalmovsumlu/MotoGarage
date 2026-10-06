@@ -6,9 +6,10 @@ public interface IProductService
 {
     Task<IEnumerable<ProductDto>> GetAllAsync();
 
-    Task<ProductDto> GetByIdAsync(int id);
+    Task<ProductDto> GetBySlugAsync(string slug);
 
-    Task<IEnumerable<ProductDto>> GetByStoreIdAsync(int storeId);
+    Task<IEnumerable<ProductDto>> GetByStoreSlugAsync(
+        string storeSlug);
 
     Task<IEnumerable<ProductDto>> SearchAsync(
         string? search,
@@ -21,16 +22,16 @@ public interface IProductService
         CreateProductDto dto);
 
     Task UpdateAsync(
-        int id,
+        string slug,
         int storeUserId,
         UpdateProductDto dto);
 
     Task UpdateStockAsync(
-        int id,
+        string slug,
         int storeUserId,
         UpdateStockDto dto);
 
     Task DeleteAsync(
-        int id,
+        string slug,
         int storeUserId);
 }

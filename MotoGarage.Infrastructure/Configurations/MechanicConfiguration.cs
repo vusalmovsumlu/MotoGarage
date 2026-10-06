@@ -40,5 +40,12 @@ public class MechanicConfiguration : IEntityTypeConfiguration<Mechanic>
             .WithOne(x => x.Mechanic)
             .HasForeignKey<Mechanic>(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(x => x.Slug)
+    .IsRequired()
+    .HasMaxLength(200);
+
+        builder.HasIndex(x => x.Slug)
+            .IsUnique();
     }
 }

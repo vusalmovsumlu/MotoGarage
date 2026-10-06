@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MotoGarage.Application.Interfaces.Repository;
+using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Infrastructure.Data;
 
@@ -22,7 +22,14 @@ public class StoreRepository
             .FirstOrDefaultAsync(x => x.UserId == userId);
     }
 
-    public async Task<IEnumerable<Store>> GetActiveStoresAsync()
+    public async Task<Store?> GetBySlugAsync(string slug)
+    {
+        return await _context.Stores
+            .FirstOrDefaultAsync(x => x.Slug == slug);
+    }
+
+    public async Task<IEnumerable<Store>>
+        GetActiveStoresAsync()
     {
         return await _context.Stores
             .Where(x => x.IsActive)
@@ -40,6 +47,8 @@ public class StoreRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
+            search = search.Trim();
+
             query = query.Where(x =>
                 x.StoreName.Contains(search) ||
                 x.Description.Contains(search));
@@ -47,6 +56,8 @@ public class StoreRepository
 
         if (!string.IsNullOrWhiteSpace(address))
         {
+            address = address.Trim();
+
             query = query.Where(x =>
                 x.Address.Contains(address));
         }

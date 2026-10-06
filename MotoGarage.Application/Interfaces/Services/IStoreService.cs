@@ -6,7 +6,7 @@ public interface IStoreService
 {
     Task<IEnumerable<StoreDto>> GetAllAsync();
 
-    Task<StoreDto> GetByIdAsync(int id);
+    Task<StoreDto> GetBySlugAsync(string slug);
 
     Task<StoreDto> GetMyProfileAsync(int userId);
 

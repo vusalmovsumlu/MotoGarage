@@ -6,10 +6,15 @@ public class Store
 
     public int UserId { get; set; }
 
-    public string StoreName { get; set; }
-    public string Description { get; set; }
-    public string PhoneNumber { get; set; }
-    public string Address { get; set; }
+    public string StoreName { get; set; } = null!;
+
+    public string Slug { get; set; } = null!;
+
+    public string Description { get; set; } = null!;
+
+    public string PhoneNumber { get; set; } = null!;
+
+    public string Address { get; set; } = null!;
 
     public double Rating { get; set; }
 
@@ -19,9 +24,11 @@ public class Store
 
     public DateTime CreatedAt { get; set; }
 
-    public User User { get; set; }
+    public User User { get; set; } = null!;
 
     public ICollection<Product> Products { get; set; }
+        = new List<Product>();
 
     public ICollection<Order> Orders { get; set; }
+        = new List<Order>();
 }

@@ -13,6 +13,9 @@ using MotoGarage.Domain.Entities;
 using MotoGarage.Infrastructure.Authentication;
 using MotoGarage.Infrastructure.Data;
 using MotoGarage.Infrastructure.Repositories;
+using MotoGarage.Application.Interfaces.Repositories;
+using MotoGarage.Infrastructure.Storage;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -33,7 +36,42 @@ builder.Services
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "MotoGarage API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "JWT token daxil edin."
+        });
+
+    options.AddSecurityRequirement(
+        new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+});
 
 
 // =========================
@@ -307,6 +345,10 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IChatService,
     ChatService>();
+
+builder.Services.AddScoped<
+    IImageService,
+    CloudinaryImageService>();
 
 
 // =========================

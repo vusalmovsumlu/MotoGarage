@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MotoGarage.Application.DTOs.Appointment;
+using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Repository;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Entities;

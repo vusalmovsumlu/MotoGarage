@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using MotoGarage.Application.DTOs.Store;
-using MotoGarage.Application.Interfaces.Repository;
+using MotoGarage.Application.Helpers;
+using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Domain.Exceptions;
@@ -28,10 +29,10 @@ public class StoreService : IStoreService
         return _mapper.Map<IEnumerable<StoreDto>>(stores);
     }
 
-    public async Task<StoreDto> GetByIdAsync(int id)
+    public async Task<StoreDto> GetBySlugAsync(string slug)
     {
         var store =
-            await _storeRepository.GetByIdAsync(id);
+            await _storeRepository.GetBySlugAsync(slug);
 
         if (store is null || !store.IsActive)
         {
@@ -85,6 +86,11 @@ public class StoreService : IStoreService
             _mapper.Map<Store>(dto);
 
         store.UserId = userId;
+
+        store.Slug =
+            await GenerateUniqueSlugAsync(
+                dto.StoreName);
+
         store.Rating = 0;
         store.IsActive = true;
         store.CreatedAt = DateTime.UtcNow;
@@ -109,7 +115,20 @@ public class StoreService : IStoreService
                 "Mağaza profili tapılmadı.");
         }
 
+        var oldStoreName = store.StoreName;
+
         _mapper.Map(dto, store);
+
+        if (!string.Equals(
+                oldStoreName,
+                dto.StoreName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            store.Slug =
+                await GenerateUniqueSlugAsync(
+                    dto.StoreName,
+                    store.Id);
+        }
 
         await _storeRepository.UpdateAsync(store);
 
@@ -127,11 +146,35 @@ public class StoreService : IStoreService
                 "Mağaza profili tapılmadı.");
         }
 
-        // Fiziki silmirik
         store.IsActive = false;
 
         await _storeRepository.UpdateAsync(store);
 
         await _storeRepository.SaveChangesAsync();
+    }
+
+    private async Task<string> GenerateUniqueSlugAsync(
+        string value,
+        int? currentStoreId = null)
+    {
+        var baseSlug = SlugHelper.Generate(value);
+
+        var slug = baseSlug;
+        var counter = 2;
+
+        while (true)
+        {
+            var existing =
+                await _storeRepository.GetBySlugAsync(slug);
+
+            if (existing is null ||
+                existing.Id == currentStoreId)
+            {
+                return slug;
+            }
+
+            slug = $"{baseSlug}-{counter}";
+            counter++;
+        }
     }
 }

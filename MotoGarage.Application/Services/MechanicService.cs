@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using MotoGarage.Application.DTOs.Mechanic;
-using MotoGarage.Application.Interfaces.Repository;
+using MotoGarage.Application.Helpers;
+using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Domain.Exceptions;
@@ -28,12 +29,13 @@ public class MechanicService : IMechanicService
         return _mapper.Map<IEnumerable<MechanicDto>>(mechanics);
     }
 
-    public async Task<MechanicDto> GetByIdAsync(int id)
+    public async Task<MechanicDto> GetBySlugAsync(
+        string slug)
     {
         var mechanic =
-            await _mechanicRepository.GetByIdAsync(id);
+            await _mechanicRepository.GetBySlugAsync(slug);
 
-        if (mechanic is null)
+        if (mechanic is null || !mechanic.IsActive)
         {
             throw new KeyNotFoundException(
                 "Usta tapılmadı.");
@@ -42,7 +44,8 @@ public class MechanicService : IMechanicService
         return _mapper.Map<MechanicDto>(mechanic);
     }
 
-    public async Task<MechanicDto> GetMyProfileAsync(int userId)
+    public async Task<MechanicDto> GetMyProfileAsync(
+        int userId)
     {
         var mechanic =
             await _mechanicRepository.GetByUserIdAsync(userId);
@@ -85,6 +88,11 @@ public class MechanicService : IMechanicService
             _mapper.Map<Mechanic>(dto);
 
         mechanic.UserId = userId;
+
+        mechanic.Slug =
+            await GenerateUniqueSlugAsync(
+                dto.BusinessName);
+
         mechanic.Rating = 0;
         mechanic.IsActive = true;
         mechanic.CreatedAt = DateTime.UtcNow;
@@ -109,7 +117,20 @@ public class MechanicService : IMechanicService
                 "Usta profili tapılmadı.");
         }
 
+        var oldBusinessName = mechanic.BusinessName;
+
         _mapper.Map(dto, mechanic);
+
+        if (!string.Equals(
+                oldBusinessName,
+                dto.BusinessName,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            mechanic.Slug =
+                await GenerateUniqueSlugAsync(
+                    dto.BusinessName,
+                    mechanic.Id);
+        }
 
         await _mechanicRepository.UpdateAsync(mechanic);
 
@@ -132,5 +153,31 @@ public class MechanicService : IMechanicService
         await _mechanicRepository.UpdateAsync(mechanic);
 
         await _mechanicRepository.SaveChangesAsync();
+    }
+
+    private async Task<string> GenerateUniqueSlugAsync(
+        string value,
+        int? currentMechanicId = null)
+    {
+        var baseSlug = SlugHelper.Generate(value);
+
+        var slug = baseSlug;
+        var counter = 2;
+
+        while (true)
+        {
+            var existing =
+                await _mechanicRepository
+                    .GetBySlugAsync(slug);
+
+            if (existing is null ||
+                existing.Id == currentMechanicId)
+            {
+                return slug;
+            }
+
+            slug = $"{baseSlug}-{counter}";
+            counter++;
+        }
     }
 }

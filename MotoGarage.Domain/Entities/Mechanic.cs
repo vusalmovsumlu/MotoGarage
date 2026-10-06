@@ -6,10 +6,15 @@ public class Mechanic
 
     public int UserId { get; set; }
 
-    public string BusinessName { get; set; }
-    public string Description { get; set; }
-    public string PhoneNumber { get; set; }
-    public string Address { get; set; }
+    public string BusinessName { get; set; } = null!;
+
+    public string Slug { get; set; } = null!;
+
+    public string Description { get; set; } = null!;
+
+    public string PhoneNumber { get; set; } = null!;
+
+    public string Address { get; set; } = null!;
 
     public decimal? HourlyRate { get; set; }
 
@@ -20,9 +25,12 @@ public class Mechanic
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
-    public User User { get; set; }
+
+    public User User { get; set; } = null!;
 
     public ICollection<Appointment> Appointments { get; set; }
+        = new List<Appointment>();
 
     public ICollection<Review> Reviews { get; set; }
+        = new List<Review>();
 }

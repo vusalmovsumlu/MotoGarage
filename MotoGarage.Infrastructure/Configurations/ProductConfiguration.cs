@@ -38,5 +38,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .WithMany(x => x.Products)
             .HasForeignKey(x => x.StoreId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(x => x.Slug)
+    .IsRequired()
+    .HasMaxLength(200);
+
+        builder.HasIndex(x => x.Slug)
+            .IsUnique();
     }
 }

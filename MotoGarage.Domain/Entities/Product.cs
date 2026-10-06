@@ -6,7 +6,10 @@ public class Product
 
     public int StoreId { get; set; }
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
+
+    public string Slug { get; set; } = null!;
+
     public string? Description { get; set; }
 
     public decimal Price { get; set; }
@@ -23,7 +26,8 @@ public class Product
 
     public DateTime CreatedAt { get; set; }
 
-    public Store Store { get; set; }
+    public Store Store { get; set; } = null!;
 
     public ICollection<OrderItem> OrderItems { get; set; }
+        = new List<OrderItem>();
 }
