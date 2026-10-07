@@ -1,16 +1,59 @@
-# React + Vite
+# MotoGarage frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 və Vite ilə hazırlanmış Azərbaycan dilli interfeys. Avtomobil və motosikletlər üçün User, Mechanic, Store və Admin iş masaları mövcuddur. Dizayn quiet-workspace-ui skill-in Inter şriftindən, mavi-boz palitrasından və iş masası düzülüşündən istifadə edir; açıq və tünd tema dəstəklənir.
 
-Currently, two official plugins are available:
+## Lokal işə salma
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Repo kökündə:
 
-## React Compiler
+```powershell
+dotnet run --project MotoGarage.API --launch-profile https
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Frontend qovluğunda:
 
-## Expanding the Oxlint configuration
+```powershell
+npm ci
+npm run dev -- --host 127.0.0.1
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+İnterfeys: http://127.0.0.1:5173. Vite `/api` və `/hubs` sorğularını `https://localhost:7242` ünvanına ötürür. Lokal inkişaf proxy-si development sertifikatını qəbul edir; production üçün etibarlı HTTPS sertifikatı lazımdır.
+
+`.env.example` əsasında `.env.local` yaradıla bilər. `VITE_GOOGLE_CLIENT_ID` yalnız Google-un açıq client ID-sidir. Google Console-da frontend origin-i qeyd edilməlidir. Google client secret, JWT signing key, SMTP, DB və Cloudinary secret frontend-ə yerləşdirilməməlidir: `VITE_*` dəyişənləri istifadəçinin brauzerinə ötürülür.
+
+## Əhatə olunan axınlar
+
+- Giriş, qeydiyyat, email OTP, kodun təkrar göndərilməsi, Google giriş, refresh-token rotasiyası və çıxış.
+- Qaraj CRUD, Car/Motorcycle seçimi, yanacaq və sərfiyyat göstəriciləri, xərc və servis qeydləri, xatırlatmalar.
+- Usta, mağaza və məhsul kataloqları, axtarış/filterlər, slug üzrə detallar və rəylər.
+- Görüş yaratma/ləğv etmə, ustanın qəbul/rədd/tamamlama əməliyyatları.
+- Bir mağazaya aid səbət, sifariş və mağazanın icazə verilən status keçidləri, məhsul/stok idarəetməsi.
+- Biznes profili, istifadəçi profili, bildirişlər, admin statistikası və istifadəçi bloklama/açma.
+- JWT ilə SignalR chat, yenidən qoşulma, mesajların ID üzrə təkrarlanmasının qarşısının alınması, HTTP göndərmə/oxundu fallback-i.
+
+Runtime məlumatları API-dən gəlir. JWT-dəki rol menyunu müəyyən edir; icazə və ownership üçün son qərarı backend verir. Tokenlər tabın sessionStorage yaddaşında saxlanır. Eyni səhifədə paralel refresh sorğuları birləşdirilir; gecikmiş refresh cavabı çıxış edilmiş sessiyanı bərpa etmir. Native dialog-lar, klaviatura fokusları, forma limitləri, upload zamanı save/close kilidi və destructive əməliyyatlar üçün təsdiq var.
+
+## Yoxlama
+
+```powershell
+npm run lint
+npm run build
+npx playwright install chromium
+npm test
+```
+
+`tests/fixtures.js` yalnız browser testlərinə aid açıq fixture-lərdir. Testlər rol səhifələrini, avtomobil/motosiklet formalarını, API payload-larını, səbət qaydalarını, status keçidlərini, OTP, admin təsdiqi, chat fallback, boş/xəta halları və 1440/1000/799/390/320 px ölçülərində hər iki temanı yoxlayır. Screenshot-lar `test-results/` altında saxlanır. Real API ilə login xətası/proxy ayrıca yoxlanır; testlərdə real hesab yaradılmır və istifadəçi məlumatları dəyişdirilmir.
+
+Production-dan əvvəl real test hesabları ilə hər rolun girişini, SMTP OTP-ni, Google girişini, Cloudinary upload-u və iki ayrı hesab arasında SignalR mesajlaşmasını yoxlayın. Sifariş/stok və görüş əməliyyatlarının eyni vaxtda müxtəlif brauzerlərdə icrasını backend ilə birlikdə yoxlayın. Fixture testləri bu inteqrasiyaların işlək olduğunu təsdiqləmir.
+
+## Production yerləşdirməsi
+
+`npm run build` nəticəsi `dist/` qovluğudur. Hash routing tətbiq olunur. Eyni origin-də `/api/*` backend-ə, `/hubs/*` isə WebSocket upgrade dəstəyi ilə backend-ə yönləndirilməlidir. Ayrı origin üçün `VITE_API_URL`/`VITE_HUB_URL` və backend-in CORS origin-lərini uyğunlaşdırın. Vite development proxy-si dist daxilində işləmir. HTTPS, təhlükəsizlik başlıqları və CSP-ni Google GSI/Cloudinary domenləri ilə uyğun qurun.
+
+## Vizual mənbələr
+
+API məlumatları yüklənərkən səhifəyə uyğun skeleton göstərilir: iş masası, kartlar, detal, profil, forma, siyahı, admin cədvəli və chat. Skeleton animasiyası reduced-motion seçiminə uyğun dayanır. Rəy yaratma və redaktə formasında [React Bits Peek Rating](https://reactbits.dev/micro/peek-rating) istifadə edilir; 1–5 ulduz seçimi mouse, touch və klaviatura ilə işləyir. Rəy kartlarında həmin komponentin read-only variantı var. Komponent mövcud Lucide ikonlarına, Azərbaycan dilinə və tema rənglərinə uyğunlaşdırılıb; lisenziya `public/licenses/react-bits.txt` daxilində saxlanır.
+
+Inter şriftləri `public/fonts/LICENSE` altında lisenziyalanır. Schedule, homework və settings ikonları istifadəçinin verdiyi skill-dəndir. `garage.png`, `mechanic.png`, `market.png` builtin imagegen vasitəsilə yaradılıb. Qaraj ikonu istifadəçinin təqdim etdiyi motosiklet fotosuna əsasən image edit rejimində yenilənib: öndən baxış, qara aerodinamik korpus, iti ağ LED faralar və qızılı amortizatorlar; mavi həcmli tile və şəffaf fon saxlanıb. Digər prompt mövzuları: teal tile üzərində çarpaz servis alətləri; amber tile üzərində dişli və alış-veriş çantası. Heç bir əlavə mətn/brend nişanı yaradılmayıb. Fayllar `public/icons/` altındadır.
+
+SignalR inteqrasiyası üçün [Microsoft sənədləri](https://learn.microsoft.com/en-us/aspnet/core/signalr/javascript-client?view=aspnetcore-8.0), Google giriş üçün [Google GSI API](https://developers.google.com/identity/gsi/web/reference/js-reference) istifadə olunub.

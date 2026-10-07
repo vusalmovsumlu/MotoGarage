@@ -7,17 +7,24 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "format": "prettier --write src tests *.js index.html",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@microsoft/signalr": "^8.0.29",
+    "lucide-react": "^1.52.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "prettier": "^3.9.9",
     "vite": "^8.3.0"
   }
 }
