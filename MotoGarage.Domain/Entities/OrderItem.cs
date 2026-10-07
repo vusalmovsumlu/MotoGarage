@@ -14,7 +14,7 @@ public class OrderItem
 
     public decimal TotalPrice { get; set; }
 
-    public Order Order { get; set; }
+    public Order Order { get; set; } = null!;
 
-    public Product Product { get; set; }
+    public Product Product { get; set; } = null!;
 }

@@ -8,6 +8,7 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
 {
     public void Configure(EntityTypeBuilder<Review> builder)
     {
+        builder.HasIndex(x => new { x.UserId, x.MechanicId }).IsUnique();
         builder.Property(x => x.Rating)
             .IsRequired();
 

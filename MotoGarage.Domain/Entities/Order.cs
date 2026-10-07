@@ -6,6 +6,8 @@ public class Order
 {
     public int Id { get; set; }
 
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public int UserId { get; set; }
 
     public int StoreId { get; set; }
@@ -16,9 +18,9 @@ public class Order
 
     public DateTime CreatedAt { get; set; }
 
-    public User User { get; set; }
+    public User User { get; set; } = null!;
 
-    public Store Store { get; set; }
+    public Store Store { get; set; } = null!;
 
-    public ICollection<OrderItem> OrderItems { get; set; }
+    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

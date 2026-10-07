@@ -4,6 +4,8 @@ public class EmailVerificationCode
 {
     public int Id { get; set; }
 
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public int UserId { get; set; }
 
     public string CodeHash { get; set; } = null!;

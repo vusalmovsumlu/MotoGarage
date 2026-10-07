@@ -19,7 +19,7 @@ public class ExpenseRepository
     public async Task<IEnumerable<Expense>> GetByVehicleIdAsync(
         int vehicleId)
     {
-        return await _context.Expenses
+        return await _context.Expenses.AsNoTracking()
             .Where(x => x.VehicleId == vehicleId)
             .OrderByDescending(x => x.ExpenseDate)
             .ToListAsync();
@@ -30,11 +30,11 @@ public class ExpenseRepository
         DateTime startDate,
         DateTime endDate)
     {
-        return await _context.Expenses
+        return await _context.Expenses.AsNoTracking()
             .Where(x =>
                 x.VehicleId == vehicleId &&
                 x.ExpenseDate >= startDate &&
-                x.ExpenseDate <= endDate)
+                x.ExpenseDate < endDate)
             .OrderByDescending(x => x.ExpenseDate)
             .ToListAsync();
     }

@@ -22,5 +22,5 @@ public interface IAuthService
     Task<AuthResponseDto> RefreshTokenAsync(
         RefreshTokenRequestDto dto);
 
-    Task LogoutAsync(string refreshToken);
+    Task LogoutAsync(string refreshToken, int userId);
 }

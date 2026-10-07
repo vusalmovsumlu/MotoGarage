@@ -9,6 +9,8 @@ public class User : IdentityUser<int>
 
     public UserRole Role { get; set; }
 
+    public bool IsAdminBlocked { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public ICollection<Vehicle> Vehicles { get; set; }

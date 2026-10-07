@@ -12,9 +12,9 @@ public class FuelRecord
 
     public decimal TotalPrice { get; set; }
 
-    public int Mileage { get; set; }
+    public int Kilometer { get; set; }
 
     public DateTime FuelDate { get; set; }
 
-    public Vehicle Vehicle { get; set; }
+    public Vehicle Vehicle { get; set; } = null!;
 }

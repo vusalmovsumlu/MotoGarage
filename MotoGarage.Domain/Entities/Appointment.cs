@@ -6,6 +6,8 @@ public class Appointment
 {
     public int Id { get; set; }
 
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public int UserId { get; set; }
 
     public int MechanicId { get; set; }
@@ -21,9 +23,9 @@ public class Appointment
     public DateTime CreatedAt { get; set; }
 
 
-    public User User { get; set; }
+    public User User { get; set; } = null!;
 
-    public Mechanic Mechanic { get; set; }
+    public Mechanic Mechanic { get; set; } = null!;
 
-    public Vehicle Vehicle { get; set; }
+    public Vehicle Vehicle { get; set; } = null!;
 }

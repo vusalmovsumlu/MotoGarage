@@ -10,13 +10,19 @@ namespace MotoGarage.Application.Services;
 
 public class StoreService : IStoreService
 {
+    private readonly IImageService _images;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IStoreRepository _storeRepository;
     private readonly IMapper _mapper;
 
     public StoreService(
         IStoreRepository storeRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        IImageService images)
     {
+        _images = images;
+        _unitOfWork = unitOfWork;
         _storeRepository = storeRepository;
         _mapper = mapper;
     }
@@ -73,84 +79,95 @@ public class StoreService : IStoreService
         int userId,
         CreateStoreDto dto)
     {
-        var existingStore =
-            await _storeRepository.GetByUserIdAsync(userId);
-
-        if (existingStore is not null)
+        return await SlugHelper.RetryAsync(async () =>
         {
-            throw new DomainException(
-                "Bu istifadəçi üçün artıq mağaza profili mövcuddur.");
-        }
+            return await _unitOfWork.ExecuteAsync(async () =>
+            {
+                DtoValidation.Validate(dto);
+                var existingStore =
+                    await _storeRepository.GetByUserIdAsync(userId);
 
-        var store =
-            _mapper.Map<Store>(dto);
+                if (existingStore is not null)
+                {
+                    throw new DomainException(
+                        "Bu istifadəçi üçün artıq mağaza profili mövcuddur.");
+                }
+                await _images.ValidateOwnershipAsync(userId, dto.ImagePublicId, dto.ImageUrl);
 
-        store.UserId = userId;
 
-        store.Slug =
-            await GenerateUniqueSlugAsync(
-                dto.StoreName);
+                var store =
+                    _mapper.Map<Store>(dto);
 
-        store.Rating = 0;
-        store.IsActive = true;
-        store.CreatedAt = DateTime.UtcNow;
+                store.UserId = userId;
 
-        await _storeRepository.AddAsync(store);
+                store.Slug =
+                    await GenerateUniqueSlugAsync(
+                        dto.StoreName);
 
-        await _storeRepository.SaveChangesAsync();
+                store.Rating = 0;
+                store.IsActive = true;
+                store.CreatedAt = DateTime.UtcNow;
 
-        return _mapper.Map<StoreDto>(store);
+                await _storeRepository.AddAsync(store);
+
+                await _storeRepository.SaveChangesAsync();
+
+                return _mapper.Map<StoreDto>(store);
+            });
+        }, "IX_Stores_Slug");
     }
 
     public async Task UpdateAsync(
         int userId,
         UpdateStoreDto dto)
     {
-        var store =
-            await _storeRepository.GetByUserIdAsync(userId);
-
-        if (store is null)
+        string? previousImage = null;
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Mağaza profili tapılmadı.");
-        }
+            DtoValidation.Validate(dto);
+            var store =
+                await _storeRepository.GetByUserIdAsync(userId);
 
-        var oldStoreName = store.StoreName;
+            if (store is null)
+            {
+                throw new KeyNotFoundException(
+                    "Mağaza profili tapılmadı.");
+            }
 
-        _mapper.Map(dto, store);
+            previousImage = store.ImagePublicId;
+            if (dto.ImagePublicId is null && dto.ImageUrl == store.ImageUrl)
+                dto.ImagePublicId = previousImage;
+            await _images.ValidateOwnershipAsync(userId, dto.ImagePublicId, dto.ImageUrl);
+            _mapper.Map(dto, store);
 
-        if (!string.Equals(
-                oldStoreName,
-                dto.StoreName,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            store.Slug =
-                await GenerateUniqueSlugAsync(
-                    dto.StoreName,
-                    store.Id);
-        }
 
-        await _storeRepository.UpdateAsync(store);
 
-        await _storeRepository.SaveChangesAsync();
+            await _storeRepository.UpdateAsync(store);
+
+            await _storeRepository.SaveChangesAsync();
+        });
+        await _images.DeleteUnusedAsync(previousImage, userId);
     }
 
     public async Task DeleteAsync(int userId)
     {
-        var store =
-            await _storeRepository.GetByUserIdAsync(userId);
-
-        if (store is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Mağaza profili tapılmadı.");
-        }
+            var store =
+                await _storeRepository.GetByUserIdAsync(userId);
 
-        store.IsActive = false;
+            if (store is null)
+            {
+                throw new KeyNotFoundException(
+                    "Mağaza profili tapılmadı.");
+            }
 
-        await _storeRepository.UpdateAsync(store);
+            store.IsActive = false;
 
-        await _storeRepository.SaveChangesAsync();
+            await _storeRepository.UpdateAsync(store);
+
+            await _storeRepository.SaveChangesAsync();
+        });
     }
 
     private async Task<string> GenerateUniqueSlugAsync(

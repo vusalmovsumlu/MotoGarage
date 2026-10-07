@@ -78,8 +78,8 @@ public static class AdminSeeder
 
         if (user.Role != UserRole.Admin)
         {
-            user.Role = UserRole.Admin;
-            changed = true;
+            throw new InvalidOperationException(
+                "Admin:Email mövcud qeyri-admin hesaba aiddir. Avtomatik rol yüksəltməsi qadağandır.");
         }
 
         if (!user.EmailConfirmed)

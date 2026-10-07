@@ -19,7 +19,7 @@ public class ReminderRepository
     public async Task<IEnumerable<Reminder>> GetByVehicleIdAsync(
         int vehicleId)
     {
-        return await _context.Reminders
+        return await _context.Reminders.AsNoTracking()
             .Where(x => x.VehicleId == vehicleId)
             .OrderBy(x => x.ReminderDate)
             .ToListAsync();
@@ -28,7 +28,7 @@ public class ReminderRepository
     public async Task<IEnumerable<Reminder>> GetActiveRemindersAsync(
         int vehicleId)
     {
-        return await _context.Reminders
+        return await _context.Reminders.AsNoTracking()
             .Where(x =>
                 x.VehicleId == vehicleId &&
                 !x.IsCompleted)

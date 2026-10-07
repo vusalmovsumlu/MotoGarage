@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Order;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Repository;
@@ -11,6 +12,8 @@ namespace MotoGarage.Application.Services;
 
 public class OrderService : IOrderService
 {
+    private readonly INotificationService _notifications;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IOrderRepository _orderRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
@@ -20,8 +23,12 @@ public class OrderService : IOrderService
         IOrderRepository orderRepository,
         IProductRepository productRepository,
         IStoreRepository storeRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        INotificationService notifications)
     {
+        _notifications = notifications;
+        _unitOfWork = unitOfWork;
         _orderRepository = orderRepository;
         _productRepository = productRepository;
         _storeRepository = storeRepository;
@@ -87,7 +94,7 @@ public class OrderService : IOrderService
 
         if (!isCustomer && !isStoreOwner)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu sifarişə baxmaq icazən yoxdur.");
         }
 
@@ -102,115 +109,122 @@ public class OrderService : IOrderService
         int userId,
         CreateOrderDto dto)
     {
-        if (dto.Items is null || dto.Items.Count == 0)
+        DtoValidation.Validate(dto);
+        return await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new DomainException(
-                "Sifarişdə ən azı bir məhsul olmalıdır.");
-        }
-
-        var productIds =
-            dto.Items
-                .Select(x => x.ProductId)
-                .ToList();
-
-        if (productIds.Count != productIds.Distinct().Count())
-        {
-            throw new DomainException(
-                "Eyni məhsulu sifarişə bir neçə dəfə əlavə etmək olmaz.");
-        }
-
-        var orderItems = new List<OrderItem>();
-
-        int? storeId = null;
-
-        decimal totalAmount = 0;
-
-        foreach (var itemDto in dto.Items)
-        {
-            if (itemDto.Quantity <= 0)
+            DtoValidation.Validate(dto);
+            if (dto.Items is null || dto.Items.Count == 0)
             {
                 throw new DomainException(
-                    "Məhsul sayı 0-dan böyük olmalıdır.");
+                    "Sifarişdə ən azı bir məhsul olmalıdır.");
             }
 
-            var product =
-                await _productRepository
-                    .GetByIdAsync(itemDto.ProductId);
+            var productIds =
+                dto.Items
+                    .Select(x => x.ProductId)
+                    .ToList();
 
-            if (product is null || !product.IsActive)
+            if (productIds.Count != productIds.Distinct().Count())
             {
-                throw new KeyNotFoundException(
-                    $"Məhsul tapılmadı. Id: {itemDto.ProductId}");
+                throw new DomainException(
+                    "Eyni məhsulu sifarişə bir neçə dəfə əlavə etmək olmaz.");
             }
 
-            // Bir sifariş yalnız bir mağazaya aid olsun
+            var orderItems = new List<OrderItem>();
+
+            int? storeId = null;
+
+            decimal totalAmount = 0;
+
+            foreach (var itemDto in dto.Items.OrderBy(x => x.ProductId))
+            {
+                if (itemDto.Quantity <= 0)
+                {
+                    throw new DomainException(
+                        "Məhsul sayı 0-dan böyük olmalıdır.");
+                }
+
+                var product =
+                    await _productRepository
+                        .GetByIdAsync(itemDto.ProductId);
+
+                if (product is null || !product.IsActive)
+                {
+                    throw new KeyNotFoundException(
+                        $"Məhsul tapılmadı. Id: {itemDto.ProductId}");
+                }
+
+                // Bir sifariş yalnız bir mağazaya aid olsun
+                if (storeId is null)
+                {
+                    storeId = product.StoreId;
+                }
+                else if (storeId.Value != product.StoreId)
+                {
+                    throw new DomainException(
+                        "Bir sifarişdə yalnız eyni mağazanın məhsulları ola bilər.");
+                }
+
+                if (product.Stock < itemDto.Quantity)
+                {
+                    throw new DomainException(
+                        $"{product.Name} üçün kifayət qədər stok yoxdur.");
+                }
+
+                var itemTotal =
+                    product.Price * itemDto.Quantity;
+
+                orderItems.Add(new OrderItem
+                {
+                    ProductId = product.Id,
+                    Quantity = itemDto.Quantity,
+                    UnitPrice = product.Price,
+                    TotalPrice = itemTotal
+                });
+
+                totalAmount += itemTotal;
+
+                // stok azaldılır
+                product.Stock -= itemDto.Quantity;
+
+                await _productRepository.UpdateAsync(product);
+            }
+
             if (storeId is null)
             {
-                storeId = product.StoreId;
+                throw new DomainException(
+                    "Sifariş üçün mağaza müəyyən edilə bilmədi.");
             }
-            else if (storeId.Value != product.StoreId)
+
+            var store =
+                await _storeRepository.GetByIdAsync(storeId.Value);
+
+            if (store is null || !store.IsActive)
             {
                 throw new DomainException(
-                    "Bir sifarişdə yalnız eyni mağazanın məhsulları ola bilər.");
+                    "Mağaza aktiv deyil.");
             }
 
-            if (product.Stock < itemDto.Quantity)
+            var order = new Order
             {
-                throw new DomainException(
-                    $"{product.Name} üçün kifayət qədər stok yoxdur.");
-            }
+                UserId = userId,
+                StoreId = storeId.Value,
+                TotalAmount = totalAmount,
+                Status = OrderStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+                OrderItems = orderItems
+            };
 
-            var itemTotal =
-                product.Price * itemDto.Quantity;
+            await _orderRepository.AddAsync(order);
 
-            orderItems.Add(new OrderItem
-            {
-                ProductId = product.Id,
-                Quantity = itemDto.Quantity,
-                UnitPrice = product.Price,
-                TotalPrice = itemTotal
-            });
+            // Eyni DbContext olduğu üçün order və stock dəyişiklikləri
+            // bir SaveChanges ilə DB-yə yazılır.
+            await _orderRepository.SaveChangesAsync();
 
-            totalAmount += itemTotal;
-
-            // stok azaldılır
-            product.Stock -= itemDto.Quantity;
-
-            await _productRepository.UpdateAsync(product);
-        }
-
-        if (storeId is null)
-        {
-            throw new DomainException(
-                "Sifariş üçün mağaza müəyyən edilə bilmədi.");
-        }
-
-        var store =
-            await _storeRepository.GetByIdAsync(storeId.Value);
-
-        if (store is null || !store.IsActive)
-        {
-            throw new DomainException(
-                "Mağaza aktiv deyil.");
-        }
-
-        var order = new Order
-        {
-            UserId = userId,
-            StoreId = storeId.Value,
-            TotalAmount = totalAmount,
-            Status = OrderStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
-            OrderItems = orderItems
-        };
-
-        await _orderRepository.AddAsync(order);
-
-        // Eyni DbContext olduğu üçün order və stock dəyişiklikləri
-        // bir SaveChanges ilə DB-yə yazılır.
-        await _orderRepository.SaveChangesAsync();
-
-        return _mapper.Map<OrderDto>(order);
+            await _notifications.CreateAsync(store.UserId, NotificationType.Order,
+                "Yeni sifariş", $"Yeni sifariş yaradıldı: #{order.Id}.", $"/orders/{order.Id}");
+            return _mapper.Map<OrderDto>(order);
+        });
     }
 
     // =========================
@@ -222,33 +236,41 @@ public class OrderService : IOrderService
         int storeUserId,
         UpdateOrderStatusDto dto)
     {
-        var store =
-            await GetStoreByUserIdAsync(storeUserId);
-
-        var order =
-            await _orderRepository.GetByIdAsync(orderId);
-
-        if (order is null)
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Sifariş tapılmadı.");
-        }
+            var store =
+                await GetStoreByUserIdAsync(storeUserId);
 
-        if (order.StoreId != store.Id)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu sifariş sənin mağazana aid deyil.");
-        }
+            var order =
+                await _orderRepository.GetDetailsByIdAsync(orderId);
 
-        ValidateStatusTransition(
-            order.Status,
-            dto.Status);
+            if (order is null)
+            {
+                throw new KeyNotFoundException(
+                    "Sifariş tapılmadı.");
+            }
 
-        order.Status = dto.Status;
+            if (order.StoreId != store.Id)
+            {
+                throw new ForbiddenException(
+                    "Bu sifariş sənin mağazana aid deyil.");
+            }
 
-        await _orderRepository.UpdateAsync(order);
+            ValidateStatusTransition(
+                order.Status,
+                dto.Status);
 
-        await _orderRepository.SaveChangesAsync();
+            if (dto.Status == OrderStatus.Cancelled)
+                await RestoreStockAsync(order);
+            order.Status = dto.Status;
+
+            await _orderRepository.UpdateAsync(order);
+
+            await _orderRepository.SaveChangesAsync();
+            await _notifications.CreateAsync(order.UserId, NotificationType.Order,
+                "Sifariş statusu", $"Sifariş #{order.Id}: {order.Status}.", $"/orders/{order.Id}");
+        });
     }
 
     // =========================
@@ -259,49 +281,37 @@ public class OrderService : IOrderService
         int orderId,
         int userId)
     {
-        var order =
-            await _orderRepository.GetDetailsByIdAsync(orderId);
-
-        if (order is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Sifariş tapılmadı.");
-        }
+            var order =
+                await _orderRepository.GetDetailsByIdAsync(orderId);
 
-        if (order.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu sifariş sənə aid deyil.");
-        }
-
-        if (order.Status != OrderStatus.Pending &&
-            order.Status != OrderStatus.Confirmed)
-        {
-            throw new DomainException(
-                "Bu mərhələdə sifarişi ləğv etmək olmaz.");
-        }
-
-        // Məhsulları stoka geri qaytarırıq
-        foreach (var item in order.OrderItems)
-        {
-            var product =
-                await _productRepository
-                    .GetByIdAsync(item.ProductId);
-
-            if (product is not null)
+            if (order is null)
             {
-                product.Stock += item.Quantity;
-
-                await _productRepository
-                    .UpdateAsync(product);
+                throw new KeyNotFoundException(
+                    "Sifariş tapılmadı.");
             }
-        }
 
-        order.Status = OrderStatus.Cancelled;
+            if (order.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu sifariş sənə aid deyil.");
+            }
 
-        await _orderRepository.UpdateAsync(order);
+            if (order.Status == OrderStatus.Cancelled) return;
+            if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Confirmed)
+                throw new DomainException("Bu mərhələdə sifarişi ləğv etmək olmaz.");
+            ValidateStatusTransition(order.Status, OrderStatus.Cancelled);
+            await RestoreStockAsync(order);
 
-        await _orderRepository.SaveChangesAsync();
+            order.Status = OrderStatus.Cancelled;
+
+            await _orderRepository.UpdateAsync(order);
+
+            await _orderRepository.SaveChangesAsync();
+            await _notifications.CreateAsync(order.UserId, NotificationType.Order,
+                "Sifariş statusu", $"Sifariş #{order.Id}: {order.Status}.", $"/orders/{order.Id}");
+        });
     }
 
     // =========================
@@ -316,42 +326,27 @@ public class OrderService : IOrderService
 
         if (store is null || !store.IsActive)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Aktiv mağaza profilin yoxdur.");
         }
 
         return store;
     }
 
-    private static void ValidateStatusTransition(
-        OrderStatus currentStatus,
-        OrderStatus newStatus)
+    private static void ValidateStatusTransition(OrderStatus currentStatus, OrderStatus newStatus)
     {
-        var isValid = currentStatus switch
+        StatusTransitions.Validate(currentStatus, newStatus);
+    }
+
+    private async Task RestoreStockAsync(Order order)
+    {
+        foreach (var item in order.OrderItems.OrderBy(x => x.ProductId))
         {
-            OrderStatus.Pending =>
-                newStatus == OrderStatus.Confirmed ||
-                newStatus == OrderStatus.Cancelled,
-
-            OrderStatus.Confirmed =>
-                newStatus == OrderStatus.Preparing ||
-                newStatus == OrderStatus.Cancelled,
-
-            OrderStatus.Preparing =>
-                newStatus == OrderStatus.Shipped ||
-                newStatus == OrderStatus.Cancelled,
-
-            OrderStatus.Shipped =>
-                newStatus == OrderStatus.Completed,
-
-            _ => false
-        };
-
-        if (!isValid)
-        {
-            throw new DomainException(
-                $"Sifariş statusu {currentStatus} statusundan " +
-                $"{newStatus} statusuna dəyişdirilə bilməz.");
+            var product = await _productRepository.GetByIdAsync(item.ProductId)
+                ?? throw new ConflictException("Sifariş məhsulu tapılmadı.");
+            if (product.Stock > int.MaxValue - item.Quantity)
+                throw new ConflictException("Stokun maksimum həddi keçilir.");
+            product.Stock += item.Quantity;
         }
     }
 }

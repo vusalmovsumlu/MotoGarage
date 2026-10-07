@@ -1,4 +1,5 @@
-﻿using Google.Apis.Auth;
+﻿using MotoGarage.Application.Helpers;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using MotoGarage.Application.DTOs.Auth;
@@ -11,11 +12,14 @@ using MotoGarage.Domain.Enums;
 using MotoGarage.Domain.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace MotoGarage.Infrastructure.Authentication;
 
 public class AuthService : IAuthService
 {
+    private readonly Microsoft.Extensions.Logging.ILogger<AuthService> _logger;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<User> _userManager;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
@@ -29,8 +33,12 @@ public class AuthService : IAuthService
         IRefreshTokenRepository refreshTokenRepository,
         IEmailVerificationCodeRepository emailVerificationCodeRepository,
         IEmailService emailService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IUnitOfWork unitOfWork,
+        Microsoft.Extensions.Logging.ILogger<AuthService> logger)
     {
+        _logger = logger;
+        _unitOfWork = unitOfWork;
         _userManager = userManager;
         _tokenService = tokenService;
         _refreshTokenRepository = refreshTokenRepository;
@@ -46,6 +54,7 @@ public class AuthService : IAuthService
     public async Task<RegisterResponseDto> RegisterAsync(
         RegisterDto dto)
     {
+        DtoValidation.Validate(dto);
         if (dto.Role == UserRole.Admin)
         {
             throw new DomainException(
@@ -60,6 +69,8 @@ public class AuthService : IAuthService
                 "İstifadəçi rolu düzgün deyil.");
         }
 
+        dto.Email = dto.Email.Trim();
+        dto.FullName = dto.FullName.Trim();
         var existingUser =
             await _userManager.FindByEmailAsync(dto.Email);
 
@@ -95,13 +106,14 @@ public class AuthService : IAuthService
             ThrowIdentityErrors(result);
         }
 
-        await CreateAndSendVerificationCodeAsync(user);
+        var sent = await CreateAndSendVerificationCodeAsync(user);
 
         return new RegisterResponseDto
         {
             Email = user.Email!,
             Message =
-                "Qeydiyyat başladı. Email ünvanınıza təsdiqləmə kodu göndərildi.",
+                sent ? "Qeydiyyat başladı. Email ünvanınıza təsdiqləmə kodu göndərildi."
+                    : "Hesab yaradıldı, email göndərilmədi. Resend endpoint ilə təsdiqləməni davam etdir.",
             ExpiresInMinutes = 10
         };
     }
@@ -110,148 +122,52 @@ public class AuthService : IAuthService
     // Verify Email
     // =========================
 
-    public async Task<AuthResponseDto> VerifyEmailAsync(
-        VerifyEmailDto dto)
+    public async Task<AuthResponseDto> VerifyEmailAsync(VerifyEmailDto dto)
     {
-        var user =
-            await _userManager.FindByEmailAsync(dto.Email);
-
-        if (user is null)
+        DtoValidation.Validate(dto);
+        var result = await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "İstifadəçi tapılmadı.");
-        }
-
-        ThrowIfBlocked(user);
-
-        if (user.EmailConfirmed)
-        {
-            throw new DomainException(
-                "Email artıq təsdiqlənib.");
-        }
-
-        var verificationCode =
-            await _emailVerificationCodeRepository
-                .GetLatestByUserIdAsync(user.Id);
-
-        if (verificationCode is null)
-        {
-            throw new DomainException(
-                "Təsdiqləmə kodu tapılmadı.");
-        }
-
-        if (verificationCode.UsedAt is not null)
-        {
-            throw new DomainException(
-                "Bu təsdiqləmə kodu artıq istifadə olunub.");
-        }
-
-        if (verificationCode.ExpiresAt <= DateTime.UtcNow)
-        {
-            throw new DomainException(
-                "Təsdiqləmə kodunun vaxtı bitib.");
-        }
-
-        if (verificationCode.FailedAttempts >= 5)
-        {
-            throw new DomainException(
-                "Maksimum səhv cəhd sayı keçilib. Yeni kod tələb et.");
-        }
-
-        var incomingHash =
-            HashVerificationCode(dto.Code);
-
-        if (!string.Equals(
-                incomingHash,
-                verificationCode.CodeHash,
-                StringComparison.Ordinal))
-        {
-            verificationCode.FailedAttempts++;
-
-            await _emailVerificationCodeRepository
-                .UpdateAsync(verificationCode);
-
-            await _emailVerificationCodeRepository
-                .SaveChangesAsync();
-
-            throw new DomainException(
-                "Təsdiqləmə kodu yanlışdır.");
-        }
-
-        verificationCode.UsedAt =
-            DateTime.UtcNow;
-
-        await _emailVerificationCodeRepository
-            .UpdateAsync(verificationCode);
-
-        user.EmailConfirmed = true;
-
-        var updateResult =
-            await _userManager.UpdateAsync(user);
-
-        if (!updateResult.Succeeded)
-        {
-            ThrowIdentityErrors(updateResult);
-        }
-
-        await _emailVerificationCodeRepository
-            .SaveChangesAsync();
-
-        return await CreateAuthResponseAsync(user);
+            var user = await _userManager.FindByEmailAsync(dto.Email)
+                ?? throw new KeyNotFoundException("İstifadəçi tapılmadı.");
+            ThrowIfBlocked(user);
+            if (user.EmailConfirmed) throw new DomainException("Email artıq təsdiqlənib.");
+            var code = await _emailVerificationCodeRepository.GetLatestByUserIdAsync(user.Id);
+            if (code is null || code.UsedAt is not null || code.ExpiresAt <= DateTime.UtcNow)
+                throw new DomainException("Təsdiqləmə kodu etibarsızdır və ya vaxtı bitib.");
+            if (code.FailedAttempts >= 5)
+                throw new DomainException("Maksimum səhv cəhd sayı keçilib. Yeni kod tələb et.");
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(HashVerificationCode(dto.Code)),
+                    Convert.FromHexString(code.CodeHash)))
+            {
+                code.FailedAttempts++;
+                await _emailVerificationCodeRepository.SaveChangesAsync();
+                return (Response: (AuthResponseDto?)null, Error: "Təsdiqləmə kodu yanlışdır.");
+            }
+            code.UsedAt = DateTime.UtcNow;
+            user.EmailConfirmed = true;
+            var updated = await _userManager.UpdateAsync(user);
+            if (!updated.Succeeded) ThrowIdentityErrors(updated);
+            var response = await CreateAuthResponseAsync(user);
+            return (Response: (AuthResponseDto?)response, Error: (string?)null);
+        });
+        if (result.Error is not null) throw new DomainException(result.Error);
+        return result.Response!;
     }
 
     // =========================
     // Resend Verification Code
     // =========================
 
-    public async Task ResendVerificationCodeAsync(
-        ResendVerificationCodeDto dto)
+    public async Task ResendVerificationCodeAsync(ResendVerificationCodeDto dto)
     {
-        var user =
-            await _userManager.FindByEmailAsync(dto.Email);
-
-        if (user is null)
-        {
-            throw new KeyNotFoundException(
-                "İstifadəçi tapılmadı.");
-        }
-
+        DtoValidation.Validate(dto);
+        var user = await _userManager.FindByEmailAsync(dto.Email)
+            ?? throw new KeyNotFoundException("İstifadəçi tapılmadı.");
         ThrowIfBlocked(user);
-
-        if (user.EmailConfirmed)
-        {
-            throw new DomainException(
-                "Email artıq təsdiqlənib.");
-        }
-
-        var latestCode =
-            await _emailVerificationCodeRepository
-                .GetLatestByUserIdAsync(user.Id);
-
-        if (latestCode is not null &&
-            latestCode.CreatedAt.AddMinutes(1) >
-            DateTime.UtcNow)
-        {
-            throw new DomainException(
-                "Yeni kod üçün ən azı 1 dəqiqə gözləməlisən.");
-        }
-
-        var unusedCodes =
-            await _emailVerificationCodeRepository
-                .GetUnusedByUserIdAsync(user.Id);
-
-        foreach (var code in unusedCodes)
-        {
-            code.UsedAt = DateTime.UtcNow;
-
-            await _emailVerificationCodeRepository
-                .UpdateAsync(code);
-        }
-
-        await _emailVerificationCodeRepository
-            .SaveChangesAsync();
-
-        await CreateAndSendVerificationCodeAsync(user);
+        if (user.EmailConfirmed) throw new DomainException("Email artıq təsdiqlənib.");
+        if (!await CreateAndSendVerificationCodeAsync(user))
+            throw new DomainException("Email göndərilmədi. Resend ilə yenidən cəhd et.");
     }
 
     // =========================
@@ -261,6 +177,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> LoginAsync(
         LoginDto dto)
     {
+        DtoValidation.Validate(dto);
         var user =
             await _userManager.FindByEmailAsync(dto.Email);
 
@@ -279,6 +196,8 @@ public class AuthService : IAuthService
 
         if (!passwordValid)
         {
+            var failedResult = await _userManager.AccessFailedAsync(user);
+            if (!failedResult.Succeeded) ThrowIdentityErrors(failedResult);
             throw new UnauthorizedAccessException(
                 "Email və ya şifrə yanlışdır.");
         }
@@ -289,6 +208,8 @@ public class AuthService : IAuthService
                 "Əvvəlcə email ünvanını təsdiqləməlisən.");
         }
 
+        var resetResult = await _userManager.ResetAccessFailedCountAsync(user);
+        if (!resetResult.Succeeded) ThrowIdentityErrors(resetResult);
         return await CreateAuthResponseAsync(user);
     }
 
@@ -299,6 +220,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> GoogleLoginAsync(
         GoogleLoginDto dto)
     {
+        DtoValidation.Validate(dto);
         if (string.IsNullOrWhiteSpace(dto.IdToken))
         {
             throw new DomainException(
@@ -398,15 +320,8 @@ public class AuthService : IAuthService
 
             if (!user.EmailConfirmed)
             {
-                user.EmailConfirmed = true;
-
-                var updateResult =
-                    await _userManager.UpdateAsync(user);
-
-                if (!updateResult.Succeeded)
-                {
-                    ThrowIdentityErrors(updateResult);
-                }
+                throw new UnauthorizedAccessException(
+                    "Əvvəlcə lokal hesabın email təsdiqləmə prosesini tamamlamalısan.");
             }
         }
 
@@ -444,152 +359,104 @@ public class AuthService : IAuthService
     // Refresh Token
     // =========================
 
-    public async Task<AuthResponseDto> RefreshTokenAsync(
-        RefreshTokenRequestDto dto)
+    public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenRequestDto dto)
     {
-        var refreshToken =
-            await _refreshTokenRepository
-                .GetByTokenAsync(dto.RefreshToken);
-
-        if (refreshToken is null ||
-            !refreshToken.IsActive)
+        DtoValidation.Validate(dto);
+        var response = await _unitOfWork.ExecuteAsync<AuthResponseDto?>(async () =>
         {
-            throw new UnauthorizedAccessException(
-                "Refresh token etibarsızdır və ya vaxtı bitib.");
-        }
-
-        var user =
-            refreshToken.User;
-
-        if (user is null)
-        {
-            throw new UnauthorizedAccessException(
-                "İstifadəçi tapılmadı.");
-        }
-
-        ThrowIfBlocked(user);
-
-        if (!user.EmailConfirmed)
-        {
-            throw new UnauthorizedAccessException(
-                "Email təsdiqlənməyib.");
-        }
-
-        refreshToken.RevokedAt =
-            DateTime.UtcNow;
-
-        await _refreshTokenRepository
-            .UpdateAsync(refreshToken);
-
-        var newRefreshToken =
-            new RefreshToken
+            var token = await _refreshTokenRepository.GetByTokenAsync(dto.RefreshToken);
+            if (token is null) return null;
+            if (token.IsRevoked)
             {
-                Token =
-                    _tokenService.CreateRefreshToken(),
+                // Reuse invalidates all sessions for this user, including the rotated token.
+                await RevokeUserTokensAsync(token.UserId);
+                return null;
+            }
+            if (!token.IsActive) return null;
+            ThrowIfBlocked(token.User);
+            if (!token.User.EmailConfirmed)
+                throw new UnauthorizedAccessException("Email təsdiqlənməyib.");
+            token.RevokedAt = DateTime.UtcNow;
+            return await CreateAuthResponseAsync(token.User);
+        });
+        return response ?? throw new UnauthorizedAccessException(
+            "Refresh token etibarsızdır və ya təkrar istifadə olunub.");
+    }
 
-                CreatedAt =
-                    DateTime.UtcNow,
-
-                ExpiresAt =
-                    _tokenService.GetRefreshTokenExpiration(),
-
-                UserId =
-                    user.Id
-            };
-
-        await _refreshTokenRepository
-            .AddAsync(newRefreshToken);
-
-        await _refreshTokenRepository
-            .SaveChangesAsync();
-
-        return new AuthResponseDto
-        {
-            AccessToken =
-                _tokenService.CreateAccessToken(user),
-
-            RefreshToken =
-                newRefreshToken.Token,
-
-            AccessTokenExpiresAt =
-                _tokenService.GetAccessTokenExpiration(),
-
-            RefreshTokenExpiresAt =
-                newRefreshToken.ExpiresAt
-        };
+    private async Task RevokeUserTokensAsync(int userId)
+    {
+        var tokens = await _refreshTokenRepository.FindAsync(x =>
+            x.UserId == userId && x.RevokedAt == null);
+        foreach (var token in tokens) token.RevokedAt = DateTime.UtcNow;
+        await _refreshTokenRepository.SaveChangesAsync();
     }
 
     // =========================
     // Logout
     // =========================
 
-    public async Task LogoutAsync(
-        string refreshToken)
+    public async Task LogoutAsync(string refreshToken, int userId)
     {
-        if (string.IsNullOrWhiteSpace(refreshToken))
+        if (string.IsNullOrWhiteSpace(refreshToken)) return;
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            return;
-        }
-
-        var token =
-            await _refreshTokenRepository
-                .GetByTokenAsync(refreshToken);
-
-        if (token is null ||
-            !token.IsActive)
-        {
-            return;
-        }
-
-        token.RevokedAt =
-            DateTime.UtcNow;
-
-        await _refreshTokenRepository
-            .UpdateAsync(token);
-
-        await _refreshTokenRepository
-            .SaveChangesAsync();
+            var token = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+            if (token is null) return;
+            if (token.UserId != userId)
+                throw new ForbiddenException("Bu sessiya sənə aid deyil.");
+            if (!token.IsActive) return;
+            token.RevokedAt = DateTime.UtcNow;
+            await _refreshTokenRepository.SaveChangesAsync();
+        });
     }
 
     // =========================
     // OTP Helper
     // =========================
 
-    private async Task CreateAndSendVerificationCodeAsync(
-        User user)
+    private async Task<bool> CreateAndSendVerificationCodeAsync(User user)
     {
-        var code =
-            RandomNumberGenerator
-                .GetInt32(100000, 1000000)
-                .ToString();
-
-        var verificationCode =
-            new EmailVerificationCode
+        var prepared = await _unitOfWork.ExecuteAsync(async () =>
+        {
+            var current = await _userManager.FindByIdAsync(user.Id.ToString())
+                ?? throw new KeyNotFoundException("İstifadəçi tapılmadı.");
+            ThrowIfBlocked(current);
+            if (current.EmailConfirmed) throw new DomainException("Email artıq təsdiqlənib.");
+            var latest = await _emailVerificationCodeRepository.GetLatestByUserIdAsync(current.Id);
+            if (latest is not null && latest.UsedAt is null && latest.CreatedAt.AddMinutes(1) > DateTime.UtcNow)
+                throw new DomainException("Yeni kod üçün ən azı 1 dəqiqə gözləməlisən.");
+            var unused = await _emailVerificationCodeRepository.GetUnusedByUserIdAsync(current.Id);
+            foreach (var previous in unused) previous.UsedAt = DateTime.UtcNow;
+            var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+            var record = new EmailVerificationCode
             {
-                UserId = user.Id,
-                CodeHash =
-                    HashVerificationCode(code),
-
-                CreatedAt =
-                    DateTime.UtcNow,
-
-                ExpiresAt =
-                    DateTime.UtcNow.AddMinutes(10),
-
-                FailedAttempts = 0
+                UserId = current.Id,
+                CodeHash = HashVerificationCode(code),
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10)
             };
-
-        await _emailVerificationCodeRepository
-            .AddAsync(verificationCode);
-
-        await _emailVerificationCodeRepository
-            .SaveChangesAsync();
-
-        await _emailService
-            .SendVerificationCodeAsync(
-                user.Email!,
-                user.FullName,
-                code);
+            await _emailVerificationCodeRepository.AddAsync(record);
+            await _emailVerificationCodeRepository.SaveChangesAsync();
+            return (record.Id, current.Email, current.FullName, Code: code);
+        });
+        try
+        {
+            // Delivery runs after commit and is never repeated by a SQL deadlock retry.
+            await _emailService.SendVerificationCodeAsync(prepared.Email!, prepared.FullName, prepared.Code);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning("Verification email delivery failed for user {UserId}: {ErrorType}",
+                user.Id, ex.GetType().Name);
+            await _unitOfWork.ExecuteAsync(async () =>
+            {
+                var record = await _emailVerificationCodeRepository.GetByIdAsync(prepared.Id);
+                if (record is not null && record.UsedAt is null) record.UsedAt = DateTime.UtcNow;
+                await _emailVerificationCodeRepository.SaveChangesAsync();
+            });
+            return false;
+        }
     }
 
     private static string HashVerificationCode(
@@ -609,10 +476,8 @@ public class AuthService : IAuthService
     private static void ThrowIfBlocked(
         User user)
     {
-        var isBlocked =
-            user.LockoutEnd.HasValue &&
-            user.LockoutEnd.Value >
-            DateTimeOffset.UtcNow;
+        var isBlocked = user.IsAdminBlocked ||
+            (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow);
 
         if (isBlocked)
         {
@@ -646,11 +511,13 @@ public class AuthService : IAuthService
     {
         ThrowIfBlocked(user);
 
+        if (!user.EmailConfirmed)
+            throw new UnauthorizedAccessException("Email təsdiqlənməyib.");
+        var rawToken = _tokenService.CreateRefreshToken();
         var refreshToken =
             new RefreshToken
             {
-                Token =
-                    _tokenService.CreateRefreshToken(),
+                Token = TokenHash.Compute(rawToken),
 
                 CreatedAt =
                     DateTime.UtcNow,
@@ -675,7 +542,7 @@ public class AuthService : IAuthService
                 _tokenService.CreateAccessToken(user),
 
             RefreshToken =
-                refreshToken.Token,
+                rawToken,
 
             AccessTokenExpiresAt =
                 _tokenService

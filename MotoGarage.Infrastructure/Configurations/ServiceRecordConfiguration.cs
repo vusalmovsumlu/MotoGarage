@@ -19,7 +19,7 @@ public class ServiceRecordConfiguration : IEntityTypeConfiguration<ServiceRecord
             .HasPrecision(18, 2)
             .IsRequired();
 
-        builder.Property(x => x.Mileage)
+        builder.Property(x => x.Kilometer)
             .IsRequired();
 
         builder.Property(x => x.ServiceDate)

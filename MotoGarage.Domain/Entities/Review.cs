@@ -14,7 +14,7 @@ public class Review
 
     public DateTime CreatedAt { get; set; }
 
-    public User User { get; set; }
+    public User User { get; set; } = null!;
 
-    public Mechanic Mechanic { get; set; }
+    public Mechanic Mechanic { get; set; } = null!;
 }

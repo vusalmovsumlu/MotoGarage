@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using MotoGarage.Domain.Exceptions;
+using AutoMapper;
 using MotoGarage.Application.DTOs.ServiceRecord;
 
 using MotoGarage.Application.Interfaces.Repository;
@@ -9,6 +11,7 @@ namespace MotoGarage.Application.Services;
 
 public class ServiceRecordService : IServiceRecordService
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IServiceRecordRepository _serviceRecordRepository;
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IMapper _mapper;
@@ -16,8 +19,10 @@ public class ServiceRecordService : IServiceRecordService
     public ServiceRecordService(
         IServiceRecordRepository serviceRecordRepository,
         IVehicleRepository vehicleRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork)
     {
+        _unitOfWork = unitOfWork;
         _serviceRecordRepository = serviceRecordRepository;
         _vehicleRepository = vehicleRepository;
         _mapper = mapper;
@@ -27,7 +32,7 @@ public class ServiceRecordService : IServiceRecordService
         int vehicleId,
         int userId)
     {
-        await ValidateVehicleOwnershipAsync(vehicleId, userId);
+        var vehicle = await ValidateVehicleOwnershipAsync(vehicleId, userId);
 
         var serviceRecords =
             await _serviceRecordRepository.GetByVehicleIdAsync(vehicleId);
@@ -48,7 +53,7 @@ public class ServiceRecordService : IServiceRecordService
                 "Servis qeydi tapılmadı.");
         }
 
-        await ValidateVehicleOwnershipAsync(
+        var vehicle = await ValidateVehicleOwnershipAsync(
             serviceRecord.VehicleId,
             userId);
 
@@ -59,18 +64,23 @@ public class ServiceRecordService : IServiceRecordService
         int userId,
         CreateServiceRecordDto dto)
     {
-        await ValidateVehicleOwnershipAsync(
-            dto.VehicleId,
-            userId);
+        DtoValidation.Validate(dto);
+        return await _unitOfWork.ExecuteAsync(async () =>
+        {
+            var vehicle = await ValidateVehicleOwnershipAsync(
+                dto.VehicleId,
+                userId);
 
-        var serviceRecord =
-            _mapper.Map<ServiceRecord>(dto);
+            var serviceRecord =
+                _mapper.Map<ServiceRecord>(dto);
 
-        await _serviceRecordRepository.AddAsync(serviceRecord);
+            await _serviceRecordRepository.AddAsync(serviceRecord);
 
-        await _serviceRecordRepository.SaveChangesAsync();
+            if (dto.Kilometer > vehicle.CurrentKm) vehicle.CurrentKm = dto.Kilometer;
+            await _serviceRecordRepository.SaveChangesAsync();
 
-        return _mapper.Map<ServiceRecordDto>(serviceRecord);
+            return _mapper.Map<ServiceRecordDto>(serviceRecord);
+        });
     }
 
     public async Task UpdateAsync(
@@ -78,49 +88,57 @@ public class ServiceRecordService : IServiceRecordService
         int userId,
         UpdateServiceRecordDto dto)
     {
-        var serviceRecord =
-            await _serviceRecordRepository.GetByIdAsync(id);
-
-        if (serviceRecord is null)
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Servis qeydi tapılmadı.");
-        }
+            var serviceRecord =
+                await _serviceRecordRepository.GetByIdAsync(id);
 
-        await ValidateVehicleOwnershipAsync(
-            serviceRecord.VehicleId,
-            userId);
+            if (serviceRecord is null)
+            {
+                throw new KeyNotFoundException(
+                    "Servis qeydi tapılmadı.");
+            }
 
-        _mapper.Map(dto, serviceRecord);
+            var vehicle = await ValidateVehicleOwnershipAsync(
+                serviceRecord.VehicleId,
+                userId);
 
-        await _serviceRecordRepository.UpdateAsync(serviceRecord);
+            _mapper.Map(dto, serviceRecord);
 
-        await _serviceRecordRepository.SaveChangesAsync();
+            await _serviceRecordRepository.UpdateAsync(serviceRecord);
+
+            if (dto.Kilometer > vehicle.CurrentKm) vehicle.CurrentKm = dto.Kilometer;
+            await _serviceRecordRepository.SaveChangesAsync();
+        });
     }
 
     public async Task DeleteAsync(
         int id,
         int userId)
     {
-        var serviceRecord =
-            await _serviceRecordRepository.GetByIdAsync(id);
-
-        if (serviceRecord is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Servis qeydi tapılmadı.");
-        }
+            var serviceRecord =
+                await _serviceRecordRepository.GetByIdAsync(id);
 
-        await ValidateVehicleOwnershipAsync(
-            serviceRecord.VehicleId,
-            userId);
+            if (serviceRecord is null)
+            {
+                throw new KeyNotFoundException(
+                    "Servis qeydi tapılmadı.");
+            }
 
-        await _serviceRecordRepository.DeleteAsync(serviceRecord);
+            var vehicle = await ValidateVehicleOwnershipAsync(
+                serviceRecord.VehicleId,
+                userId);
 
-        await _serviceRecordRepository.SaveChangesAsync();
+            await _serviceRecordRepository.DeleteAsync(serviceRecord);
+
+            await _serviceRecordRepository.SaveChangesAsync();
+        });
     }
 
-    private async Task ValidateVehicleOwnershipAsync(
+    private async Task<Vehicle> ValidateVehicleOwnershipAsync(
         int vehicleId,
         int userId)
     {
@@ -135,8 +153,9 @@ public class ServiceRecordService : IServiceRecordService
 
         if (vehicle.UserId != userId)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu nəqliyyat vasitəsinə giriş icazən yoxdur.");
         }
+        return vehicle;
     }
 }

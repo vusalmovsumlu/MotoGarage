@@ -65,7 +65,7 @@ public class SmtpEmailService : IEmailService
                     <div style="font-family:Arial,sans-serif">
                         <h2>MotoGarage</h2>
 
-                        <p>Salam {fullName},</p>
+                        <p>Salam {System.Net.WebUtility.HtmlEncode(fullName)},</p>
 
                         <p>Email ünvanınızı təsdiqləmək üçün kod:</p>
 

@@ -8,6 +8,13 @@ public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
 {
     public void Configure(EntityTypeBuilder<Conversation> builder)
     {
+        builder.HasIndex(x => new { x.UserId, x.MechanicId }).IsUnique()
+            .HasFilter("[MechanicId] IS NOT NULL");
+        builder.HasIndex(x => new { x.UserId, x.StoreId }).IsUnique()
+            .HasFilter("[StoreId] IS NOT NULL");
+        builder.ToTable("Conversations", table => table.HasCheckConstraint(
+            "CK_Conversations_ExactlyOneTarget",
+            "([MechanicId] IS NOT NULL AND [StoreId] IS NULL) OR ([MechanicId] IS NULL AND [StoreId] IS NOT NULL)"));
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

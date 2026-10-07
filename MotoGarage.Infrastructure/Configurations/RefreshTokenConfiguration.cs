@@ -10,6 +10,7 @@ public class RefreshTokenConfiguration
     public void Configure(
         EntityTypeBuilder<RefreshToken> builder)
     {
+        builder.Property(x => x.RowVersion).IsRowVersion();
         builder.Property(x => x.Token)
             .IsRequired()
             .HasMaxLength(500);

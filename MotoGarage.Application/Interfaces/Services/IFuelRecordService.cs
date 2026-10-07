@@ -12,6 +12,12 @@ public interface IFuelRecordService
         int id,
         int userId);
 
+    Task<FuelConsumptionStatsDto> GetStatsAsync(
+        int vehicleId,
+        int userId,
+        DateTime? startDate,
+        DateTime? endDate);
+
     Task<FuelRecordDto> CreateAsync(
         int userId,
         CreateFuelRecordDto dto);

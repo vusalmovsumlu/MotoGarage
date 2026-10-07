@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Expense;
 using MotoGarage.Application.Interfaces.Repository;
 using MotoGarage.Application.Interfaces.Services;
@@ -68,17 +69,12 @@ public class ExpenseService : IExpenseService
             vehicleId,
             userId);
 
-        if (startDate > endDate)
-        {
-            throw new DomainException(
-                "Başlanğıc tarixi son tarixdən böyük ola bilməz.");
-        }
-
+        var range = DateRange.Days(startDate, endDate);
         var expenses =
             await _expenseRepository.GetByDateRangeAsync(
                 vehicleId,
-                startDate,
-                endDate);
+                range.Start,
+                range.EndExclusive);
 
         var expenseDtos =
             _mapper.Map<IEnumerable<ExpenseDto>>(expenses)
@@ -97,6 +93,7 @@ public class ExpenseService : IExpenseService
         int userId,
         CreateExpenseDto dto)
     {
+        DtoValidation.Validate(dto);
         await ValidateVehicleOwnershipAsync(
             dto.VehicleId,
             userId);
@@ -116,6 +113,7 @@ public class ExpenseService : IExpenseService
         int userId,
         UpdateExpenseDto dto)
     {
+        DtoValidation.Validate(dto);
         var expense =
             await _expenseRepository.GetByIdAsync(id);
 
@@ -173,7 +171,7 @@ public class ExpenseService : IExpenseService
 
         if (vehicle.UserId != userId)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu nəqliyyat vasitəsinə giriş icazən yoxdur.");
         }
     }

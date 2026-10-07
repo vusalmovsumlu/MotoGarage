@@ -4,6 +4,8 @@ public class Product
 {
     public int Id { get; set; }
 
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public int StoreId { get; set; }
 
     public string Name { get; set; } = null!;
@@ -21,6 +23,8 @@ public class Product
     public string? VehicleCompatibility { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public string? ImagePublicId { get; set; }
 
     public bool IsActive { get; set; }
 

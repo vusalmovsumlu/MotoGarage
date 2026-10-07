@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Chat;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Repository;
@@ -11,6 +12,8 @@ namespace MotoGarage.Application.Services;
 
 public class ChatService : IChatService
 {
+    private readonly INotificationService _notifications;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IConversationRepository _conversationRepository;
     private readonly IMessageRepository _messageRepository;
     private readonly IMechanicRepository _mechanicRepository;
@@ -22,8 +25,12 @@ public class ChatService : IChatService
         IMessageRepository messageRepository,
         IMechanicRepository mechanicRepository,
         IStoreRepository storeRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        INotificationService notifications)
     {
+        _notifications = notifications;
+        _unitOfWork = unitOfWork;
         _conversationRepository = conversationRepository;
         _messageRepository = messageRepository;
         _mechanicRepository = mechanicRepository;
@@ -124,46 +131,49 @@ public class ChatService : IChatService
             int userId,
             int mechanicId)
     {
-        var mechanic =
-            await _mechanicRepository.GetByIdAsync(mechanicId);
-
-        if (mechanic is null || !mechanic.IsActive)
+        return await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Usta tapılmadı.");
-        }
+            var mechanic =
+                await _mechanicRepository.GetByIdAsync(mechanicId);
 
-        if (mechanic.UserId == userId)
-        {
-            throw new DomainException(
-                "Özünlə söhbət yarada bilməzsən.");
-        }
+            if (mechanic is null || !mechanic.IsActive)
+            {
+                throw new KeyNotFoundException(
+                    "Usta tapılmadı.");
+            }
 
-        var existingConversation =
-            await _conversationRepository
-                .GetUserMechanicConversationAsync(
-                    userId,
-                    mechanicId);
+            if (mechanic.UserId == userId)
+            {
+                throw new DomainException(
+                    "Özünlə söhbət yarada bilməzsən.");
+            }
 
-        if (existingConversation is not null)
-        {
-            return _mapper.Map<ConversationDto>(
-                existingConversation);
-        }
+            var existingConversation =
+                await _conversationRepository
+                    .GetUserMechanicConversationAsync(
+                        userId,
+                        mechanicId);
 
-        var conversation = new Conversation
-        {
-            UserId = userId,
-            MechanicId = mechanicId,
-            StoreId = null,
-            CreatedAt = DateTime.UtcNow
-        };
+            if (existingConversation is not null)
+            {
+                return _mapper.Map<ConversationDto>(
+                    existingConversation);
+            }
 
-        await _conversationRepository.AddAsync(conversation);
+            var conversation = new Conversation
+            {
+                UserId = userId,
+                MechanicId = mechanicId,
+                StoreId = null,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _conversationRepository.SaveChangesAsync();
+            await _conversationRepository.AddAsync(conversation);
 
-        return _mapper.Map<ConversationDto>(conversation);
+            await _conversationRepository.SaveChangesAsync();
+
+            return _mapper.Map<ConversationDto>(conversation);
+        });
     }
 
     // =========================
@@ -175,46 +185,49 @@ public class ChatService : IChatService
             int userId,
             int storeId)
     {
-        var store =
-            await _storeRepository.GetByIdAsync(storeId);
-
-        if (store is null || !store.IsActive)
+        return await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Mağaza tapılmadı.");
-        }
+            var store =
+                await _storeRepository.GetByIdAsync(storeId);
 
-        if (store.UserId == userId)
-        {
-            throw new DomainException(
-                "Öz mağazanla söhbət yarada bilməzsən.");
-        }
+            if (store is null || !store.IsActive)
+            {
+                throw new KeyNotFoundException(
+                    "Mağaza tapılmadı.");
+            }
 
-        var existingConversation =
-            await _conversationRepository
-                .GetUserStoreConversationAsync(
-                    userId,
-                    storeId);
+            if (store.UserId == userId)
+            {
+                throw new DomainException(
+                    "Öz mağazanla söhbət yarada bilməzsən.");
+            }
 
-        if (existingConversation is not null)
-        {
-            return _mapper.Map<ConversationDto>(
-                existingConversation);
-        }
+            var existingConversation =
+                await _conversationRepository
+                    .GetUserStoreConversationAsync(
+                        userId,
+                        storeId);
 
-        var conversation = new Conversation
-        {
-            UserId = userId,
-            MechanicId = null,
-            StoreId = storeId,
-            CreatedAt = DateTime.UtcNow
-        };
+            if (existingConversation is not null)
+            {
+                return _mapper.Map<ConversationDto>(
+                    existingConversation);
+            }
 
-        await _conversationRepository.AddAsync(conversation);
+            var conversation = new Conversation
+            {
+                UserId = userId,
+                MechanicId = null,
+                StoreId = storeId,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _conversationRepository.SaveChangesAsync();
+            await _conversationRepository.AddAsync(conversation);
 
-        return _mapper.Map<ConversationDto>(conversation);
+            await _conversationRepository.SaveChangesAsync();
+
+            return _mapper.Map<ConversationDto>(conversation);
+        });
     }
 
     // =========================
@@ -226,37 +239,46 @@ public class ChatService : IChatService
         int senderUserId,
         SendMessageDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Content))
+        DtoValidation.Validate(dto);
+        return await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new DomainException(
-                "Mesaj boş ola bilməz.");
-        }
+            if (string.IsNullOrWhiteSpace(dto.Content))
+            {
+                throw new DomainException(
+                    "Mesaj boş ola bilməz.");
+            }
 
-        var conversation =
-            await GetAuthorizedConversationAsync(
-                conversationId,
-                senderUserId);
+            var conversation =
+                await GetAuthorizedConversationAsync(
+                    conversationId,
+                    senderUserId);
 
-        var message = new Message
-        {
-            ConversationId = conversation.Id,
-            SenderUserId = senderUserId,
-            Content = dto.Content.Trim(),
-            SentAt = DateTime.UtcNow,
-            Status = MessageStatus.Sent
-        };
+            var message = new Message
+            {
+                ConversationId = conversation.Id,
+                SenderUserId = senderUserId,
+                Content = dto.Content.Trim(),
+                SentAt = DateTime.UtcNow,
+                Status = MessageStatus.Sent
+            };
 
-        conversation.LastMessageAt = DateTime.UtcNow;
+            conversation.LastMessageAt = DateTime.UtcNow;
 
-        await _messageRepository.AddAsync(message);
+            await _messageRepository.AddAsync(message);
 
-        await _conversationRepository.UpdateAsync(
-            conversation);
+            await _conversationRepository.UpdateAsync(
+                conversation);
 
-        // Hər iki repository eyni scoped DbContext istifadə edir.
-        await _messageRepository.SaveChangesAsync();
+            // Hər iki repository eyni scoped DbContext istifadə edir.
+            await _messageRepository.SaveChangesAsync();
 
-        return _mapper.Map<MessageDto>(message);
+            var recipient = conversation.UserId == senderUserId
+                ? conversation.Mechanic?.UserId ?? conversation.Store!.UserId
+                : conversation.UserId;
+            await _notifications.CreateAsync(recipient, NotificationType.Message,
+                "Yeni mesaj", "Söhbətdə yeni mesaj var.", $"/chat/{conversation.Id}");
+            return _mapper.Map<MessageDto>(message);
+        });
     }
 
     // =========================
@@ -267,23 +289,26 @@ public class ChatService : IChatService
         int conversationId,
         int userId)
     {
-        await GetAuthorizedConversationAsync(
-            conversationId,
-            userId);
-
-        var unreadMessages =
-            await _messageRepository.GetUnreadMessagesAsync(
+        await _unitOfWork.ExecuteAsync(async () =>
+        {
+            await GetAuthorizedConversationAsync(
                 conversationId,
                 userId);
 
-        foreach (var message in unreadMessages)
-        {
-            message.Status = MessageStatus.Read;
+            var unreadMessages =
+                await _messageRepository.GetUnreadMessagesAsync(
+                    conversationId,
+                    userId);
 
-            await _messageRepository.UpdateAsync(message);
-        }
+            foreach (var message in unreadMessages)
+            {
+                message.Status = MessageStatus.Read;
 
-        await _messageRepository.SaveChangesAsync();
+                await _messageRepository.UpdateAsync(message);
+            }
+
+            await _messageRepository.SaveChangesAsync();
+        });
     }
 
     // =========================
@@ -314,7 +339,7 @@ public class ChatService : IChatService
     {
         var conversation =
             await _conversationRepository
-                .GetWithMessagesAsync(conversationId);
+                .GetParticipantsAsync(conversationId);
 
         if (conversation is null)
         {
@@ -337,7 +362,7 @@ public class ChatService : IChatService
             !isMechanic &&
             !isStore)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu söhbətə giriş icazən yoxdur.");
         }
 

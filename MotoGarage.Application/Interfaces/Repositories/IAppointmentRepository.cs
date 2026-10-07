@@ -9,4 +9,6 @@ public interface IAppointmentRepository : IRepository<Appointment>
     Task<IEnumerable<Appointment>> GetByMechanicIdAsync(int mechanicId);
 
     Task<Appointment?> GetDetailsByIdAsync(int id);
+    Task<bool> HasActiveSlotAsync(int mechanicId, DateTime date);
+    Task<bool> HasVehicleAppointmentsAsync(int vehicleId);
 }

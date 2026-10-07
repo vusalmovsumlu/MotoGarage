@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using MotoGarage.Domain.Exceptions;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Vehicle;
 using MotoGarage.Application.Interfaces.Repository;
 using MotoGarage.Application.Interfaces.Services;
@@ -8,13 +10,22 @@ namespace MotoGarage.Application.Services;
 
 public class VehicleService : IVehicleService
 {
+    private readonly IImageService _images;
+    private readonly IAppointmentRepository _appointments;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IMapper _mapper;
 
     public VehicleService(
         IVehicleRepository vehicleRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        IAppointmentRepository appointments,
+        IImageService images)
     {
+        _images = images;
+        _appointments = appointments;
+        _unitOfWork = unitOfWork;
         _vehicleRepository = vehicleRepository;
         _mapper = mapper;
     }
@@ -55,17 +66,23 @@ public class VehicleService : IVehicleService
         int userId,
         CreateVehicleDto dto)
     {
-        var vehicle =
-            _mapper.Map<Vehicle>(dto);
+        DtoValidation.Validate(dto);
+        return await _unitOfWork.ExecuteAsync(async () =>
+        {
+            await _images.ValidateOwnershipAsync(userId, dto.ImagePublicId, dto.ImageUrl);
 
-        vehicle.UserId = userId;
-        vehicle.CreatedAt = DateTime.UtcNow;
+            var vehicle =
+                _mapper.Map<Vehicle>(dto);
 
-        await _vehicleRepository.AddAsync(vehicle);
+            vehicle.UserId = userId;
+            vehicle.CreatedAt = DateTime.UtcNow;
 
-        await _vehicleRepository.SaveChangesAsync();
+            await _vehicleRepository.AddAsync(vehicle);
 
-        return _mapper.Map<VehicleDto>(vehicle);
+            await _vehicleRepository.SaveChangesAsync();
+
+            return _mapper.Map<VehicleDto>(vehicle);
+        });
     }
 
     public async Task UpdateAsync(
@@ -73,53 +90,70 @@ public class VehicleService : IVehicleService
         int userId,
         UpdateVehicleDto dto)
     {
-        var vehicle =
-            await _vehicleRepository.GetByIdAsync(id);
-
-        if (vehicle is null)
+        string? previousImage = null;
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Nəqliyyat vasitəsi tapılmadı."
-            );
-        }
+            var vehicle =
+                await _vehicleRepository.GetByIdAsync(id);
 
-        if (vehicle.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu nəqliyyat vasitəsini dəyişmək icazən yoxdur."
-            );
-        }
+            if (vehicle is null)
+            {
+                throw new KeyNotFoundException(
+                    "Nəqliyyat vasitəsi tapılmadı."
+                );
+            }
 
-        _mapper.Map(dto, vehicle);
+            if (vehicle.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu nəqliyyat vasitəsini dəyişmək icazən yoxdur."
+                );
+            }
 
-        await _vehicleRepository.UpdateAsync(vehicle);
+            if (dto.CurrentKm < vehicle.CurrentKm)
+                throw new DomainException("Cari kilometr azaldıla bilməz.");
+            previousImage = vehicle.ImagePublicId;
+            if (dto.ImagePublicId is null && dto.ImageUrl == vehicle.ImageUrl)
+                dto.ImagePublicId = previousImage;
+            await _images.ValidateOwnershipAsync(userId, dto.ImagePublicId, dto.ImageUrl);
+            _mapper.Map(dto, vehicle);
 
-        await _vehicleRepository.SaveChangesAsync();
+            await _vehicleRepository.UpdateAsync(vehicle);
+
+            await _vehicleRepository.SaveChangesAsync();
+        });
+        await _images.DeleteUnusedAsync(previousImage, userId);
     }
 
     public async Task DeleteAsync(
         int id,
         int userId)
     {
-        var vehicle =
-            await _vehicleRepository.GetByIdAsync(id);
-
-        if (vehicle is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Nəqliyyat vasitəsi tapılmadı."
-            );
-        }
+            var vehicle =
+                await _vehicleRepository.GetByIdAsync(id);
 
-        if (vehicle.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu nəqliyyat vasitəsini silmək icazən yoxdur."
-            );
-        }
+            if (vehicle is null)
+            {
+                throw new KeyNotFoundException(
+                    "Nəqliyyat vasitəsi tapılmadı."
+                );
+            }
 
-        await _vehicleRepository.DeleteAsync(vehicle);
+            if (vehicle.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu nəqliyyat vasitəsini silmək icazən yoxdur."
+                );
+            }
 
-        await _vehicleRepository.SaveChangesAsync();
+            if (await _appointments.HasVehicleAppointmentsAsync(id))
+                throw new ConflictException("Randevusu olan nəqliyyat vasitəsi silinə bilməz.");
+            await _vehicleRepository.DeleteAsync(vehicle);
+
+            await _vehicleRepository.SaveChangesAsync();
+        });
     }
 }

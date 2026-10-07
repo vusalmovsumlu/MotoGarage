@@ -19,6 +19,7 @@ public class ImageController : ControllerBase
 
     // POST: api/images/upload
     [HttpPost("upload")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("image-upload")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> Upload(
@@ -47,7 +48,8 @@ public class ImageController : ControllerBase
         var result =
             await _imageService.UploadAsync(
                 stream,
-                file.FileName);
+                file.FileName,
+                int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value));
 
         return Ok(result);
     }

@@ -8,6 +8,8 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
 {
     public void Configure(EntityTypeBuilder<Vehicle> builder)
     {
+        builder.Property(x => x.ImagePublicId).HasMaxLength(255);
+        builder.Property(x => x.RowVersion).IsRowVersion();
         builder.Property(x => x.Brand)
             .IsRequired()
             .HasMaxLength(50);
@@ -31,7 +33,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(x => x.Year)
             .IsRequired();
 
-        builder.Property(x => x.Mileage)
+        builder.Property(x => x.CurrentKm)
             .IsRequired();
 
         builder.Property(x => x.VehicleType)

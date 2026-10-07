@@ -19,8 +19,14 @@ public class FuelRecordRepository
     public async Task<IEnumerable<FuelRecord>> GetByVehicleIdAsync(
         int vehicleId)
     {
-        return await _context.FuelRecords
+        return await _context.FuelRecords.AsNoTracking()
             .Where(x => x.VehicleId == vehicleId)
             .ToListAsync();
     }
+    public Task<List<FuelRecord>> GetRangeAsync(int vehicleId, DateTime start, DateTime endExclusive) =>
+        _context.FuelRecords.AsNoTracking().Where(x => x.VehicleId == vehicleId &&
+            x.FuelDate >= start && x.FuelDate < endExclusive).ToListAsync();
+
+    public async Task<IEnumerable<FuelRecord>> GetByDateRangeAsync(int vehicleId, DateTime start, DateTime endExclusive) =>
+        await GetRangeAsync(vehicleId, start, endExclusive);
 }

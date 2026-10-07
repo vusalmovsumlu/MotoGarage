@@ -10,13 +10,19 @@ namespace MotoGarage.Application.Services;
 
 public class MechanicService : IMechanicService
 {
+    private readonly IImageService _images;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMechanicRepository _mechanicRepository;
     private readonly IMapper _mapper;
 
     public MechanicService(
         IMechanicRepository mechanicRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        IImageService images)
     {
+        _images = images;
+        _unitOfWork = unitOfWork;
         _mechanicRepository = mechanicRepository;
         _mapper = mapper;
     }
@@ -75,84 +81,95 @@ public class MechanicService : IMechanicService
         int userId,
         CreateMechanicDto dto)
     {
-        var existingMechanic =
-            await _mechanicRepository.GetByUserIdAsync(userId);
-
-        if (existingMechanic is not null)
+        return await SlugHelper.RetryAsync(async () =>
         {
-            throw new DomainException(
-                "Bu istifadəçi üçün artıq usta profili mövcuddur.");
-        }
+            return await _unitOfWork.ExecuteAsync(async () =>
+            {
+                DtoValidation.Validate(dto);
+                var existingMechanic =
+                    await _mechanicRepository.GetByUserIdAsync(userId);
 
-        var mechanic =
-            _mapper.Map<Mechanic>(dto);
+                if (existingMechanic is not null)
+                {
+                    throw new DomainException(
+                        "Bu istifadəçi üçün artıq usta profili mövcuddur.");
+                }
+                await _images.ValidateOwnershipAsync(userId, dto.ImagePublicId, dto.ImageUrl);
 
-        mechanic.UserId = userId;
 
-        mechanic.Slug =
-            await GenerateUniqueSlugAsync(
-                dto.BusinessName);
+                var mechanic =
+                    _mapper.Map<Mechanic>(dto);
 
-        mechanic.Rating = 0;
-        mechanic.IsActive = true;
-        mechanic.CreatedAt = DateTime.UtcNow;
+                mechanic.UserId = userId;
 
-        await _mechanicRepository.AddAsync(mechanic);
+                mechanic.Slug =
+                    await GenerateUniqueSlugAsync(
+                        dto.BusinessName);
 
-        await _mechanicRepository.SaveChangesAsync();
+                mechanic.Rating = 0;
+                mechanic.IsActive = true;
+                mechanic.CreatedAt = DateTime.UtcNow;
 
-        return _mapper.Map<MechanicDto>(mechanic);
+                await _mechanicRepository.AddAsync(mechanic);
+
+                await _mechanicRepository.SaveChangesAsync();
+
+                return _mapper.Map<MechanicDto>(mechanic);
+            });
+        }, "IX_Mechanics_Slug");
     }
 
     public async Task UpdateAsync(
         int userId,
         UpdateMechanicDto dto)
     {
-        var mechanic =
-            await _mechanicRepository.GetByUserIdAsync(userId);
-
-        if (mechanic is null)
+        string? previousImage = null;
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Usta profili tapılmadı.");
-        }
+            DtoValidation.Validate(dto);
+            var mechanic =
+                await _mechanicRepository.GetByUserIdAsync(userId);
 
-        var oldBusinessName = mechanic.BusinessName;
+            if (mechanic is null)
+            {
+                throw new KeyNotFoundException(
+                    "Usta profili tapılmadı.");
+            }
 
-        _mapper.Map(dto, mechanic);
+            previousImage = mechanic.ImagePublicId;
+            if (dto.ImagePublicId is null && dto.ImageUrl == mechanic.ImageUrl)
+                dto.ImagePublicId = previousImage;
+            await _images.ValidateOwnershipAsync(userId, dto.ImagePublicId, dto.ImageUrl);
+            _mapper.Map(dto, mechanic);
 
-        if (!string.Equals(
-                oldBusinessName,
-                dto.BusinessName,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            mechanic.Slug =
-                await GenerateUniqueSlugAsync(
-                    dto.BusinessName,
-                    mechanic.Id);
-        }
 
-        await _mechanicRepository.UpdateAsync(mechanic);
 
-        await _mechanicRepository.SaveChangesAsync();
+            await _mechanicRepository.UpdateAsync(mechanic);
+
+            await _mechanicRepository.SaveChangesAsync();
+        });
+        await _images.DeleteUnusedAsync(previousImage, userId);
     }
 
     public async Task DeleteAsync(int userId)
     {
-        var mechanic =
-            await _mechanicRepository.GetByUserIdAsync(userId);
-
-        if (mechanic is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Usta profili tapılmadı.");
-        }
+            var mechanic =
+                await _mechanicRepository.GetByUserIdAsync(userId);
 
-        mechanic.IsActive = false;
+            if (mechanic is null)
+            {
+                throw new KeyNotFoundException(
+                    "Usta profili tapılmadı.");
+            }
 
-        await _mechanicRepository.UpdateAsync(mechanic);
+            mechanic.IsActive = false;
 
-        await _mechanicRepository.SaveChangesAsync();
+            await _mechanicRepository.UpdateAsync(mechanic);
+
+            await _mechanicRepository.SaveChangesAsync();
+        });
     }
 
     private async Task<string> GenerateUniqueSlugAsync(

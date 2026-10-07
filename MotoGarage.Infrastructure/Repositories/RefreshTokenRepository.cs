@@ -20,6 +20,6 @@ public class RefreshTokenRepository
     {
         return await _context.RefreshTokens
             .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Token == token);
+            .FirstOrDefaultAsync(x => x.Token == Authentication.TokenHash.Compute(token));
     }
 }

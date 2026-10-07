@@ -31,7 +31,7 @@ public class StoreRepository
     public async Task<IEnumerable<Store>>
         GetActiveStoresAsync()
     {
-        return await _context.Stores
+        return await _context.Stores.AsNoTracking()
             .Where(x => x.IsActive)
             .OrderByDescending(x => x.Rating)
             .ToListAsync();
@@ -41,7 +41,7 @@ public class StoreRepository
         string? search,
         string? address)
     {
-        var query = _context.Stores
+        var query = _context.Stores.AsNoTracking()
             .Where(x => x.IsActive)
             .AsQueryable();
 

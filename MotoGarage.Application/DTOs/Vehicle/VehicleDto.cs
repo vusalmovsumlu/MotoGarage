@@ -6,6 +6,8 @@ public class VehicleDto
 {
     public int Id { get; set; }
 
+    public int UserId { get; set; }
+
     public string Brand { get; set; } = null!;
 
     public string Model { get; set; } = null!;
@@ -22,7 +24,11 @@ public class VehicleDto
 
     public string PlateNumber { get; set; } = null!;
 
-    public int Mileage { get; set; }
+    public int CurrentKm { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public string? ImagePublicId { get; set; }
+
+    public DateTime CreatedAt { get; set; }
 }

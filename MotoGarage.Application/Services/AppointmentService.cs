@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Appointment;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Repository;
@@ -11,6 +12,8 @@ namespace MotoGarage.Application.Services;
 
 public class AppointmentService : IAppointmentService
 {
+    private readonly INotificationService _notifications;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IMechanicRepository _mechanicRepository;
     private readonly IVehicleRepository _vehicleRepository;
@@ -20,8 +23,12 @@ public class AppointmentService : IAppointmentService
         IAppointmentRepository appointmentRepository,
         IMechanicRepository mechanicRepository,
         IVehicleRepository vehicleRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        INotificationService notifications)
     {
+        _notifications = notifications;
+        _unitOfWork = unitOfWork;
         _appointmentRepository = appointmentRepository;
         _mechanicRepository = mechanicRepository;
         _vehicleRepository = vehicleRepository;
@@ -93,7 +100,7 @@ public class AppointmentService : IAppointmentService
 
         if (!isOwner && !isMechanic)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu randevuya baxmaq icazən yoxdur.");
         }
 
@@ -108,48 +115,59 @@ public class AppointmentService : IAppointmentService
         int userId,
         CreateAppointmentDto dto)
     {
-        var vehicle =
-            await _vehicleRepository.GetByIdAsync(dto.VehicleId);
-
-        if (vehicle is null)
+        DtoValidation.Validate(dto);
+        return await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Nəqliyyat vasitəsi tapılmadı.");
-        }
+            var vehicle =
+                await _vehicleRepository.GetByIdAsync(dto.VehicleId);
 
-        if (vehicle.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu nəqliyyat vasitəsi sənə aid deyil.");
-        }
+            if (vehicle is null)
+            {
+                throw new KeyNotFoundException(
+                    "Nəqliyyat vasitəsi tapılmadı.");
+            }
 
-        var mechanic =
-            await _mechanicRepository.GetByIdAsync(dto.MechanicId);
+            if (vehicle.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu nəqliyyat vasitəsi sənə aid deyil.");
+            }
 
-        if (mechanic is null || !mechanic.IsActive)
-        {
-            throw new KeyNotFoundException(
-                "Usta tapılmadı.");
-        }
+            var mechanic =
+                await _mechanicRepository.GetByIdAsync(dto.MechanicId);
 
-        if (dto.AppointmentDate <= DateTime.UtcNow)
-        {
-            throw new DomainException(
-                "Randevu tarixi keçmiş tarix ola bilməz.");
-        }
+            if (mechanic is null || !mechanic.IsActive)
+            {
+                throw new KeyNotFoundException(
+                    "Usta tapılmadı.");
+            }
 
-        var appointment =
-            _mapper.Map<Appointment>(dto);
+            dto.AppointmentDate = dto.AppointmentDate.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dto.AppointmentDate, DateTimeKind.Utc)
+                : dto.AppointmentDate.ToUniversalTime();
+            if (await _appointmentRepository.HasActiveSlotAsync(dto.MechanicId, dto.AppointmentDate))
+                throw new ConflictException("Bu vaxt üçün aktiv randevu artıq mövcuddur.");
+            if (dto.AppointmentDate <= DateTime.UtcNow)
+            {
+                throw new DomainException(
+                    "Randevu tarixi keçmiş tarix ola bilməz.");
+            }
 
-        appointment.UserId = userId;
-        appointment.Status = AppointmentStatus.Pending;
-        appointment.CreatedAt = DateTime.UtcNow;
+            var appointment =
+                _mapper.Map<Appointment>(dto);
 
-        await _appointmentRepository.AddAsync(appointment);
+            appointment.UserId = userId;
+            appointment.Status = AppointmentStatus.Pending;
+            appointment.CreatedAt = DateTime.UtcNow;
 
-        await _appointmentRepository.SaveChangesAsync();
+            await _appointmentRepository.AddAsync(appointment);
 
-        return _mapper.Map<AppointmentDto>(appointment);
+            await _appointmentRepository.SaveChangesAsync();
+
+            await _notifications.CreateAsync(mechanic.UserId, NotificationType.Appointment,
+                "Yeni randevu", $"Yeni randevu yaradıldı: #{appointment.Id}.", $"/appointments/{appointment.Id}");
+            return _mapper.Map<AppointmentDto>(appointment);
+        });
     }
 
     // =========================
@@ -161,50 +179,45 @@ public class AppointmentService : IAppointmentService
         int mechanicUserId,
         UpdateAppointmentStatusDto dto)
     {
-        var mechanic =
-            await _mechanicRepository.GetByUserIdAsync(mechanicUserId);
-
-        if (mechanic is null)
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Usta profili tapılmadı.");
-        }
+            var mechanic =
+                await _mechanicRepository.GetByUserIdAsync(mechanicUserId);
 
-        var appointment =
-            await _appointmentRepository.GetByIdAsync(appointmentId);
+            if (mechanic is null)
+            {
+                throw new KeyNotFoundException(
+                    "Usta profili tapılmadı.");
+            }
 
-        if (appointment is null)
-        {
-            throw new KeyNotFoundException(
-                "Randevu tapılmadı.");
-        }
+            var appointment =
+                await _appointmentRepository.GetByIdAsync(appointmentId);
 
-        if (appointment.MechanicId != mechanic.Id)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu randevu sənə aid deyil.");
-        }
+            if (appointment is null)
+            {
+                throw new KeyNotFoundException(
+                    "Randevu tapılmadı.");
+            }
 
-        if (appointment.Status == AppointmentStatus.Cancelled ||
-            appointment.Status == AppointmentStatus.Completed)
-        {
-            throw new DomainException(
-                "Bu randevunun statusu artıq dəyişdirilə bilməz.");
-        }
+            if (appointment.MechanicId != mechanic.Id)
+            {
+                throw new ForbiddenException(
+                    "Bu randevu sənə aid deyil.");
+            }
 
-        if (dto.Status != AppointmentStatus.Accepted &&
-            dto.Status != AppointmentStatus.Rejected &&
-            dto.Status != AppointmentStatus.Completed)
-        {
-            throw new DomainException(
-                "Usta üçün uyğun olmayan status seçilib.");
-        }
+            if (dto.Status == AppointmentStatus.Cancelled)
+                throw new DomainException("Usta yalnız qəbul, rədd və tamamlanma statusu seçə bilər.");
+            StatusTransitions.Validate(appointment.Status, dto.Status);
 
-        appointment.Status = dto.Status;
+            appointment.Status = dto.Status;
 
-        await _appointmentRepository.UpdateAsync(appointment);
+            await _appointmentRepository.UpdateAsync(appointment);
 
-        await _appointmentRepository.SaveChangesAsync();
+            await _appointmentRepository.SaveChangesAsync();
+            await _notifications.CreateAsync(appointment.UserId, NotificationType.Appointment,
+                "Randevu statusu", $"Randevu #{appointment.Id}: {appointment.Status}.", $"/appointments/{appointment.Id}");
+        });
     }
 
     // =========================
@@ -215,37 +228,33 @@ public class AppointmentService : IAppointmentService
         int appointmentId,
         int userId)
     {
-        var appointment =
-            await _appointmentRepository.GetByIdAsync(appointmentId);
-
-        if (appointment is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Randevu tapılmadı.");
-        }
+            var appointment =
+                await _appointmentRepository.GetByIdAsync(appointmentId);
 
-        if (appointment.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu randevu sənə aid deyil.");
-        }
+            if (appointment is null)
+            {
+                throw new KeyNotFoundException(
+                    "Randevu tapılmadı.");
+            }
 
-        if (appointment.Status == AppointmentStatus.Completed)
-        {
-            throw new DomainException(
-                "Tamamlanmış randevu ləğv edilə bilməz.");
-        }
+            if (appointment.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu randevu sənə aid deyil.");
+            }
 
-        if (appointment.Status == AppointmentStatus.Cancelled)
-        {
-            throw new DomainException(
-                "Randevu artıq ləğv edilib.");
-        }
+            if (appointment.Status == AppointmentStatus.Cancelled) return;
+            StatusTransitions.Validate(appointment.Status, AppointmentStatus.Cancelled);
 
-        appointment.Status = AppointmentStatus.Cancelled;
+            appointment.Status = AppointmentStatus.Cancelled;
 
-        await _appointmentRepository.UpdateAsync(appointment);
+            await _appointmentRepository.UpdateAsync(appointment);
 
-        await _appointmentRepository.SaveChangesAsync();
+            await _appointmentRepository.SaveChangesAsync();
+            await _notifications.CreateAsync(appointment.UserId, NotificationType.Appointment,
+                "Randevu statusu", $"Randevu #{appointment.Id}: {appointment.Status}.", $"/appointments/{appointment.Id}");
+        });
     }
 }

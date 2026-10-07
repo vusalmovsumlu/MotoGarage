@@ -8,6 +8,7 @@ public class MechanicConfiguration : IEntityTypeConfiguration<Mechanic>
 {
     public void Configure(EntityTypeBuilder<Mechanic> builder)
     {
+        builder.Property(x => x.ImagePublicId).HasMaxLength(255);
         builder.Property(x => x.BusinessName)
             .IsRequired()
             .HasMaxLength(150);

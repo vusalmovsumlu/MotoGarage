@@ -8,6 +8,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
     public void Configure(EntityTypeBuilder<Product> builder)
     {
+        builder.Property(x => x.ImagePublicId).HasMaxLength(255);
+        builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.ToTable("Products", table => table.HasCheckConstraint("CK_Products_Stock", "[Stock] >= 0"));
         builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(150);

@@ -10,6 +10,8 @@ public interface IConversationRepository : IRepository<Conversation>
 
     Task<IEnumerable<Conversation>> GetByStoreIdAsync(int storeId);
 
+    Task<Conversation?> GetParticipantsAsync(int conversationId);
+
     Task<Conversation?> GetWithMessagesAsync(int conversationId);
 
     Task<Conversation?> GetUserMechanicConversationAsync(

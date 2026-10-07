@@ -4,16 +4,29 @@ using Microsoft.Extensions.Configuration;
 using MotoGarage.Application.DTOs.Media;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Exceptions;
+using MotoGarage.Domain.Entities;
+using MotoGarage.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MotoGarage.Infrastructure.Storage;
 
 public class CloudinaryImageService : IImageService
 {
+    private readonly ILogger<CloudinaryImageService> _logger;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly AppDbContext _context;
     private readonly Cloudinary _cloudinary;
 
     public CloudinaryImageService(
-        IConfiguration configuration)
+        IConfiguration configuration,
+        AppDbContext context,
+        IUnitOfWork unitOfWork,
+        ILogger<CloudinaryImageService> logger)
     {
+        _logger = logger;
+        _unitOfWork = unitOfWork;
+        _context = context;
         var cloudName =
             configuration["Cloudinary:CloudName"];
 
@@ -43,7 +56,7 @@ public class CloudinaryImageService : IImageService
 
     public async Task<UploadResultDto> UploadAsync(
         Stream stream,
-        string fileName)
+        string fileName, int userId)
     {
         if (stream is null)
         {
@@ -118,6 +131,21 @@ public class CloudinaryImageService : IImageService
                 "Cloudinary şəkli yükləyə bilmədi.");
         }
 
+        var asset = new ImageAsset
+        {
+            PublicId = result.PublicId,
+            UserId = userId,
+            Url = result.SecureUrl.ToString(),
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.ImageAssets.Add(asset);
+        try { await _context.SaveChangesAsync(); }
+        catch
+        {
+            try { await DeleteAsync(result.PublicId); }
+            catch (Exception ex) { _logger.LogWarning("Upload cleanup failed: {ErrorType}", ex.GetType().Name); }
+            throw;
+        }
         return new UploadResultDto
         {
             Url = result.SecureUrl.ToString(),
@@ -147,6 +175,46 @@ public class CloudinaryImageService : IImageService
         {
             throw new DomainException(
                 $"Şəkil silinə bilmədi: {result.Error.Message}");
+        }
+    }
+
+    public async Task ValidateOwnershipAsync(int userId, string? publicId, string? url)
+    {
+        if (string.IsNullOrWhiteSpace(publicId)) return;
+        var asset = await _context.ImageAssets.AsNoTracking().FirstOrDefaultAsync(x => x.PublicId == publicId);
+        if (asset is null || asset.UserId != userId || asset.IsDeleting || asset.Url != url)
+            throw new ForbiddenException("Bu şəkil sənə aid deyil və ya URL uyğun deyil.");
+    }
+
+    public async Task DeleteUnusedAsync(string? publicId, int userId)
+    {
+        if (string.IsNullOrWhiteSpace(publicId)) return;
+        try
+        {
+            await _unitOfWork.ExecuteAsync(async () =>
+            {
+                var asset = await _context.ImageAssets.FirstOrDefaultAsync(x => x.PublicId == publicId && x.UserId == userId);
+                if (asset is null) return;
+                // The write lock prevents a concurrent attachment while cleanup checks references.
+                asset.IsDeleting = true;
+                await _context.SaveChangesAsync();
+                var used = await _context.Vehicles.AnyAsync(x => x.ImagePublicId == publicId)
+                    || await _context.Mechanics.AnyAsync(x => x.ImagePublicId == publicId)
+                    || await _context.Stores.AnyAsync(x => x.ImagePublicId == publicId)
+                    || await _context.Products.AnyAsync(x => x.ImagePublicId == publicId);
+                if (used) asset.IsDeleting = false;
+                else
+                {
+                    await DeleteAsync(publicId);
+                    _context.ImageAssets.Remove(asset);
+                }
+                await _context.SaveChangesAsync();
+            });
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The business update has committed; remote cleanup failure must not report a failed update.
+            _logger.LogWarning("Unused image cleanup failed: {ErrorType}", ex.GetType().Name);
         }
     }
 }

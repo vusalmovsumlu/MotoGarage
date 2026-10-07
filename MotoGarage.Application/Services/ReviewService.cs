@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Review;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Repository;
@@ -11,6 +12,7 @@ namespace MotoGarage.Application.Services;
 
 public class ReviewService : IReviewService
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IReviewRepository _reviewRepository;
     private readonly IMechanicRepository _mechanicRepository;
     private readonly IAppointmentRepository _appointmentRepository;
@@ -20,8 +22,10 @@ public class ReviewService : IReviewService
         IReviewRepository reviewRepository,
         IMechanicRepository mechanicRepository,
         IAppointmentRepository appointmentRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork)
     {
+        _unitOfWork = unitOfWork;
         _reviewRepository = reviewRepository;
         _mechanicRepository = mechanicRepository;
         _appointmentRepository = appointmentRepository;
@@ -65,56 +69,60 @@ public class ReviewService : IReviewService
         int userId,
         CreateReviewDto dto)
     {
-        ValidateRating(dto.Rating);
-
-        var mechanic =
-            await _mechanicRepository.GetByIdAsync(
-                dto.MechanicId);
-
-        if (mechanic is null || !mechanic.IsActive)
+        DtoValidation.Validate(dto);
+        return await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Usta tapılmadı.");
-        }
+            ValidateRating(dto.Rating);
 
-        var hasReviewed =
-            await _reviewRepository.HasUserReviewedAsync(
-                userId,
-                dto.MechanicId);
+            var mechanic =
+                await _mechanicRepository.GetByIdAsync(
+                    dto.MechanicId);
 
-        if (hasReviewed)
-        {
-            throw new DomainException(
-                "Bu ustaya artıq rəy yazmısan.");
-        }
+            if (mechanic is null || !mechanic.IsActive)
+            {
+                throw new KeyNotFoundException(
+                    "Usta tapılmadı.");
+            }
 
-        var appointments =
-            await _appointmentRepository
-                .GetByUserIdAsync(userId);
+            var hasReviewed =
+                await _reviewRepository.HasUserReviewedAsync(
+                    userId,
+                    dto.MechanicId);
 
-        var hasCompletedAppointment =
-            appointments.Any(x =>
-                x.MechanicId == dto.MechanicId &&
-                x.Status == AppointmentStatus.Completed);
+            if (hasReviewed)
+            {
+                throw new DomainException(
+                    "Bu ustaya artıq rəy yazmısan.");
+            }
 
-        if (!hasCompletedAppointment)
-        {
-            throw new DomainException(
-                "Yalnız xidmət aldığın ustaya rəy yaza bilərsən.");
-        }
+            var appointments =
+                await _appointmentRepository
+                    .GetByUserIdAsync(userId);
 
-        var review = _mapper.Map<Review>(dto);
+            var hasCompletedAppointment =
+                appointments.Any(x =>
+                    x.MechanicId == dto.MechanicId &&
+                    x.Status == AppointmentStatus.Completed);
 
-        review.UserId = userId;
-        review.CreatedAt = DateTime.UtcNow;
+            if (!hasCompletedAppointment)
+            {
+                throw new DomainException(
+                    "Yalnız xidmət aldığın ustaya rəy yaza bilərsən.");
+            }
 
-        await _reviewRepository.AddAsync(review);
+            var review = _mapper.Map<Review>(dto);
 
-        await _reviewRepository.SaveChangesAsync();
+            review.UserId = userId;
+            review.CreatedAt = DateTime.UtcNow;
 
-        await UpdateMechanicRatingAsync(mechanic);
+            await _reviewRepository.AddAsync(review);
 
-        return _mapper.Map<ReviewDto>(review);
+            await _reviewRepository.SaveChangesAsync();
+
+            await UpdateMechanicRatingAsync(mechanic);
+
+            return _mapper.Map<ReviewDto>(review);
+        });
     }
 
     public async Task UpdateAsync(
@@ -122,71 +130,78 @@ public class ReviewService : IReviewService
         int userId,
         UpdateReviewDto dto)
     {
-        ValidateRating(dto.Rating);
-
-        var review =
-            await _reviewRepository.GetByIdAsync(id);
-
-        if (review is null)
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Rəy tapılmadı.");
-        }
+            ValidateRating(dto.Rating);
 
-        if (review.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu rəyi dəyişmək icazən yoxdur.");
-        }
+            var review =
+                await _reviewRepository.GetByIdAsync(id);
 
-        _mapper.Map(dto, review);
+            if (review is null)
+            {
+                throw new KeyNotFoundException(
+                    "Rəy tapılmadı.");
+            }
 
-        await _reviewRepository.UpdateAsync(review);
+            if (review.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu rəyi dəyişmək icazən yoxdur.");
+            }
 
-        await _reviewRepository.SaveChangesAsync();
+            _mapper.Map(dto, review);
 
-        var mechanic =
-            await _mechanicRepository.GetByIdAsync(
-                review.MechanicId);
+            await _reviewRepository.UpdateAsync(review);
 
-        if (mechanic is not null)
-        {
-            await UpdateMechanicRatingAsync(mechanic);
-        }
+            await _reviewRepository.SaveChangesAsync();
+
+            var mechanic =
+                await _mechanicRepository.GetByIdAsync(
+                    review.MechanicId);
+
+            if (mechanic is not null)
+            {
+                await UpdateMechanicRatingAsync(mechanic);
+            }
+        });
     }
 
     public async Task DeleteAsync(
         int id,
         int userId)
     {
-        var review =
-            await _reviewRepository.GetByIdAsync(id);
-
-        if (review is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Rəy tapılmadı.");
-        }
+            var review =
+                await _reviewRepository.GetByIdAsync(id);
 
-        if (review.UserId != userId)
-        {
-            throw new UnauthorizedAccessException(
-                "Bu rəyi silmək icazən yoxdur.");
-        }
+            if (review is null)
+            {
+                throw new KeyNotFoundException(
+                    "Rəy tapılmadı.");
+            }
 
-        var mechanicId = review.MechanicId;
+            if (review.UserId != userId)
+            {
+                throw new ForbiddenException(
+                    "Bu rəyi silmək icazən yoxdur.");
+            }
 
-        await _reviewRepository.DeleteAsync(review);
+            var mechanicId = review.MechanicId;
 
-        await _reviewRepository.SaveChangesAsync();
+            await _reviewRepository.DeleteAsync(review);
 
-        var mechanic =
-            await _mechanicRepository.GetByIdAsync(mechanicId);
+            await _reviewRepository.SaveChangesAsync();
 
-        if (mechanic is not null)
-        {
-            await UpdateMechanicRatingAsync(mechanic);
-        }
+            var mechanic =
+                await _mechanicRepository.GetByIdAsync(mechanicId);
+
+            if (mechanic is not null)
+            {
+                await UpdateMechanicRatingAsync(mechanic);
+            }
+        });
     }
 
     private static void ValidateRating(int rating)

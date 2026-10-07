@@ -20,7 +20,7 @@ public class FuelRecordConfiguration : IEntityTypeConfiguration<FuelRecord>
             .HasPrecision(18, 2)
             .IsRequired();
 
-        builder.Property(x => x.Mileage)
+        builder.Property(x => x.Kilometer)
             .IsRequired();
 
         builder.Property(x => x.FuelDate)

@@ -14,11 +14,11 @@ public class Conversation
 
     public DateTime? LastMessageAt { get; set; }
 
-    public User User { get; set; }
+    public User User { get; set; } = null!;
 
     public Mechanic? Mechanic { get; set; }
 
     public Store? Store { get; set; }
 
-    public ICollection<Message> Messages { get; set; }
+    public ICollection<Message> Messages { get; set; } = new List<Message>();
 }

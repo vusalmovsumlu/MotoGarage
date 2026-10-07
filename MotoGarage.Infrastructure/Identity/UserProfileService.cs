@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using MotoGarage.Application.Helpers;
+using Microsoft.AspNetCore.Identity;
 using MotoGarage.Application.DTOs.Profile;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Entities;
@@ -45,6 +46,7 @@ public class UserProfileService : IUserProfileService
         int userId,
         UpdateUserProfileDto dto)
     {
+        DtoValidation.Validate(dto);
         var user =
             await _userManager.FindByIdAsync(
                 userId.ToString());

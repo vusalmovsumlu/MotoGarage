@@ -17,7 +17,7 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
 
     public async Task<IEnumerable<Vehicle>> GetByUserIdAsync(int userId)
     {
-        return await _context.Vehicles
+        return await _context.Vehicles.AsNoTracking()
             .Where(x => x.UserId == userId)
             .ToListAsync();
     }

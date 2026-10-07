@@ -19,7 +19,7 @@ public class ServiceRecordRepository
     public async Task<IEnumerable<ServiceRecord>> GetByVehicleIdAsync(
         int vehicleId)
     {
-        return await _context.ServiceRecords
+        return await _context.ServiceRecords.AsNoTracking()
             .Where(x => x.VehicleId == vehicleId)
             .ToListAsync();
     }

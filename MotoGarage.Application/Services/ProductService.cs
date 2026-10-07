@@ -10,6 +10,8 @@ namespace MotoGarage.Application.Services;
 
 public class ProductService : IProductService
 {
+    private readonly IImageService _images;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IMapper _mapper;
@@ -17,8 +19,12 @@ public class ProductService : IProductService
     public ProductService(
         IProductRepository productRepository,
         IStoreRepository storeRepository,
-        IMapper mapper)
+        IMapper mapper,
+        IUnitOfWork unitOfWork,
+        IImageService images)
     {
+        _images = images;
+        _unitOfWork = unitOfWork;
         _productRepository = productRepository;
         _storeRepository = storeRepository;
         _mapper = mapper;
@@ -117,38 +123,47 @@ public class ProductService : IProductService
         int storeUserId,
         CreateProductDto dto)
     {
-        var store =
-            await GetStoreByUserIdAsync(storeUserId);
-
-        if (dto.Price <= 0)
+        return await SlugHelper.RetryAsync(async () =>
         {
-            throw new DomainException(
-                "Məhsulun qiyməti 0-dan böyük olmalıdır.");
-        }
+            DtoValidation.Validate(dto);
+            return await _unitOfWork.ExecuteAsync(async () =>
+            {
+                var store =
+                    await GetStoreByUserIdAsync(storeUserId);
 
-        if (dto.Stock < 0)
-        {
-            throw new DomainException(
-                "Stok mənfi ola bilməz.");
-        }
+                if (dto.Price < 0)
+                {
+                    throw new DomainException(
+                        "Məhsulun qiyməti mənfi ola bilməz.");
+                }
 
-        var product =
-            _mapper.Map<Product>(dto);
+                if (dto.Stock < 0)
+                {
+                    throw new DomainException(
+                        "Stok mənfi ola bilməz.");
+                }
+                await _images.ValidateOwnershipAsync(storeUserId, dto.ImagePublicId, dto.ImageUrl);
 
-        product.StoreId = store.Id;
 
-        product.Slug =
-            await GenerateUniqueSlugAsync(
-                dto.Name);
+                var product =
+                    _mapper.Map<Product>(dto);
 
-        product.IsActive = true;
-        product.CreatedAt = DateTime.UtcNow;
+                product.StoreId = store.Id;
 
-        await _productRepository.AddAsync(product);
+                product.Slug =
+                    await GenerateUniqueSlugAsync(
+                        dto.Name);
 
-        await _productRepository.SaveChangesAsync();
+                product.IsActive = true;
+                product.CreatedAt = DateTime.UtcNow;
 
-        return _mapper.Map<ProductDto>(product);
+                await _productRepository.AddAsync(product);
+
+                await _productRepository.SaveChangesAsync();
+
+                return _mapper.Map<ProductDto>(product);
+            });
+        }, "IX_Products_Slug");
     }
 
     public async Task UpdateAsync(
@@ -156,44 +171,43 @@ public class ProductService : IProductService
         int storeUserId,
         UpdateProductDto dto)
     {
-        var store =
-            await GetStoreByUserIdAsync(storeUserId);
-
-        var product =
-            await _productRepository.GetBySlugAsync(slug);
-
-        if (product is null)
+        string? previousImage = null;
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Məhsul tapılmadı.");
-        }
+            var store =
+                await GetStoreByUserIdAsync(storeUserId);
 
-        ValidateOwnership(product, store.Id);
+            var product =
+                await _productRepository.GetBySlugAsync(slug);
 
-        if (dto.Price <= 0)
-        {
-            throw new DomainException(
-                "Məhsulun qiyməti 0-dan böyük olmalıdır.");
-        }
+            if (product is null)
+            {
+                throw new KeyNotFoundException(
+                    "Məhsul tapılmadı.");
+            }
 
-        var oldName = product.Name;
+            ValidateOwnership(product, store.Id);
 
-        _mapper.Map(dto, product);
+            if (dto.Price < 0)
+            {
+                throw new DomainException(
+                    "Məhsulun qiyməti mənfi ola bilməz.");
+            }
 
-        if (!string.Equals(
-                oldName,
-                dto.Name,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            product.Slug =
-                await GenerateUniqueSlugAsync(
-                    dto.Name,
-                    product.Id);
-        }
+            previousImage = product.ImagePublicId;
+            if (dto.ImagePublicId is null && dto.ImageUrl == product.ImageUrl)
+                dto.ImagePublicId = previousImage;
+            await _images.ValidateOwnershipAsync(storeUserId, dto.ImagePublicId, dto.ImageUrl);
+            _mapper.Map(dto, product);
 
-        await _productRepository.UpdateAsync(product);
 
-        await _productRepository.SaveChangesAsync();
+
+            await _productRepository.UpdateAsync(product);
+
+            await _productRepository.SaveChangesAsync();
+        });
+        await _images.DeleteUnusedAsync(previousImage, storeUserId);
     }
 
     public async Task UpdateStockAsync(
@@ -201,56 +215,63 @@ public class ProductService : IProductService
         int storeUserId,
         UpdateStockDto dto)
     {
-        var store =
-            await GetStoreByUserIdAsync(storeUserId);
-
-        var product =
-            await _productRepository.GetBySlugAsync(slug);
-
-        if (product is null)
+        DtoValidation.Validate(dto);
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Məhsul tapılmadı.");
-        }
+            var store =
+                await GetStoreByUserIdAsync(storeUserId);
 
-        ValidateOwnership(product, store.Id);
+            var product =
+                await _productRepository.GetBySlugAsync(slug);
 
-        if (dto.Stock < 0)
-        {
-            throw new DomainException(
-                "Stok mənfi ola bilməz.");
-        }
+            if (product is null)
+            {
+                throw new KeyNotFoundException(
+                    "Məhsul tapılmadı.");
+            }
 
-        product.Stock = dto.Stock;
+            ValidateOwnership(product, store.Id);
 
-        await _productRepository.UpdateAsync(product);
+            if (dto.Stock < 0)
+            {
+                throw new DomainException(
+                    "Stok mənfi ola bilməz.");
+            }
 
-        await _productRepository.SaveChangesAsync();
+            product.Stock = dto.Stock;
+
+            await _productRepository.UpdateAsync(product);
+
+            await _productRepository.SaveChangesAsync();
+        });
     }
 
     public async Task DeleteAsync(
         string slug,
         int storeUserId)
     {
-        var store =
-            await GetStoreByUserIdAsync(storeUserId);
-
-        var product =
-            await _productRepository.GetBySlugAsync(slug);
-
-        if (product is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "Məhsul tapılmadı.");
-        }
+            var store =
+                await GetStoreByUserIdAsync(storeUserId);
 
-        ValidateOwnership(product, store.Id);
+            var product =
+                await _productRepository.GetBySlugAsync(slug);
 
-        product.IsActive = false;
+            if (product is null)
+            {
+                throw new KeyNotFoundException(
+                    "Məhsul tapılmadı.");
+            }
 
-        await _productRepository.UpdateAsync(product);
+            ValidateOwnership(product, store.Id);
 
-        await _productRepository.SaveChangesAsync();
+            product.IsActive = false;
+
+            await _productRepository.UpdateAsync(product);
+
+            await _productRepository.SaveChangesAsync();
+        });
     }
 
     private async Task<Store> GetStoreByUserIdAsync(
@@ -261,7 +282,7 @@ public class ProductService : IProductService
 
         if (store is null || !store.IsActive)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Aktiv mağaza profilin yoxdur.");
         }
 
@@ -274,7 +295,7 @@ public class ProductService : IProductService
     {
         if (product.StoreId != storeId)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu məhsulu idarə etmək icazən yoxdur.");
         }
     }

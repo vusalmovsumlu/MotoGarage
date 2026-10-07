@@ -31,7 +31,7 @@ public class MechanicRepository
     public async Task<IEnumerable<Mechanic>>
         GetActiveMechanicsAsync()
     {
-        return await _context.Mechanics
+        return await _context.Mechanics.AsNoTracking()
             .Where(x => x.IsActive)
             .OrderByDescending(x => x.Rating)
             .ToListAsync();
@@ -41,7 +41,7 @@ public class MechanicRepository
         string? search,
         string? address)
     {
-        var query = _context.Mechanics
+        var query = _context.Mechanics.AsNoTracking()
             .Where(x => x.IsActive)
             .AsQueryable();
 

@@ -18,7 +18,7 @@ public class AppointmentRepository
 
     public async Task<IEnumerable<Appointment>> GetByUserIdAsync(int userId)
     {
-        return await _context.Appointments
+        return await _context.Appointments.AsNoTracking()
             .Include(x => x.Mechanic)
             .Include(x => x.Vehicle)
             .Where(x => x.UserId == userId)
@@ -29,7 +29,7 @@ public class AppointmentRepository
     public async Task<IEnumerable<Appointment>> GetByMechanicIdAsync(
         int mechanicId)
     {
-        return await _context.Appointments
+        return await _context.Appointments.AsNoTracking()
             .Include(x => x.User)
             .Include(x => x.Vehicle)
             .Where(x => x.MechanicId == mechanicId)
@@ -45,4 +45,11 @@ public class AppointmentRepository
             .Include(x => x.Vehicle)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
+    public Task<bool> HasActiveSlotAsync(int mechanicId, DateTime date) =>
+        _context.Appointments.AnyAsync(x => x.MechanicId == mechanicId &&
+            x.AppointmentDate == date && (x.Status == Domain.Enums.AppointmentStatus.Pending ||
+                x.Status == Domain.Enums.AppointmentStatus.Accepted));
+
+    public Task<bool> HasVehicleAppointmentsAsync(int vehicleId) =>
+        _context.Appointments.AnyAsync(x => x.VehicleId == vehicleId);
 }

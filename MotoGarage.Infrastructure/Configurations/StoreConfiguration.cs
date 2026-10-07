@@ -8,6 +8,7 @@ public class StoreConfiguration : IEntityTypeConfiguration<Store>
 {
     public void Configure(EntityTypeBuilder<Store> builder)
     {
+        builder.Property(x => x.ImagePublicId).HasMaxLength(255);
         builder.Property(x => x.StoreName)
             .IsRequired()
             .HasMaxLength(150);

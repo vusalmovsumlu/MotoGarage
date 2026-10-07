@@ -18,7 +18,7 @@ public class ConversationRepository
 
     public async Task<IEnumerable<Conversation>> GetByUserIdAsync(int userId)
     {
-        return await _context.Conversations
+        return await _context.Conversations.AsNoTracking()
             .Include(x => x.Mechanic)
             .Include(x => x.Store)
             .Where(x => x.UserId == userId)
@@ -29,7 +29,7 @@ public class ConversationRepository
     public async Task<IEnumerable<Conversation>> GetByMechanicIdAsync(
         int mechanicId)
     {
-        return await _context.Conversations
+        return await _context.Conversations.AsNoTracking()
             .Include(x => x.User)
             .Where(x => x.MechanicId == mechanicId)
             .OrderByDescending(x => x.LastMessageAt ?? x.CreatedAt)
@@ -39,12 +39,16 @@ public class ConversationRepository
     public async Task<IEnumerable<Conversation>> GetByStoreIdAsync(
         int storeId)
     {
-        return await _context.Conversations
+        return await _context.Conversations.AsNoTracking()
             .Include(x => x.User)
             .Where(x => x.StoreId == storeId)
             .OrderByDescending(x => x.LastMessageAt ?? x.CreatedAt)
             .ToListAsync();
     }
+
+    public Task<Conversation?> GetParticipantsAsync(int conversationId) =>
+        _context.Conversations.Include(x => x.Mechanic).Include(x => x.Store)
+            .FirstOrDefaultAsync(x => x.Id == conversationId);
 
     public async Task<Conversation?> GetWithMessagesAsync(
         int conversationId)

@@ -18,7 +18,7 @@ public class OrderItemRepository
 
     public async Task<IEnumerable<OrderItem>> GetByOrderIdAsync(int orderId)
     {
-        return await _context.OrderItems
+        return await _context.OrderItems.AsNoTracking()
             .Include(x => x.Product)
             .Where(x => x.OrderId == orderId)
             .ToListAsync();

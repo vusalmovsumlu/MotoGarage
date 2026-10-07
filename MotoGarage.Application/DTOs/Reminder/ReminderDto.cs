@@ -12,7 +12,7 @@ public class ReminderDto
 
     public DateTime ReminderDate { get; set; }
 
-    public int? ReminderMileage { get; set; }
+    public int? ReminderKm { get; set; }
 
     public bool IsCompleted { get; set; }
 }

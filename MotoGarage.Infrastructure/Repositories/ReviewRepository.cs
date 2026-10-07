@@ -19,7 +19,7 @@ public class ReviewRepository
     public async Task<IEnumerable<Review>> GetByMechanicIdAsync(
         int mechanicId)
     {
-        return await _context.Reviews
+        return await _context.Reviews.AsNoTracking()
             .Include(x => x.User)
             .Where(x => x.MechanicId == mechanicId)
             .OrderByDescending(x => x.CreatedAt)
@@ -28,15 +28,8 @@ public class ReviewRepository
 
     public async Task<double> GetAverageRatingAsync(int mechanicId)
     {
-        var ratings = await _context.Reviews
-            .Where(x => x.MechanicId == mechanicId)
-            .Select(x => x.Rating)
-            .ToListAsync();
-
-        if (ratings.Count == 0)
-            return 0;
-
-        return ratings.Average();
+        return await _context.Reviews.Where(x => x.MechanicId == mechanicId)
+            .AverageAsync(x => (double?)x.Rating) ?? 0;
     }
 
     public async Task<bool> HasUserReviewedAsync(

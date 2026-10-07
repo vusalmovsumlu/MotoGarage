@@ -12,7 +12,7 @@ public class ServiceRecordDto
 
     public decimal Cost { get; set; }
 
-    public int Mileage { get; set; }
+    public int Kilometer { get; set; }
 
     public DateTime ServiceDate { get; set; }
 }

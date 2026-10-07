@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using MotoGarage.Domain.Exceptions;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Notification;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Services;
@@ -90,7 +92,7 @@ public class NotificationService
 
         if (notification.UserId != userId)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu bildiriş sənə aid deyil.");
         }
 

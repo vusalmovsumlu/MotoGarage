@@ -3,18 +3,27 @@ using Microsoft.AspNetCore.SignalR;
 using MotoGarage.Application.DTOs.Chat;
 using MotoGarage.Application.Interfaces.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
+using MotoGarage.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace MotoGarage.API.Hubs;
 
 [Authorize]
 public class ChatHub : Hub
 {
+    private readonly IUserConnectionRegistry _connections;
     private readonly IChatService _chatService;
+    private readonly UserManager<User> _userManager;
 
     public ChatHub(
-        IChatService chatService)
+        IChatService chatService,
+        UserManager<User> userManager,
+        IUserConnectionRegistry connections)
     {
+        _connections = connections;
         _chatService = chatService;
+        _userManager = userManager;
     }
 
     // =========================
@@ -24,7 +33,7 @@ public class ChatHub : Hub
     public async Task JoinConversation(
         int conversationId)
     {
-        var userId = GetCurrentUserId();
+        var userId = await GetAuthorizedUserIdAsync();
 
         // İcazəsi olmayan user qrupa girə bilməz
         await _chatService.GetByIdAsync(
@@ -56,7 +65,7 @@ public class ChatHub : Hub
         int conversationId,
         string content)
     {
-        var userId = GetCurrentUserId();
+        var userId = await GetAuthorizedUserIdAsync();
 
         var dto = new SendMessageDto
         {
@@ -85,7 +94,7 @@ public class ChatHub : Hub
     public async Task MarkAsRead(
         int conversationId)
     {
-        var userId = GetCurrentUserId();
+        var userId = await GetAuthorizedUserIdAsync();
 
         await _chatService.MarkAsReadAsync(
             conversationId,
@@ -97,6 +106,43 @@ public class ChatHub : Hub
                 "MessagesRead",
                 conversationId,
                 userId);
+    }
+
+    public override async Task OnConnectedAsync()
+    {
+        var userId = await GetAuthorizedUserIdAsync();
+        _connections.Register(userId, Context.ConnectionId, Context.Abort);
+        try
+        {
+            // Close the race between authentication and registration after an admin block.
+            await GetAuthorizedUserIdAsync();
+            await base.OnConnectedAsync();
+        }
+        catch
+        {
+            _connections.Remove(userId, Context.ConnectionId);
+            throw;
+        }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        _connections.Remove(GetCurrentUserId(), Context.ConnectionId);
+        await base.OnDisconnectedAsync(exception);
+    }
+
+    private async Task<int> GetAuthorizedUserIdAsync()
+    {
+        var id = GetCurrentUserId();
+        var user = await _userManager.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id);
+        if (user is null || !user.EmailConfirmed || user.IsAdminBlocked ||
+            (user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow) ||
+            Context.User?.FindFirstValue(ClaimTypes.Role) != user.Role.ToString())
+        {
+            Context.Abort();
+            throw new HubException("Bu bağlantı üçün giriş icazəsi ləğv edilib.");
+        }
+        return id;
     }
 
     private int GetCurrentUserId()

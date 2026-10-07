@@ -19,7 +19,8 @@ public class FuelRecordController : ControllerBase
         _fuelRecordService = fuelRecordService;
     }
 
-    // GET: api/fuel-records/vehicle/5
+    // GET:
+    // api/fuel-records/vehicle/5
     [HttpGet("vehicle/{vehicleId}")]
     public async Task<IActionResult> GetByVehicleId(
         int vehicleId)
@@ -34,9 +35,36 @@ public class FuelRecordController : ControllerBase
         return Ok(records);
     }
 
-    // GET: api/fuel-records/10
+    // GET:
+    // api/fuel-records/stats?vehicleId=5
+    //
+    // api/fuel-records/stats
+    // ?vehicleId=5
+    // &startDate=2026-09-01
+    // &endDate=2026-10-01
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats(
+        [FromQuery] int vehicleId,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var userId = GetCurrentUserId();
+
+        var stats =
+            await _fuelRecordService.GetStatsAsync(
+                vehicleId,
+                userId,
+                startDate,
+                endDate);
+
+        return Ok(stats);
+    }
+
+    // GET:
+    // api/fuel-records/10
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(
+        int id)
     {
         var userId = GetCurrentUserId();
 
@@ -48,7 +76,8 @@ public class FuelRecordController : ControllerBase
         return Ok(record);
     }
 
-    // POST: api/fuel-records
+    // POST:
+    // api/fuel-records
     [HttpPost]
     public async Task<IActionResult> Create(
         CreateFuelRecordDto dto)
@@ -62,11 +91,15 @@ public class FuelRecordController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetById),
-            new { id = record.Id },
+            new
+            {
+                id = record.Id
+            },
             record);
     }
 
-    // PUT: api/fuel-records/10
+    // PUT:
+    // api/fuel-records/10
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(
         int id,
@@ -82,9 +115,11 @@ public class FuelRecordController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/fuel-records/10
+    // DELETE:
+    // api/fuel-records/10
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(
+        int id)
     {
         var userId = GetCurrentUserId();
 

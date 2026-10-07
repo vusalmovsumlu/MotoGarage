@@ -4,6 +4,8 @@ public class RefreshToken
 {
     public int Id { get; set; }
 
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public string Token { get; set; } = null!;
 
     public DateTime ExpiresAt { get; set; }

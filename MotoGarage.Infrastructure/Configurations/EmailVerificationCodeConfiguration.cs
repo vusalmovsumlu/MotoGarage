@@ -10,6 +10,7 @@ public class EmailVerificationCodeConfiguration
     public void Configure(
         EntityTypeBuilder<EmailVerificationCode> builder)
     {
+        builder.Property(x => x.RowVersion).IsRowVersion();
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.CodeHash)

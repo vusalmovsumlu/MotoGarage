@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\MotoGarage.Application\MotoGarage.Application.csproj" />
     <ProjectReference Include="..\MotoGarage.Domain\MotoGarage.Domain.csproj" />
   </ItemGroup>

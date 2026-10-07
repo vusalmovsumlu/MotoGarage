@@ -22,6 +22,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/register
     [HttpPost("register")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register(
         RegisterDto dto)
@@ -38,6 +39,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/verify-email
     [HttpPost("verify-email")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-verify")]
     [AllowAnonymous]
     public async Task<IActionResult> VerifyEmail(
         VerifyEmailDto dto)
@@ -54,6 +56,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/resend-verification-code
     [HttpPost("resend-verification-code")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-resend")]
     [AllowAnonymous]
     public async Task<IActionResult> ResendVerificationCode(
         ResendVerificationCodeDto dto)
@@ -74,6 +77,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/login
     [HttpPost("login")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login(
         LoginDto dto)
@@ -127,7 +131,8 @@ public class AuthController : ControllerBase
         RefreshTokenRequestDto dto)
     {
         await _authService.LogoutAsync(
-            dto.RefreshToken);
+            dto.RefreshToken,
+            int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value));
 
         return NoContent();
     }

@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using MotoGarage.Application.Helpers;
+using MotoGarage.Domain.Exceptions;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Reminder;
 using MotoGarage.Application.Interfaces.Repository;
 using MotoGarage.Application.Interfaces.Services;
@@ -71,8 +73,8 @@ public class ReminderService : IReminderService
             .Where(x =>
                 x.ReminderDate <= now ||
                 (
-                    x.ReminderMileage.HasValue &&
-                    vehicle.Mileage >= x.ReminderMileage.Value
+                    x.ReminderKm.HasValue &&
+                    vehicle.CurrentKm >= x.ReminderKm.Value
                 ))
             .ToList();
 
@@ -104,6 +106,7 @@ public class ReminderService : IReminderService
         int userId,
         CreateReminderDto dto)
     {
+        DtoValidation.Validate(dto);
         await ValidateVehicleOwnershipAsync(
             dto.VehicleId,
             userId);
@@ -125,6 +128,7 @@ public class ReminderService : IReminderService
         int userId,
         UpdateReminderDto dto)
     {
+        DtoValidation.Validate(dto);
         var reminder =
             await _reminderRepository.GetByIdAsync(id);
 
@@ -206,7 +210,7 @@ public class ReminderService : IReminderService
 
         if (vehicle.UserId != userId)
         {
-            throw new UnauthorizedAccessException(
+            throw new ForbiddenException(
                 "Bu nəqliyyat vasitəsinə giriş icazən yoxdur.");
         }
 

@@ -20,7 +20,7 @@ public class MessageRepository
     public async Task<IEnumerable<Message>> GetByConversationIdAsync(
         int conversationId)
     {
-        return await _context.Messages
+        return await _context.Messages.AsNoTracking()
             .Include(x => x.SenderUser)
             .Where(x => x.ConversationId == conversationId)
             .OrderBy(x => x.SentAt)
@@ -31,7 +31,7 @@ public class MessageRepository
         int conversationId,
         int userId)
     {
-        return await _context.Messages
+        return await _context.Messages.AsNoTracking()
             .Where(x =>
                 x.ConversationId == conversationId &&
                 x.SenderUserId != userId &&
@@ -44,7 +44,7 @@ public class MessageRepository
         int conversationId,
         int userId)
     {
-        return await _context.Messages
+        return await _context.Messages.AsNoTracking()
             .CountAsync(x =>
                 x.ConversationId == conversationId &&
                 x.SenderUserId != userId &&

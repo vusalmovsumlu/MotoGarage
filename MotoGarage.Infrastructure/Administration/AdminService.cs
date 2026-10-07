@@ -11,13 +11,19 @@ namespace MotoGarage.Infrastructure.Administration;
 
 public class AdminService : IAdminService
 {
+    private readonly IUserConnectionRegistry _connections;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly AppDbContext _context;
     private readonly UserManager<User> _userManager;
 
     public AdminService(
         AppDbContext context,
-        UserManager<User> userManager)
+        UserManager<User> userManager,
+        IUnitOfWork unitOfWork,
+        IUserConnectionRegistry connections)
     {
+        _connections = connections;
+        _unitOfWork = unitOfWork;
         _context = context;
         _userManager = userManager;
     }
@@ -68,9 +74,9 @@ public class AdminService : IAdminService
                     x.EmailConfirmed,
 
                 IsBlocked =
-                    x.LockoutEnd.HasValue &&
+                    x.IsAdminBlocked || (x.LockoutEnd.HasValue &&
                     x.LockoutEnd.Value >
-                    DateTimeOffset.UtcNow,
+                    DateTimeOffset.UtcNow),
 
                 CreatedAt = x.CreatedAt
             });
@@ -115,65 +121,79 @@ public class AdminService : IAdminService
         int userId,
         int currentAdminId)
     {
-        if (userId == currentAdminId)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new DomainException(
-                "Öz hesabını bloklaya bilməzsən.");
-        }
+            if (userId == currentAdminId)
+            {
+                throw new DomainException(
+                    "Öz hesabını bloklaya bilməzsən.");
+            }
 
-        var user =
-            await _userManager.FindByIdAsync(
-                userId.ToString());
+            var user =
+                await _userManager.FindByIdAsync(
+                    userId.ToString());
 
-        if (user is null)
-        {
-            throw new KeyNotFoundException(
-                "İstifadəçi tapılmadı.");
-        }
+            if (user is null)
+            {
+                throw new KeyNotFoundException(
+                    "İstifadəçi tapılmadı.");
+            }
 
-        var enableResult =
-            await _userManager.SetLockoutEnabledAsync(
-                user,
-                true);
+            user.IsAdminBlocked = true;
+            var enableResult =
+                await _userManager.SetLockoutEnabledAsync(
+                    user,
+                    true);
 
-        if (!enableResult.Succeeded)
-        {
-            ThrowIdentityErrors(enableResult);
-        }
+            if (!enableResult.Succeeded)
+            {
+                ThrowIdentityErrors(enableResult);
+            }
 
-        var lockResult =
-            await _userManager.SetLockoutEndDateAsync(
-                user,
-                DateTimeOffset.MaxValue);
+            var lockResult =
+                await _userManager.SetLockoutEndDateAsync(
+                    user,
+                    DateTimeOffset.MaxValue);
 
-        if (!lockResult.Succeeded)
-        {
-            ThrowIdentityErrors(lockResult);
-        }
+            if (!lockResult.Succeeded)
+            {
+                ThrowIdentityErrors(lockResult);
+            }
+            var tokens = await _context.RefreshTokens.Where(x =>
+                x.UserId == userId && x.RevokedAt == null).ToListAsync();
+            foreach (var token in tokens) token.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        });
+        _connections.Disconnect(userId);
     }
 
     public async Task UnblockUserAsync(
         int userId)
     {
-        var user =
-            await _userManager.FindByIdAsync(
-                userId.ToString());
-
-        if (user is null)
+        await _unitOfWork.ExecuteAsync(async () =>
         {
-            throw new KeyNotFoundException(
-                "İstifadəçi tapılmadı.");
-        }
+            var user =
+                await _userManager.FindByIdAsync(
+                    userId.ToString());
 
-        var result =
-            await _userManager.SetLockoutEndDateAsync(
-                user,
-                null);
+            if (user is null)
+            {
+                throw new KeyNotFoundException(
+                    "İstifadəçi tapılmadı.");
+            }
 
-        if (!result.Succeeded)
-        {
-            ThrowIdentityErrors(result);
-        }
+            user.IsAdminBlocked = false;
+            user.AccessFailedCount = 0;
+            var result =
+                await _userManager.SetLockoutEndDateAsync(
+                    user,
+                    null);
+
+            if (!result.Succeeded)
+            {
+                ThrowIdentityErrors(result);
+            }
+        });
     }
 
     private static void ThrowIdentityErrors(

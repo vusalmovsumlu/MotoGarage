@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoGarage.Infrastructure",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoGarage.API", "MotoGarage.API\MotoGarage.API.csproj", "{0BB72265-36A6-4674-AA17-55BF2C68AF7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotoGarage.Tests", "MotoGarage.Tests\MotoGarage.Tests.csproj", "{D352F6AE-2252-45D0-9553-DD82F0569176}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{0BB72265-36A6-4674-AA17-55BF2C68AF7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BB72265-36A6-4674-AA17-55BF2C68AF7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BB72265-36A6-4674-AA17-55BF2C68AF7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D352F6AE-2252-45D0-9553-DD82F0569176}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D352F6AE-2252-45D0-9553-DD82F0569176}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D352F6AE-2252-45D0-9553-DD82F0569176}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D352F6AE-2252-45D0-9553-DD82F0569176}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

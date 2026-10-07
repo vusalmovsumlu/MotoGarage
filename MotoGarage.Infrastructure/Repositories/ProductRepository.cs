@@ -28,7 +28,7 @@ public class ProductRepository
     public async Task<IEnumerable<Product>>
         GetByStoreIdAsync(int storeId)
     {
-        return await _context.Products
+        return await _context.Products.AsNoTracking()
             .Where(x =>
                 x.StoreId == storeId &&
                 x.IsActive)
@@ -42,7 +42,7 @@ public class ProductRepository
         decimal? minPrice,
         decimal? maxPrice)
     {
-        var query = _context.Products
+        var query = _context.Products.AsNoTracking()
             .Where(x =>
                 x.IsActive &&
                 x.Store.IsActive)
