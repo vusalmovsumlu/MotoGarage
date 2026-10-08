@@ -6,6 +6,8 @@ public class Vehicle
 {
     public int Id { get; set; }
 
+    public string Slug { get; set; } = $"qaraj-{Guid.NewGuid():N}";
+
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public int UserId { get; set; }

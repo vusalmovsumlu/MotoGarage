@@ -110,6 +110,20 @@ public class NotificationService
             .SaveChangesAsync();
     }
 
+    public async Task DeleteAsync(int notificationId, int userId)
+    {
+        var notification = await _notificationRepository.GetByIdAsync(notificationId)
+            ?? throw new KeyNotFoundException("Bildiriş tapılmadı.");
+        if (notification.UserId != userId)
+            throw new ForbiddenException("Bu bildiriş sənə aid deyil.");
+
+        await _notificationRepository.DeleteAsync(notification);
+        await _notificationRepository.SaveChangesAsync();
+    }
+
+    public Task DeleteAllAsync(int userId) =>
+        _notificationRepository.DeleteByUserIdAsync(userId);
+
     public async Task MarkAllAsReadAsync(
         int userId)
     {

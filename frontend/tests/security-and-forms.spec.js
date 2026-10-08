@@ -5,7 +5,7 @@ test("Parallel refresh calls rotate a token once", async ({ page }) => {
   const { requests } = await mockApi(page);
   await login(page);
   const tokens = await page.evaluate(async () => {
-    const client = await import("/src/lib/api.js");
+    const client = await import("/src/shared/api/client.js");
     return Promise.all(
       Array.from({ length: 4 }, () => client.refreshSession()),
     );
@@ -35,7 +35,7 @@ test("A late refresh response cannot restore a logged out session", async ({
   });
   const pending = page.waitForRequest("**/api/auth/refresh-token");
   await page.evaluate(async () => {
-    const client = await import("/src/lib/api.js");
+    const client = await import("/src/shared/api/client.js");
     window.refreshFinished = client
       .refreshSession()
       .catch((error) => error.status);
@@ -45,7 +45,7 @@ test("A late refresh response cannot restore a logged out session", async ({
   release();
   const result = await page.evaluate(async () => {
     await window.refreshFinished;
-    return (await import("/src/lib/api.js")).getSession();
+    return (await import("/src/shared/api/client.js")).getSession();
   });
   expect(result).toBeNull();
 });

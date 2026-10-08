@@ -142,7 +142,11 @@ public class ReminderService : IReminderService
             reminder.VehicleId,
             userId);
 
+        var scheduleChanged = reminder.ReminderDate != dto.ReminderDate ||
+            reminder.ReminderKm != dto.ReminderKm;
         _mapper.Map(dto, reminder);
+        if (scheduleChanged)
+            reminder.NotificationSentAtUtc = null;
 
         await _reminderRepository.UpdateAsync(reminder);
 

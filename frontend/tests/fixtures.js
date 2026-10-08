@@ -18,6 +18,7 @@ export async function mockApi(
       userId: 1,
       brand: "Toyota",
       model: "Corolla",
+      slug: "toyota-corolla-test",
       year: 2022,
       engine: "1.8 Hybrid",
       vehicleType: "Car",
@@ -31,6 +32,7 @@ export async function mockApi(
       userId: 1,
       brand: "CFMOTO",
       model: "450 SR",
+      slug: "cfmoto-450-sr-test",
       year: 2024,
       engine: "450 cc",
       vehicleType: "Motorcycle",
@@ -162,13 +164,19 @@ export async function mockApi(
   await page.route("**/hubs/**", (route) =>
     route.fulfill({ status: 404, body: "" }),
   );
-  await page.route("**/api/**", async (route) => {
+  await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname.replace("/api", "");
     const method = request.method();
     const body = request.postDataJSON();
-    requests.push({ path, method, body });
+    requests.push({
+      path,
+      method,
+      body,
+      query: Object.fromEntries(url.searchParams),
+      authorization: request.headers().authorization,
+    });
     const respond = (data, status = 200) =>
       route.fulfill({
         status,
@@ -192,8 +200,19 @@ export async function mockApi(
     if (fail && method === "GET" && path === "/Vehicle")
       return respond({ message: "Test üçün server xətası." }, 500);
     if (method !== "GET") {
+      if (method === "DELETE" && path === "/notifications") {
+        notifications.splice(0);
+        return route.fulfill({ status: 204 });
+      }
+      if (method === "DELETE" && /^\/notifications\/\d+$/.test(path)) {
+        const index = notifications.findIndex(
+          (item) => item.id === Number(path.split("/").pop()),
+        );
+        if (index >= 0) notifications.splice(index, 1);
+        return route.fulfill({ status: 204 });
+      }
       if (path === "/Vehicle" && method === "POST") {
-        const item = { ...body, id: 3, userId: 1 };
+        const item = { ...body, id: 3, userId: 1, slug: "new-vehicle-test" };
         vehicles.push(item);
         return respond(item, 201);
       }
@@ -274,6 +293,14 @@ export async function mockApi(
         createdAt: now,
       });
     if (path === "/Vehicle") return respond(empty ? [] : vehicles);
+    if (path.startsWith("/Vehicle/by-slug/")) {
+      const vehicle = vehicles.find(
+        (item) => item.slug === path.split("/").pop(),
+      );
+      return vehicle
+        ? respond(vehicle)
+        : respond({ message: "Nəqliyyat vasitəsi tapılmadı." }, 404);
+    }
     if (path.startsWith("/Vehicle/"))
       return respond(
         vehicles.find((item) => item.id === Number(path.split("/").pop())),
@@ -352,7 +379,11 @@ export async function mockApi(
             ],
       );
     if (path === "/notifications/unread-count")
-      return respond({ unreadCount: empty ? 0 : 1 });
+      return respond({
+        unreadCount: empty
+          ? 0
+          : notifications.filter((item) => !item.isRead).length,
+      });
     if (path === "/notifications") return respond(empty ? [] : notifications);
     if (path === "/chat/conversations")
       return respond(empty ? [] : conversations);

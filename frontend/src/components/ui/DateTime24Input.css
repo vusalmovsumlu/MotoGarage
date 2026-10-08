@@ -1,0 +1,18 @@
+.datetime24-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px;
+  align-items: start;
+  gap: 8px;
+}
+.datetime24-control input {
+  width: 100%;
+  min-width: 0;
+}
+.datetime24-time input {
+  font-variant-numeric: tabular-nums;
+}
+.datetime24-time > span {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+}

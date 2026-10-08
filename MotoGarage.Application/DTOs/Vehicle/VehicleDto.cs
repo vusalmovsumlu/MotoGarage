@@ -6,6 +6,8 @@ public class VehicleDto
 {
     public int Id { get; set; }
 
+    public string Slug { get; set; } = null!;
+
     public int UserId { get; set; }
 
     public string Brand { get; set; } = null!;

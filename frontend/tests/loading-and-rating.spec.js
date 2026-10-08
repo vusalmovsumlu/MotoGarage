@@ -55,7 +55,11 @@ test("Page skeletons match cards, details, profile, table and chat content", asy
   await page.setViewportSize({ width: 320, height: 900 });
   for (const [route, path, variant] of [
     ["/vehicles", "/Vehicle", "cards"],
-    ["/vehicles/1", "/Vehicle/1", "detail"],
+    [
+      "/garage/toyota-corolla-test",
+      "/Vehicle/by-slug/toyota-corolla-test",
+      "detail",
+    ],
     ["/profile", "/profile", "profile"],
     ["/admin/users", "/admin/users*", "table"],
     ["/chat/90", "/chat/conversations/90/messages", "messages"],

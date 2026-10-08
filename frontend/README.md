@@ -57,3 +57,23 @@ API məlumatları yüklənərkən səhifəyə uyğun skeleton göstərilir: iş 
 Inter şriftləri `public/fonts/LICENSE` altında lisenziyalanır. Schedule, homework və settings ikonları istifadəçinin verdiyi skill-dəndir. `garage.png`, `mechanic.png`, `market.png` builtin imagegen vasitəsilə yaradılıb. Qaraj ikonu istifadəçinin təqdim etdiyi motosiklet fotosuna əsasən image edit rejimində yenilənib: öndən baxış, qara aerodinamik korpus, iti ağ LED faralar və qızılı amortizatorlar; mavi həcmli tile və şəffaf fon saxlanıb. Digər prompt mövzuları: teal tile üzərində çarpaz servis alətləri; amber tile üzərində dişli və alış-veriş çantası. Heç bir əlavə mətn/brend nişanı yaradılmayıb. Fayllar `public/icons/` altındadır.
 
 SignalR inteqrasiyası üçün [Microsoft sənədləri](https://learn.microsoft.com/en-us/aspnet/core/signalr/javascript-client?view=aspnetcore-8.0), Google giriş üçün [Google GSI API](https://developers.google.com/identity/gsi/web/reference/js-reference) istifadə olunub.
+
+## Frontend arxitekturası
+
+Mövcud kod feature-based strukturda saxlanılır: app setup/router/providers, ümumi UI/layout/feedback komponentləri, feature pages/components/hooks/api/utils və shared client/hooks/utils/config. Tam qovluq ağacı, məsuliyyət qaydaları, refactor xəritəsi və yoxlama nəticələri [ARCHITECTURE.md](./ARCHITECTURE.md) daxilindədir.
+
+Backend işləmirsə yalnız fixture sınaqları üçün `npm test -- --reporter=line --grep-invert 'Real development API'` istifadə edin. Bu sınaqlar real hesab və DB məlumatlarını dəyişdirmir.
+
+## Avtomatik xatırlatma bildirişləri
+
+Backend tarix və ya odometr həddi çatmış xatırlatmaları avtomatik bildirişə çevirir. Bildiriş siyahısı görünən brauzerdə hər 30 saniyədə yenilənir; “Bax” uyğun nəqliyyat vasitəsinin xatırlatmalarını açır. Təkrar göndərilmə, konfiqurasiya, migration və sınaq qaydaları [reminder-notifications.md](../docs/reminder-notifications.md) daxilindədir.
+
+Hər bildirişdə “Sil”, səhifədə “Hamısını sil” düyməsi var. Silmə təsdiq pəncərəsindən sonra icra olunur; xəta olduqda pəncərə açıq qalır və siyahı saxlanılır. Uğurlu əməliyyatdan sonra siyahı və unread sayğacı yenilənir. `DELETE /api/notifications/{id}` yalnız sahibin bildirişini silir; `DELETE /api/notifications` giriş etmiş istifadəçinin oxunmuş və oxunmamış bütün bildirişlərini bir SQL sorğusunda silir. Başqa istifadəçilərin bildirişləri saxlanılır. Xatırlatma bildirişinin silinməsi göndərilmə qeydini sıfırlamır, ona görə eyni xatırlatma təkrar göndərilmir. Bu dəyişiklik üçün migration lazım deyil; backend yeni build ilə başladılmalıdır.
+
+Qaraj detallarında və nəqliyyat vasitəsinin qeydlərində ID əvəzinə sabit slug ünvanları istifadə olunur. Routing, ownership, köhnə keçidlərin yönləndirilməsi və migration qaydaları [vehicle-slugs.md](../docs/vehicle-slugs.md) daxilindədir.
+
+## Navbar və saat formatı
+
+Əsas navbar [React Bits Gooey Nav](https://reactbits.dev/components/gooey-nav) əsasında uyğunlaşdırılıb. Aktiv keçid hash route-dan hesablanır; rol keçidləri, Digər menyusu, klaviatura ilə Enter və brauzer history-si saxlanılıb. Animasiya mövcud tema palitrasından istifadə edir, mobil wrap/resize vəziyyətlərinə uyğunlaşır və reduced-motion seçimini nəzərə alır. Animasiya timer-ləri unmount zamanı təmizlənir. Mənbə lisenziyası `public/licenses/react-bits.txt` daxilindədir.
+
+Yanacaq, xərc, servis, xatırlatma və görüş formalarında tarix ayrı calendar sahəsində, saat isə `HH:mm` formatında daxil edilir. AM/PM istifadə olunmur. Mobil numeric klaviatura ilə `2130` yazanda `21:30` yaranır; `24:00` və `12:60` kimi yanlış saatlar form validation tərəfindən rədd edilir. Giriş əvvəlki kimi cihazın yerli saat qurşağından UTC ISO formatına çevrilir, API müqavilələri saxlanılıb. Görünən tarix-saatlar mövcud `Asia/Baku`/`h23` formatter-i ilə göstərilir.

@@ -21,4 +21,8 @@ public class VehicleRepository : Repository<Vehicle>, IVehicleRepository
             .Where(x => x.UserId == userId)
             .ToListAsync();
     }
+
+    public Task<Vehicle?> GetBySlugAsync(string slug, int userId) =>
+        _context.Vehicles.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Slug == slug && x.UserId == userId);
 }

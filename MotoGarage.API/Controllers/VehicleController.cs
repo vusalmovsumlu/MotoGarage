@@ -31,7 +31,7 @@ public class VehicleController : ControllerBase
     }
 
     // GET: api/vehicle/5
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var userId = GetCurrentUserId();
@@ -52,6 +52,11 @@ public class VehicleController : ControllerBase
 
         return Ok(vehicle);
     }
+
+    // GET: api/vehicle/by-slug/toyota-corolla-...
+    [HttpGet("by-slug/{slug}")]
+    public async Task<IActionResult> GetBySlug(string slug) =>
+        Ok(await _vehicleService.GetBySlugAsync(slug, GetCurrentUserId()));
 
     // POST: api/vehicle
     [HttpPost]

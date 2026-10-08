@@ -1,0 +1,130 @@
+.site-footer.footer-authorship {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 32px;
+  padding-top: 25px;
+  padding-bottom: 25px;
+}
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.footer-brand strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.footer-author {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-radius: 5px;
+  color: var(--text);
+}
+.footer-author-caption {
+  color: var(--muted);
+  font-size: 10px;
+}
+.footer-author-signature {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.footer-author-code {
+  color: var(--link);
+  transition: transform 350ms ease;
+}
+.footer-author-name {
+  position: relative;
+  display: inline-flex;
+}
+.footer-author-name::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--primary),
+    var(--link),
+    var(--primary)
+  );
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 400ms ease;
+}
+.footer-author-letter {
+  display: inline-block;
+}
+.footer-author-arrow {
+  color: var(--muted);
+  transition:
+    transform 350ms ease,
+    color 350ms ease;
+}
+.footer-author:is(:hover, :focus-visible) .footer-author-letter {
+  animation: footer-signature-wave 500ms ease both;
+  animation-delay: calc(var(--letter) * 24ms);
+}
+.footer-author:is(:hover, :focus-visible) .footer-author-name::after {
+  transform: scaleX(1);
+}
+.footer-author:is(:hover, :focus-visible) .footer-author-code {
+  transform: rotate(-12deg) scale(1.12);
+}
+.footer-author:is(:hover, :focus-visible) .footer-author-arrow {
+  transform: translate(2px, -2px);
+  color: var(--link);
+}
+.footer-copyright {
+  font-size: 10px;
+  white-space: nowrap;
+}
+@keyframes footer-signature-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+    color: var(--text);
+  }
+  45% {
+    transform: translateY(-5px) rotate(-5deg);
+    color: var(--link);
+  }
+}
+@media (max-width: 799px) {
+  .site-footer.footer-authorship {
+    gap: 18px;
+  }
+}
+@media (max-width: 640px) {
+  .site-footer.footer-authorship {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-author:is(:hover, :focus-visible) .footer-author-letter {
+    animation: none;
+    color: var(--link);
+  }
+  .footer-author *,
+  .footer-author-name::after {
+    transition: none;
+  }
+  .footer-author:is(:hover, :focus-visible)
+    :is(.footer-author-code, .footer-author-arrow) {
+    transform: none;
+  }
+}

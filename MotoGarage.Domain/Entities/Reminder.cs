@@ -16,5 +16,7 @@ public class Reminder
 
     public bool IsCompleted { get; set; }
 
+    public DateTime? NotificationSentAtUtc { get; set; }
+
     public Vehicle Vehicle { get; set; } = null!;
 }

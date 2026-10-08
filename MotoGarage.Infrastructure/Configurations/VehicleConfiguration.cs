@@ -8,6 +8,8 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
 {
     public void Configure(EntityTypeBuilder<Vehicle> builder)
     {
+        builder.Property(x => x.Slug).IsRequired().HasMaxLength(200);
+        builder.HasIndex(x => x.Slug).IsUnique();
         builder.Property(x => x.ImagePublicId).HasMaxLength(255);
         builder.Property(x => x.RowVersion).IsRowVersion();
         builder.Property(x => x.Brand)

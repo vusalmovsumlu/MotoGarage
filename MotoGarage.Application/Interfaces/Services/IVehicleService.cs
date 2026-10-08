@@ -10,6 +10,8 @@ public interface IVehicleService
 
     Task<VehicleDto> GetByIdAsync(int id);
 
+    Task<VehicleDto> GetBySlugAsync(string slug, int userId);
+
     Task<VehicleDto> CreateAsync(
         int userId,
         CreateVehicleDto dto);

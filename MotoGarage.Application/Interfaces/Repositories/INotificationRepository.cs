@@ -11,4 +11,6 @@ public interface INotificationRepository
         bool unreadOnly);
 
     Task<int> GetUnreadCountAsync(int userId);
+
+    Task DeleteByUserIdAsync(int userId);
 }

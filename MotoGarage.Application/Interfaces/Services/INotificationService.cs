@@ -24,4 +24,8 @@ public interface INotificationService
         int userId);
 
     Task MarkAllAsReadAsync(int userId);
+
+    Task DeleteAsync(int notificationId, int userId);
+
+    Task DeleteAllAsync(int userId);
 }

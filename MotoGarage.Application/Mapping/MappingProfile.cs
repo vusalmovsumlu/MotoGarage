@@ -25,8 +25,10 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<Vehicle, VehicleDto>();
-        CreateMap<CreateVehicleDto, Vehicle>();
-        CreateMap<UpdateVehicleDto, Vehicle>();
+        CreateMap<CreateVehicleDto, Vehicle>()
+            .ForMember(x => x.Slug, opt => opt.Ignore());
+        CreateMap<UpdateVehicleDto, Vehicle>()
+            .ForMember(x => x.Slug, opt => opt.Ignore());
 
 
         // =========================
@@ -75,8 +77,10 @@ public class MappingProfile : Profile
         // =========================
 
         CreateMap<Reminder, ReminderDto>();
-        CreateMap<CreateReminderDto, Reminder>();
-        CreateMap<UpdateReminderDto, Reminder>();
+        CreateMap<CreateReminderDto, Reminder>()
+            .ForMember(dest => dest.NotificationSentAtUtc, opt => opt.Ignore());
+        CreateMap<UpdateReminderDto, Reminder>()
+            .ForMember(dest => dest.NotificationSentAtUtc, opt => opt.Ignore());
 
 
         // =========================

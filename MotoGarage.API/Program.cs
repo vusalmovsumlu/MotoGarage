@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MotoGarage.API.Hubs;
+using MotoGarage.API.HostedServices;
 using MotoGarage.API.Middleware;
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Application.Interfaces.Repository;
@@ -18,6 +19,7 @@ using MotoGarage.Infrastructure.Data;
 using MotoGarage.Infrastructure.Email;
 using MotoGarage.Infrastructure.Identity;
 using MotoGarage.Infrastructure.Repositories;
+using MotoGarage.Infrastructure.Notifications;
 using MotoGarage.Infrastructure.Storage;
 using System.Security.Claims;
 using System.Text;
@@ -422,6 +424,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     INotificationService,
     NotificationService>();
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddOptions<ReminderNotificationOptions>()
+    .Bind(builder.Configuration.GetSection(ReminderNotificationOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddScoped<IReminderNotificationDispatcher, ReminderNotificationDispatcher>();
+builder.Services.AddHostedService<ReminderNotificationWorker>();
 
 builder.Services.AddScoped<
     IServiceRecordService,

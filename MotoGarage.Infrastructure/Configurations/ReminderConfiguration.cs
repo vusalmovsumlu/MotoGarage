@@ -16,10 +16,22 @@ public class ReminderConfiguration : IEntityTypeConfiguration<Reminder>
             .HasMaxLength(500);
 
         builder.Property(x => x.ReminderDate)
-            .IsRequired();
+            .IsRequired()
+            .IsConcurrencyToken();
+
+        builder.Property(x => x.ReminderKm)
+            .IsConcurrencyToken();
+
+        builder.Property(x => x.NotificationSentAtUtc)
+            .IsConcurrencyToken();
 
         builder.Property(x => x.IsCompleted)
-            .IsRequired();
+            .IsRequired()
+            .IsConcurrencyToken();
+
+        builder.HasIndex(x => new { x.ReminderDate, x.VehicleId })
+            .HasDatabaseName("IX_Reminders_PendingNotification")
+            .HasFilter("[IsCompleted] = 0 AND [NotificationSentAtUtc] IS NULL");
 
         builder.HasOne(x => x.Vehicle)
             .WithMany(x => x.Reminders)

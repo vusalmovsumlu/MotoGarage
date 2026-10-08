@@ -46,4 +46,9 @@ public class NotificationRepository
                 x.UserId == userId &&
                 !x.IsRead);
     }
+
+    public async Task DeleteByUserIdAsync(int userId)
+    {
+        await _context.Notifications.Where(x => x.UserId == userId).ExecuteDeleteAsync();
+    }
 }

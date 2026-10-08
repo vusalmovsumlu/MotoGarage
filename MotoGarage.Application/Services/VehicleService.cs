@@ -62,6 +62,13 @@ public class VehicleService : IVehicleService
         return _mapper.Map<VehicleDto>(vehicle);
     }
 
+    public async Task<VehicleDto> GetBySlugAsync(string slug, int userId)
+    {
+        var vehicle = await _vehicleRepository.GetBySlugAsync(slug, userId)
+            ?? throw new KeyNotFoundException("Nəqliyyat vasitəsi tapılmadı.");
+        return _mapper.Map<VehicleDto>(vehicle);
+    }
+
     public async Task<VehicleDto> CreateAsync(
         int userId,
         CreateVehicleDto dto)
@@ -75,6 +82,8 @@ public class VehicleService : IVehicleService
                 _mapper.Map<Vehicle>(dto);
 
             vehicle.UserId = userId;
+            // Stable across edits; random suffix distinguishes identical models without exposing IDs.
+            vehicle.Slug = $"{SlugHelper.Generate($"{dto.Brand} {dto.Model}")}-{Guid.NewGuid():N}";
             vehicle.CreatedAt = DateTime.UtcNow;
 
             await _vehicleRepository.AddAsync(vehicle);
