@@ -69,6 +69,7 @@ export function sessionUser(value = session) {
     role:
       token["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
       token.role,
+    businessApprovalStatus: token.businessApprovalStatus || "Approved",
   };
 }
 export class ApiError extends Error {

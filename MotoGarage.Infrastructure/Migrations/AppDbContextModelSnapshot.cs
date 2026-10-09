@@ -205,6 +205,78 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.ToTable("Appointments");
                 });
 
+            modelBuilder.Entity("MotoGarage.Domain.Entities.BusinessApplication", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DecisionComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedById")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewedById");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("BusinessApplications");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.BusinessApplicationPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApplicationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("BusinessApplicationPhotos");
+                });
+
             modelBuilder.Entity("MotoGarage.Domain.Entities.Conversation", b =>
                 {
                     b.Property<int>("Id")
@@ -905,6 +977,10 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("BusinessApprovalStatus")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -1131,6 +1207,33 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.Navigation("User");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.BusinessApplication", b =>
+                {
+                    b.HasOne("MotoGarage.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MotoGarage.Domain.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("MotoGarage.Domain.Entities.BusinessApplication", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.BusinessApplicationPhoto", b =>
+                {
+                    b.HasOne("MotoGarage.Domain.Entities.BusinessApplication", "Application")
+                        .WithMany("Photos")
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
                 });
 
             modelBuilder.Entity("MotoGarage.Domain.Entities.Conversation", b =>
@@ -1362,6 +1465,11 @@ namespace MotoGarage.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.BusinessApplication", b =>
+                {
+                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("MotoGarage.Domain.Entities.Conversation", b =>

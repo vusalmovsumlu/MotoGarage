@@ -26,6 +26,9 @@ public class ReviewRepository
             .ToListAsync();
     }
 
+    public Task<Review?> GetWithAuthorByIdAsync(int id) => _context.Reviews.AsNoTracking()
+        .Include(x => x.User).SingleOrDefaultAsync(x => x.Id == id);
+
     public async Task<double> GetAverageRatingAsync(int mechanicId)
     {
         return await _context.Reviews.Where(x => x.MechanicId == mechanicId)

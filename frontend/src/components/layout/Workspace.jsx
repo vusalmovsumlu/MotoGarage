@@ -135,6 +135,18 @@ export function Workspace({
                     )}
                   </>
                 )}
+                {user.role === "Admin" && (
+                  <a
+                    href="#/admin/applications"
+                    onClick={(event) =>
+                      event.currentTarget
+                        .closest("details")
+                        ?.removeAttribute("open")
+                    }
+                  >
+                    Biznes müraciətləri
+                  </a>
+                )}
               </div>
             </details>
           </GooeyNav>

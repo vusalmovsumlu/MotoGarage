@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Enums;
+using MotoGarage.Application.DTOs.Admin;
 using System.Security.Claims;
 
 namespace MotoGarage.API.Controllers;
@@ -12,11 +13,13 @@ namespace MotoGarage.API.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
+    private readonly IBusinessApplicationService _applications;
 
     public AdminController(
-        IAdminService adminService)
+        IAdminService adminService, IBusinessApplicationService applications)
     {
         _adminService = adminService;
+        _applications = applications;
     }
 
     // GET:
@@ -75,6 +78,24 @@ public class AdminController : ControllerBase
     {
         await _adminService.UnblockUserAsync(id);
 
+        return NoContent();
+    }
+
+    [HttpGet("business-applications")]
+    public async Task<IActionResult> GetApplications([FromQuery] BusinessApprovalStatus? status = BusinessApprovalStatus.Pending) =>
+        Ok(await _applications.GetApplicationsAsync(status));
+
+    [HttpPost("business-applications/{id:int}/accept")]
+    public async Task<IActionResult> AcceptApplication(int id)
+    {
+        await _applications.ReviewAsync(id, GetCurrentUserId(), true, null);
+        return NoContent();
+    }
+
+    [HttpPost("business-applications/{id:int}/decline")]
+    public async Task<IActionResult> DeclineApplication(int id, RejectBusinessApplicationDto dto)
+    {
+        await _applications.ReviewAsync(id, GetCurrentUserId(), false, dto.Comment);
         return NoContent();
     }
 

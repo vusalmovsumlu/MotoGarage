@@ -17,9 +17,8 @@ export function ReviewCard({
     <article className="card review-card" key={value.id}>
       <div className="review-top">
         <strong>
-          {value.userId === user.id
-            ? "Sizin rəyiniz"
-            : `İstifadəçi #${value.userId}`}
+          {value.userFullName?.trim() ||
+            (value.userId === user.id ? user.fullName : "Rəy müəllifi")}
         </strong>
         <PeekRating
           value={value.rating}

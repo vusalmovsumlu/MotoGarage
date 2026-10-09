@@ -48,9 +48,16 @@ export function useAuth({ route }) {
   const { theme, toggleTheme } = useApp();
   const [email, setEmail] = useState(() => pendingEmail);
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [role, setRole] = useState("User");
+  const [photos, setPhotos] = useState([null, null, null]);
   const [code, setCode] = useState("");
+  const [otpStatus, setOtpStatus] = useState("idle");
+  const changeCode = (value) => {
+    setCode(value);
+    setOtpStatus("idle");
+  };
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -104,18 +111,32 @@ export function useAuth({ route }) {
     setError("");
     setNotice("");
     try {
+      const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      if (mode === "register" && (!firstName.trim() || !lastName.trim()))
+        throw new Error("Ad və soyadınızı ayrı sahələrdə yazın.");
+      if (mode === "register" && fullName.length > 100)
+        throw new Error("Ad və soyad birlikdə maksimum 100 simvol ola bilər.");
+      if (mode === "verify" && !/^[0-9]{6}$/.test(code))
+        throw new Error("6 rəqəmli təsdiqləmə kodunu tam daxil edin.");
       const payload =
         mode === "register"
-          ? { fullName: fullName.trim(), email: email.trim(), password, role }
+          ? { fullName, email: email.trim(), password, role }
           : mode === "verify"
             ? { email: email.trim(), code }
             : { email: email.trim(), password };
-      const response = await authApi.authenticate(mode, payload);
+      const business =
+        mode === "register" && ["Mechanic", "Store"].includes(role);
+      if (business && photos.some((file) => !file))
+        throw new Error("3 şəkil seçmək məcburidir.");
+      const response = business
+        ? await authApi.registerBusiness(payload, photos)
+        : await authApi.authenticate(mode, payload);
       if (mode === "register") {
         rememberEmail(email.trim());
         pendingNotice = response.message || "";
         navigate("/verify");
       } else {
+        if (mode === "verify") setOtpStatus("success");
         rememberEmail("");
         pendingNotice = "";
         setPassword("");
@@ -124,6 +145,7 @@ export function useAuth({ route }) {
       }
     } catch (failure) {
       setError(failure.message);
+      if (mode === "verify" && /^[0-9]{6}$/.test(code)) setOtpStatus("error");
     } finally {
       setBusy(false);
     }
@@ -147,14 +169,19 @@ export function useAuth({ route }) {
     mode,
     submit,
     busy,
-    fullName,
-    setFullName,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
     role,
+    photos,
+    setPhotos,
     setRole,
     email,
     setEmail,
     code,
-    setCode,
+    setCode: changeCode,
+    otpStatus,
     show,
     password,
     setPassword,

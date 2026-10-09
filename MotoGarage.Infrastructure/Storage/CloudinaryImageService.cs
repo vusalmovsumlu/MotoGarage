@@ -201,7 +201,8 @@ public class CloudinaryImageService : IImageService
                 var used = await _context.Vehicles.AnyAsync(x => x.ImagePublicId == publicId)
                     || await _context.Mechanics.AnyAsync(x => x.ImagePublicId == publicId)
                     || await _context.Stores.AnyAsync(x => x.ImagePublicId == publicId)
-                    || await _context.Products.AnyAsync(x => x.ImagePublicId == publicId);
+                    || await _context.Products.AnyAsync(x => x.ImagePublicId == publicId)
+                    || await _context.BusinessApplicationPhotos.AnyAsync(x => x.PublicId == publicId);
                 if (used) asset.IsDeleting = false;
                 else
                 {

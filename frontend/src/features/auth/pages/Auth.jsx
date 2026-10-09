@@ -9,14 +9,19 @@ export default function Auth({ route }) {
     mode,
     submit,
     busy,
-    fullName,
-    setFullName,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
     role,
+    photos,
+    setPhotos,
     setRole,
     email,
     setEmail,
     code,
     setCode,
+    otpStatus,
     show,
     password,
     setPassword,
@@ -81,14 +86,19 @@ export default function Auth({ route }) {
           mode={mode}
           submit={submit}
           busy={busy}
-          fullName={fullName}
-          setFullName={setFullName}
+          firstName={firstName}
+          setFirstName={setFirstName}
+          lastName={lastName}
+          setLastName={setLastName}
           role={role}
+          photos={photos}
+          setPhotos={setPhotos}
           setRole={setRole}
           email={email}
           setEmail={setEmail}
           code={code}
           setCode={setCode}
+          otpStatus={otpStatus}
           show={show}
           password={password}
           setPassword={setPassword}

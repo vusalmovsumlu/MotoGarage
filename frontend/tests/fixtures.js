@@ -169,7 +169,9 @@ export async function mockApi(
     const url = new URL(request.url());
     const path = url.pathname.replace("/api", "");
     const method = request.method();
-    const body = request.postDataJSON();
+    const body = request.headers()["content-type"]?.includes("application/json")
+      ? request.postDataJSON()
+      : null;
     requests.push({
       path,
       method,
@@ -372,6 +374,7 @@ export async function mockApi(
                 id: 43,
                 userId: 2,
                 mechanicId: 10,
+                userFullName: "Vüsal Mövsümlü",
                 rating: 5,
                 comment: "Səliqəli və diqqətli servis.",
                 createdAt: now,

@@ -24,8 +24,11 @@ npm run dev -- --host 127.0.0.1
 ## Əhatə olunan axınlar
 
 - Giriş, qeydiyyat, email OTP, kodun təkrar göndərilməsi, Google giriş, refresh-token rotasiyası və çıxış.
+- Qeydiyyatda ayrı məcburi Ad/Soyad sahələri API-yə mövcud `fullName` kimi birləşdirilir. OTP sahəsində React Bits CodeSlots istifadə olunur: 6 rəqəm, klaviatura/paste, səhv kodun animasiya ilə təmizlənməsi, mobil ölçü və reduced-motion dəstəyi. Komponent yalnız OTP səhifəsində yüklənir.
+- Usta/mağaza qeydiyyatında 3 fərqli real şəklin Cloudinary-yə yüklənməsi, email təsdiqindən sonra adminin biznes müraciətlərini qəbul/rədd etməsi və məcburi rədd şərhinin istifadəçiyə göstərilməsi. Detallar: [biznes müraciətləri](../docs/business-applications.md).
 - Qaraj CRUD, Car/Motorcycle seçimi, yanacaq və sərfiyyat göstəriciləri, xərc və servis qeydləri, xatırlatmalar.
 - Usta, mağaza və məhsul kataloqları, axtarış/filterlər, slug üzrə detallar və rəylər.
+- Usta rəylərində müəllifin adı və soyadı backend-in `userFullName` cavabından göstərilir; mövcud rəylər də bu məlumatı əlaqəli User-dən alır.
 - Görüş yaratma/ləğv etmə, ustanın qəbul/rədd/tamamlama əməliyyatları.
 - Bir mağazaya aid səbət, sifariş və mağazanın icazə verilən status keçidləri, məhsul/stok idarəetməsi.
 - Biznes profili, istifadəçi profili, bildirişlər, admin statistikası və istifadəçi bloklama/açma.

@@ -54,7 +54,7 @@ public class ReviewService : IReviewService
     public async Task<ReviewDto> GetByIdAsync(int id)
     {
         var review =
-            await _reviewRepository.GetByIdAsync(id);
+            await _reviewRepository.GetWithAuthorByIdAsync(id);
 
         if (review is null)
         {
@@ -121,7 +121,7 @@ public class ReviewService : IReviewService
 
             await UpdateMechanicRatingAsync(mechanic);
 
-            return _mapper.Map<ReviewDto>(review);
+            return await GetByIdAsync(review.Id);
         });
     }
 

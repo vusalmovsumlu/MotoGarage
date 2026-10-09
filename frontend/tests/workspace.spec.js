@@ -150,8 +150,9 @@ test("Registration and OTP complete into the authenticated workspace", async ({
 }) => {
   const { requests } = await mockApi(page);
   await page.goto("/#/register");
-  await page.getByLabel("Ad və soyad").fill("Test User");
-  await page.getByLabel("Hesab növü").selectOption("Store");
+  await page.getByLabel("Ad", { exact: true }).fill("Test");
+  await page.getByLabel("Soyad", { exact: true }).fill("User");
+  await page.getByLabel("Hesab növü").selectOption("User");
   await page.getByLabel("Email ünvanı").fill("test@example.invalid");
   await page.getByLabel("Şifrə", { exact: true }).fill("testpass1");
   await page.getByRole("button", { name: "Hesab yarat" }).click();
@@ -166,7 +167,7 @@ test("Registration and OTP complete into the authenticated workspace", async ({
   await expect(page.locator(".home-heading")).toBeVisible();
   expect(
     requests.find((item) => item.path === "/auth/register").body.role,
-  ).toBe("Store");
+  ).toBe("User");
 });
 for (const width of [1440, 1000, 799, 390, 320]) {
   test(`Responsive ${width}px: light and dark have no horizontal overflow`, async ({

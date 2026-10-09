@@ -23,6 +23,11 @@ export function AdminUsers() {
       title="İstifadəçilər"
       eyebrow="ADMİN İDARƏETMƏSİ"
       description="Hesabların vəziyyətinə nəzarət edin."
+      actions={
+        <a href="#/admin/applications" className="button primary">
+          Usta və mağaza müraciətləri
+        </a>
+      }
     >
       <AdminUsersFilters
         setFilters={setFilters}

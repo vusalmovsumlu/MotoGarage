@@ -104,7 +104,8 @@ public class MappingProfile : Profile
         // Review
         // =========================
 
-        CreateMap<Review, ReviewDto>();
+        CreateMap<Review, ReviewDto>()
+            .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User.FullName));
         CreateMap<CreateReviewDto, Review>();
         CreateMap<UpdateReviewDto, Review>();
 

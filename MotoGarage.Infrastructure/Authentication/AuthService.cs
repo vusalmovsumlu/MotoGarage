@@ -13,6 +13,8 @@ using MotoGarage.Domain.Exceptions;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using MotoGarage.Infrastructure.Data;
 
 namespace MotoGarage.Infrastructure.Authentication;
 
@@ -26,6 +28,8 @@ public class AuthService : IAuthService
     private readonly IEmailVerificationCodeRepository _emailVerificationCodeRepository;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly AppDbContext _context;
+    private readonly IImageService _images;
 
     public AuthService(
         UserManager<User> userManager,
@@ -35,7 +39,8 @@ public class AuthService : IAuthService
         IEmailService emailService,
         IConfiguration configuration,
         IUnitOfWork unitOfWork,
-        Microsoft.Extensions.Logging.ILogger<AuthService> logger)
+        Microsoft.Extensions.Logging.ILogger<AuthService> logger,
+        AppDbContext context, IImageService images)
     {
         _logger = logger;
         _unitOfWork = unitOfWork;
@@ -45,6 +50,8 @@ public class AuthService : IAuthService
         _emailVerificationCodeRepository = emailVerificationCodeRepository;
         _emailService = emailService;
         _configuration = configuration;
+        _context = context;
+        _images = images;
     }
 
     // =========================
@@ -52,9 +59,14 @@ public class AuthService : IAuthService
     // =========================
 
     public async Task<RegisterResponseDto> RegisterAsync(
-        RegisterDto dto)
+        RegisterDto dto, IReadOnlyList<RegistrationPhoto>? photos = null)
     {
         DtoValidation.Validate(dto);
+        var business = dto.Role is UserRole.Mechanic or UserRole.Store;
+        if (business)
+            await ValidateRegistrationPhotosAsync(photos);
+        else if (photos?.Count > 0)
+            throw new DomainException("Şəkilli qeydiyyat yalnız usta və mağaza üçündür.");
         if (dto.Role == UserRole.Admin)
         {
             throw new DomainException(
@@ -93,6 +105,7 @@ public class AuthService : IAuthService
             UserName = dto.Email,
             EmailConfirmed = false,
             Role = dto.Role,
+            BusinessApprovalStatus = business ? BusinessApprovalStatus.Pending : BusinessApprovalStatus.Approved,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -104,6 +117,46 @@ public class AuthService : IAuthService
         if (!result.Succeeded)
         {
             ThrowIdentityErrors(result);
+        }
+
+        if (business)
+        {
+            var uploaded = new List<MotoGarage.Application.DTOs.Media.UploadResultDto>();
+            try
+            {
+                foreach (var photo in photos!)
+                    uploaded.Add(await _images.UploadAsync(photo.Stream, photo.FileName, user.Id));
+                _context.BusinessApplications.Add(new BusinessApplication
+                {
+                    UserId = user.Id, CreatedAt = DateTime.UtcNow,
+                    Photos = uploaded.Select((image, index) => new BusinessApplicationPhoto
+                    { Position = index + 1, PublicId = image.PublicId, Url = image.Url }).ToList()
+                });
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                // Remote uploads are outside SQL retry delegates. Compensate a partially created registration.
+                _context.ChangeTracker.Clear();
+                try
+                {
+                    await _unitOfWork.ExecuteAsync(async () =>
+                    {
+                        _context.BusinessApplications.RemoveRange(await _context.BusinessApplications.Where(x => x.UserId == user.Id).ToListAsync());
+                        _context.ImageAssets.RemoveRange(await _context.ImageAssets.Where(x => x.UserId == user.Id).ToListAsync());
+                        await _context.SaveChangesAsync();
+                        var registered = await _userManager.FindByIdAsync(user.Id.ToString());
+                        if (registered is not null) ThrowIdentityErrorsIfFailed(await _userManager.DeleteAsync(registered));
+                    });
+                }
+                catch (Exception failure) { _logger.LogError(failure, "Failed registration cleanup for {UserId}", user.Id); }
+                foreach (var image in uploaded)
+                {
+                    try { await _images.DeleteAsync(image.PublicId); }
+                    catch (Exception failure) { _logger.LogWarning(failure, "Failed registration image cleanup"); }
+                }
+                throw;
+            }
         }
 
         var sent = await CreateAndSendVerificationCodeAsync(user);
@@ -456,6 +509,35 @@ public class AuthService : IAuthService
                 await _emailVerificationCodeRepository.SaveChangesAsync();
             });
             return false;
+        }
+    }
+
+    private static void ThrowIdentityErrorsIfFailed(IdentityResult result)
+    {
+        if (!result.Succeeded) ThrowIdentityErrors(result);
+    }
+
+    private static async Task ValidateRegistrationPhotosAsync(IReadOnlyList<RegistrationPhoto>? photos)
+    {
+        if (photos?.Count != 3) throw new DomainException("Usta və mağaza qeydiyyatı üçün dəqiq 3 şəkil məcburidir.");
+        var hashes = new HashSet<string>();
+        foreach (var photo in photos)
+        {
+            var stream = photo.Stream;
+            var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+            if (!new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(extension) || !stream.CanSeek || stream.Length == 0 || stream.Length > 5 * 1024 * 1024)
+                throw new DomainException("Hər şəkil JPG, PNG və ya WEBP formatında, maksimum 5 MB olmalıdır.");
+            stream.Position = 0;
+            var header = new byte[12];
+            var length = await stream.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false);
+            var valid = extension is ".jpg" or ".jpeg" ? length >= 3 && header[0] == 0xff && header[1] == 0xd8 && header[2] == 0xff
+                : extension == ".png" ? length >= 8 && header.AsSpan(0, 8).SequenceEqual(new byte[] {137, 80, 78, 71, 13, 10, 26, 10})
+                : length >= 12 && Encoding.ASCII.GetString(header, 0, 4) == "RIFF" && Encoding.ASCII.GetString(header, 8, 4) == "WEBP";
+            if (!valid) throw new DomainException("Şəklin fayl formatı uyğun deyil.");
+            stream.Position = 0;
+            var hash = Convert.ToHexString(await SHA256.HashDataAsync(stream));
+            stream.Position = 0;
+            if (!hashes.Add(hash)) throw new DomainException("3 fərqli şəkil seçin; eyni şəkil təkrar qəbul edilmir.");
         }
     }
 

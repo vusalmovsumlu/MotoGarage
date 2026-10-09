@@ -16,6 +16,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     }
 
     public DbSet<ImageAsset> ImageAssets { get; set; }
+    public DbSet<BusinessApplication> BusinessApplications { get; set; }
+    public DbSet<BusinessApplicationPhoto> BusinessApplicationPhotos { get; set; }
 
     public DbSet<Vehicle> Vehicles { get; set; }
     public DbSet<ServiceRecord> ServiceRecords { get; set; }

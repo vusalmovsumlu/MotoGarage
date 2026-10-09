@@ -6,6 +6,8 @@ public class ReviewDto
 
     public int UserId { get; set; }
 
+    public string UserFullName { get; set; } = null!;
+
     public int MechanicId { get; set; }
 
     public int Rating { get; set; }

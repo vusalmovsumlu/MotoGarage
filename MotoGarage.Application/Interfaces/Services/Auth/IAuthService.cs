@@ -5,7 +5,7 @@ namespace MotoGarage.Application.Interfaces.Services;
 public interface IAuthService
 {
     Task<RegisterResponseDto> RegisterAsync(
-        RegisterDto dto);
+        RegisterDto dto, IReadOnlyList<RegistrationPhoto>? photos = null);
 
     Task<AuthResponseDto> VerifyEmailAsync(
         VerifyEmailDto dto);

@@ -33,6 +33,25 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("register-business")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-register")]
+    [AllowAnonymous]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(16 * 1024 * 1024)]
+    public async Task<IActionResult> RegisterBusiness([FromForm] RegisterDto dto, [FromForm] List<IFormFile> photos)
+    {
+        if (dto.Role is not (MotoGarage.Domain.Enums.UserRole.Mechanic or MotoGarage.Domain.Enums.UserRole.Store))
+            return BadRequest(new { message = "Bu qeydiyyat yalnız usta və mağaza üçündür." });
+        if (photos.Count != 3) return BadRequest(new { message = "Dəqiq 3 şəkil seçin." });
+        var streams = new List<RegistrationPhoto>();
+        try
+        {
+            foreach (var photo in photos) streams.Add(new RegistrationPhoto(photo.OpenReadStream(), photo.FileName));
+            return Ok(await _authService.RegisterAsync(dto, streams));
+        }
+        finally { foreach (var photo in streams) await photo.Stream.DisposeAsync(); }
+    }
+
     // =========================
     // Verify Email OTP
     // =========================

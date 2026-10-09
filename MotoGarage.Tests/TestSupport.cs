@@ -33,10 +33,10 @@ internal static class TestSupport
         new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(),
         new ServiceCollection().BuildServiceProvider(), NullLogger<UserManager<User>>.Instance);
 
-    public static AuthService Auth(AppDbContext context, UserManager<User> users, TestEmail? email = null) => new(
+    public static AuthService Auth(AppDbContext context, UserManager<User> users, TestEmail? email = null, IImageService? images = null) => new(
         users, new TestTokens(), new RefreshTokenRepository(context),
         new EmailVerificationCodeRepository(context), email ?? new TestEmail(),
-        new ConfigurationBuilder().Build(), new TestUnitOfWork(context), NullLogger<AuthService>.Instance);
+        new ConfigurationBuilder().Build(), new TestUnitOfWork(context), NullLogger<AuthService>.Instance, context, images ?? new TestImages());
 
     public static OrderService Orders(AppDbContext context) => new(
         new OrderRepository(context), new ProductRepository(context), new StoreRepository(context),

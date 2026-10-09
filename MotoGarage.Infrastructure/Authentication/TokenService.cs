@@ -51,7 +51,8 @@ public class TokenService : ITokenService
                 // Rol üçün vacibdir
                 new Claim(
                     ClaimTypes.Role,
-                    user.Role.ToString())
+                    user.Role.ToString()),
+                new Claim("businessApprovalStatus", user.BusinessApprovalStatus.ToString())
             };
 
         var securityKey =

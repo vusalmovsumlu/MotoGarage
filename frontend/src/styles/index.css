@@ -1835,11 +1835,6 @@ td small {
   font-size: 10px;
   margin-top: 14px;
 }
-.otp-input {
-  letter-spacing: 0.35em;
-  font-size: 22px;
-  text-align: center;
-}
 .auth-footer {
   text-align: center;
   color: var(--muted);

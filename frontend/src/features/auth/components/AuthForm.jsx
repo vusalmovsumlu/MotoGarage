@@ -1,18 +1,27 @@
 import { EyeOff, Eye, ArrowRight } from "lucide-react";
 import { Button } from "../../../components/ui/Button.jsx";
+import { RegistrationPhotos } from "./RegistrationPhotos.jsx";
+import { lazy, Suspense } from "react";
+
+const CodeSlots = lazy(() => import("../../../components/ui/CodeSlots.jsx"));
 
 export function AuthForm({
   mode,
   submit,
   busy,
-  fullName,
-  setFullName,
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
   role,
+  photos,
+  setPhotos,
   setRole,
   email,
   setEmail,
   code,
   setCode,
+  otpStatus,
   show,
   password,
   setPassword,
@@ -45,14 +54,25 @@ export function AuthForm({
           {mode === "register" && (
             <>
               <div className="field">
-                <label htmlFor="auth-name">Ad və soyad</label>
+                <label htmlFor="auth-first-name">Ad</label>
                 <input
-                  id="auth-name"
-                  autoComplete="name"
+                  id="auth-first-name"
+                  autoComplete="given-name"
                   required
                   maxLength={100}
-                  value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="auth-last-name">Soyad</label>
+                <input
+                  id="auth-last-name"
+                  autoComplete="family-name"
+                  required
+                  maxLength={100}
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
                 />
               </div>
               <div className="field">
@@ -68,6 +88,13 @@ export function AuthForm({
                 </select>
               </div>
             </>
+          )}
+          {mode === "register" && ["Mechanic", "Store"].includes(role) && (
+            <RegistrationPhotos
+              role={role}
+              photos={photos}
+              setPhotos={setPhotos}
+            />
           )}
           <div className="field">
             <label htmlFor="auth-email">Email ünvanı</label>
@@ -85,20 +112,32 @@ export function AuthForm({
           {mode === "verify" ? (
             <div className="field">
               <label htmlFor="auth-code">Təsdiqləmə kodu</label>
-              <input
-                id="auth-code"
-                className="otp-input"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                pattern="[0-9]{6}"
-                maxLength={6}
-                value={code}
-                onChange={(event) =>
-                  setCode(event.target.value.replace(/\D/g, ""))
+              <Suspense
+                fallback={
+                  <div
+                    className="skeleton-block"
+                    style={{ height: 52 }}
+                    role="status"
+                    aria-label="Kod sahəsi yüklənir"
+                  />
                 }
-                placeholder="000000"
-              />
+              >
+                <CodeSlots
+                  id="auth-code"
+                  length={6}
+                  ariaLabel="Təsdiqləmə kodu"
+                  autoFocus
+                  disabled={busy}
+                  status={otpStatus}
+                  value={code}
+                  onChange={setCode}
+                  accentColor="var(--primary)"
+                  inkColor="var(--text)"
+                  slotColor="var(--control)"
+                  digitColor="#fff"
+                  dangerColor="var(--red)"
+                />
+              </Suspense>
             </div>
           ) : (
             <div className="field">
@@ -143,7 +182,12 @@ export function AuthForm({
             {notice}
           </p>
         )}
-        <Button className="full-width" type="submit" busy={busy}>
+        <Button
+          className="full-width"
+          type="submit"
+          busy={busy}
+          disabled={mode === "verify" && otpStatus === "error"}
+        >
           {mode === "register"
             ? "Hesab yarat"
             : mode === "verify"

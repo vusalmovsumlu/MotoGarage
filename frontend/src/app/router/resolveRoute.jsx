@@ -17,6 +17,7 @@ import { Profile } from "../../features/profile/pages/Profile.jsx";
 import { Notifications } from "../../features/notifications/pages/Notifications.jsx";
 import Chat from "../../features/chat/pages/Chat.jsx";
 import { AdminUsers } from "../../features/admin/pages/AdminUsers.jsx";
+import { BusinessApplications } from "../../features/admin/pages/BusinessApplications.jsx";
 import { Inventory } from "../../features/products/pages/Inventory.jsx";
 import { Page } from "../../components/layout/Page.jsx";
 import { Empty } from "../../components/feedback/Empty.jsx";
@@ -71,6 +72,8 @@ export function resolveRoute(route, user) {
   if (parts[0] === "chat" && (!parts[1] || /^\d+$/.test(parts[1])))
     return <Chat key={path} selectedId={parts[1]} />;
   if (path === "/admin/users" && user.role === "Admin") return <AdminUsers />;
+  if (path === "/admin/applications" && user.role === "Admin")
+    return <BusinessApplications />;
   if (path === "/business" && ["Mechanic", "Store"].includes(user.role))
     return <BusinessPage />;
   if (path === "/inventory" && user.role === "Store") return <Inventory />;

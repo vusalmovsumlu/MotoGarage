@@ -251,7 +251,13 @@ builder.Services
 
                     var role = context.Principal?.FindFirstValue(ClaimTypes.Role);
                     if (!string.Equals(role, user.Role.ToString(), StringComparison.Ordinal))
+                    {
                         context.Fail("Token rolu istifadəçinin cari rolu ilə uyğun deyil.");
+                        return;
+                    }
+                    // Approval is read from the DB on every request, including requests with older JWTs.
+                    if (context.Principal is not null)
+                        BusinessApprovalAuthorization.Apply(context.Principal, user);
                 }
             };
     });
@@ -408,6 +414,7 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAdminService,
     AdminService>();
+builder.Services.AddScoped<IBusinessApplicationService, BusinessApplicationService>();
 
 builder.Services.AddScoped<
     IUserProfileService,

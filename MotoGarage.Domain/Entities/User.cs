@@ -9,6 +9,8 @@ public class User : IdentityUser<int>
 
     public UserRole Role { get; set; }
 
+    public BusinessApprovalStatus BusinessApprovalStatus { get; set; }
+
     public bool IsAdminBlocked { get; set; }
 
     public DateTime CreatedAt { get; set; }

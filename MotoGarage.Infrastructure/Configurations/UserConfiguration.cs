@@ -14,6 +14,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(x => x.Role)
             .IsRequired();
+        builder.Property(x => x.BusinessApprovalStatus).IsConcurrencyToken();
 
         builder.Property(x => x.CreatedAt)
             .IsRequired();
