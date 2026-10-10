@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.Appointment;
 using MotoGarage.Application.Interfaces.Services;
@@ -8,7 +8,7 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/appointments")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class AppointmentController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;

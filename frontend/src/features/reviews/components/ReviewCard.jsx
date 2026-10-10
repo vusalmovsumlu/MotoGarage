@@ -12,6 +12,7 @@ export function ReviewCard({
   extras,
   state,
   toast,
+  readOnly = false,
 }) {
   return (
     <article className="card review-card" key={value.id}>
@@ -31,7 +32,7 @@ export function ReviewCard({
       <p>{value.comment || "Şərh əlavə edilməyib."}</p>
       <div className="card-footer">
         <span className="meta">{date(value.createdAt)}</span>
-        {value.userId === user.id && (
+        {!readOnly && value.userId === user.id && (
           <div className="actions">
             <IconButton label="Rəyi dəyiş" onClick={() => setReview(value)}>
               <Pencil size={15} />

@@ -12,6 +12,12 @@ public class AppointmentDto
 
     public int VehicleId { get; set; }
 
+    public string? VehicleName { get; set; }
+
+    public string? MechanicName { get; set; }
+
+    public string? CustomerName { get; set; }
+
     public DateTime AppointmentDate { get; set; }
 
     public string? Description { get; set; }

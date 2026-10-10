@@ -85,6 +85,13 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetApplications([FromQuery] BusinessApprovalStatus? status = BusinessApprovalStatus.Pending) =>
         Ok(await _applications.GetApplicationsAsync(status));
 
+    [HttpDelete("users/{id:int:min(1)}")]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        await _adminService.DeleteUserAsync(id, GetCurrentUserId());
+        return NoContent();
+    }
+
     [HttpPost("business-applications/{id:int}/accept")]
     public async Task<IActionResult> AcceptApplication(int id)
     {

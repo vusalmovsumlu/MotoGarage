@@ -51,15 +51,15 @@ for (const role of ["Mechanic", "Store"]) {
     ).toBeVisible();
     await page.getByLabel("Email ünvanı").fill("business@example.invalid");
     await page.getByLabel("Şifrə", { exact: true }).fill("testpass1");
-    await page.getByLabel("Şəkil 1", { exact: true }).setInputFiles(photo(1));
-    await page.getByLabel("Şəkil 2", { exact: true }).setInputFiles(photo(2));
+    const picker = page.getByLabel("Şəkilləri seç", { exact: true });
+    await expect(picker).toHaveJSProperty("multiple", true);
+    await picker.setInputFiles([photo(1), photo(2)]);
     await page.getByRole("button", { name: "Hesab yarat" }).click();
     expect(request).toBeUndefined();
-    await expect(page.getByLabel("Şəkil 3", { exact: true })).toHaveJSProperty(
-      "required",
-      true,
+    await expect(page.getByRole("alert")).toContainText(
+      "3 şəkil seçmək məcburidir.",
     );
-    await page.getByLabel("Şəkil 3", { exact: true }).setInputFiles(photo(3));
+    await picker.setInputFiles([photo(1), photo(2), photo(3)]);
     await expect(page.getByAltText("Seçilmiş şəkil 3")).toBeVisible();
     await page.getByRole("button", { name: "Hesab yarat" }).click();
     await expect(
@@ -78,18 +78,20 @@ for (const role of ["Mechanic", "Store"]) {
 
 test("Business registration validates images and fits mobile light and dark themes", async ({
   page,
-}) => {
+}, testInfo) => {
   await mockApi(page);
   await page.setViewportSize({ width: 320, height: 850 });
   await page.goto("/#/register");
   await page.getByLabel("Hesab növü").selectOption("Store");
-  await page.getByLabel("Şəkil 1", { exact: true }).setInputFiles({
+  await page.getByLabel("Şəkilləri seç", { exact: true }).setInputFiles({
     name: "fake.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("invalid"),
   });
   await expect(page.getByRole("alert")).toContainText("JPG, PNG və ya WEBP");
-  await page.getByLabel("Şəkil 1", { exact: true }).setInputFiles(photo(1));
+  await page
+    .getByLabel("Şəkilləri seç", { exact: true })
+    .setInputFiles([photo(1), photo(2), photo(3)]);
   await expect(page.getByAltText("Seçilmiş şəkil 1")).toBeVisible();
   for (let theme = 0; theme < 2; theme++) {
     expect(
@@ -97,6 +99,10 @@ test("Business registration validates images and fits mobile light and dark them
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath(`photos-${theme}.png`),
+      fullPage: true,
+    });
     await page.getByRole("button", { name: "Temanı dəyiş" }).click();
   }
   await page.getByRole("button", { name: "Şəkil 1 sil" }).click();
@@ -159,6 +165,15 @@ test("Admin accepts an application and status filters reach the API", async ({
   await login(page);
   await page.goto("/#/admin/applications");
   await page.getByRole("button", { name: "Təsdiqlə", exact: true }).click();
+  const confirmation = page.getByRole("dialog");
+  await expect(
+    confirmation.locator(".confirm-icon--approval .lucide-shield-check"),
+  ).toBeVisible();
+  await expect(confirmation.locator(".lucide-trash-2")).toHaveCount(0);
+  await expect(
+    confirmation.getByRole("button", { name: "Təsdiqlə", exact: true }),
+  ).toHaveClass(/primary/);
+  expect(accepted).toBe(false);
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Təsdiqlə", exact: true })
@@ -169,6 +184,84 @@ test("Admin accepts an application and status filters reach the API", async ({
   await page.getByLabel("Müraciət statusu").selectOption("Rejected");
   await expect.poll(() => filters.at(-1)).toBe("Rejected");
   expect(accepted).toBe(true);
+});
+
+for (const width of [320, 1440]) {
+  test(`Approval confirmation looks positive and fits ${width}px in both themes`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockApi(page, "Admin");
+    const decisions = [];
+    await page.route("**/api/admin/business-applications**", async (route) => {
+      if (route.request().method() === "GET")
+        return respond(route, [application]);
+      decisions.push(route.request().url());
+      return route.fulfill({ status: 204 });
+    });
+    await login(page);
+    await page.goto("/#/admin/applications");
+    for (const theme of ["light", "dark"]) {
+      await page.getByRole("button", { name: "Təsdiqlə", exact: true }).click();
+      const dialog = page.getByRole("dialog");
+      await expect(
+        dialog.locator(".confirm-icon--approval .lucide-shield-check"),
+      ).toBeVisible();
+      await expect(
+        dialog.getByRole("button", { name: "Təsdiqlə", exact: true }),
+      ).toHaveClass(/primary/);
+      await expect(dialog.locator(".danger, .lucide-trash-2")).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page.screenshot({
+        path: testInfo.outputPath(`approval-${theme}.png`),
+      });
+      await dialog.getByRole("button", { name: "İmtina", exact: true }).click();
+      expect(decisions).toEqual([]);
+      if (theme === "light")
+        await page.getByRole("button", { name: "Temanı dəyiş" }).click();
+    }
+  });
+}
+
+test("Bulk photos preserve valid selections after invalid batches, allow removal and enforce distinct count", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/#/register");
+  await page.getByLabel("Hesab növü").selectOption("Mechanic");
+  const picker = page.getByLabel("Şəkilləri seç", { exact: true });
+  const previews = page.getByAltText(/Seçilmiş şəkil [123]/);
+  await picker.setInputFiles([photo(1), photo(2), photo(3)]);
+  await expect(previews).toHaveCount(3);
+  await picker.setInputFiles([photo(4), photo(5), photo(6), photo(7)]);
+  await expect(page.getByRole("alert")).toContainText("Cəmi 3 şəkil seçin");
+  await expect(previews).toHaveCount(3);
+  await picker.setInputFiles([
+    photo(4),
+    { name: "bad.txt", mimeType: "text/plain", buffer: Buffer.from("bad") },
+  ]);
+  await expect(page.getByRole("alert")).toContainText("JPG, PNG və ya WEBP");
+  await expect(previews).toHaveCount(3);
+  await picker.setInputFiles([photo(8), photo(8), photo(9)]);
+  await expect(page.getByRole("alert")).toContainText("3 fərqli şəkil seçin");
+  await expect(previews).toHaveCount(3);
+  await picker.setInputFiles({
+    name: "large.png",
+    mimeType: "image/png",
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  });
+  await expect(page.getByRole("alert")).toContainText("maksimum 5 MB");
+  await expect(previews).toHaveCount(3);
+  await page.getByRole("button", { name: "Şəkil 2 sil" }).click();
+  await expect(page.getByRole("status")).toContainText("2 / 3");
+  await expect(page.getByAltText("Seçilmiş şəkil 2")).toHaveCount(0);
+  await picker.setInputFiles(photo(2));
+  await expect(page.getByAltText("Seçilmiş şəkil 2")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("3 / 3");
 });
 
 for (const status of ["Pending", "Rejected"]) {

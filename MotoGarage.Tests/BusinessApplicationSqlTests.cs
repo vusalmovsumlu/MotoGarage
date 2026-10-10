@@ -36,7 +36,7 @@ public class BusinessApplicationSqlTests
         await using var database = new AppDbContext(Options());
         try
         {
-            var previousMigration = database.Database.GetMigrations().Last(x => !x.EndsWith("AddBusinessRegistrationApproval"));
+            var previousMigration = database.Database.GetMigrations().TakeWhile(x => !x.EndsWith("AddBusinessRegistrationApproval")).Last();
             await database.GetService<IMigrator>().MigrateAsync(previousMigration);
             await database.Database.ExecuteSqlRawAsync("""
                 INSERT INTO [AspNetUsers] ([FullName], [Role], [CreatedAt], [EmailConfirmed], [IsAdminBlocked], [PhoneNumberConfirmed], [TwoFactorEnabled], [LockoutEnabled], [AccessFailedCount])

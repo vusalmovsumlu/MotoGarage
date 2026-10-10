@@ -19,14 +19,13 @@
   border-radius: 10px;
   background: var(--control);
 }
-.registration-photo-slot label {
+.registration-photo-preview {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 110px;
-  cursor: pointer;
   color: var(--muted);
   font-size: 10px;
   overflow: hidden;
@@ -37,7 +36,18 @@
   height: 80px;
   object-fit: cover;
 }
-.registration-photo-slot input {
+.registration-photo-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  margin-top: 14px;
+}
+.registration-photo-picker label {
+  cursor: pointer;
+}
+.registration-photo-picker input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -46,7 +56,7 @@
   left: 50%;
   bottom: 0;
 }
-.registration-photo-slot:focus-within {
+.registration-photo-picker:focus-within label {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }

@@ -558,7 +558,7 @@ public class AuthService : IAuthService
     private static void ThrowIfBlocked(
         User user)
     {
-        var isBlocked = user.IsAdminBlocked ||
+        var isBlocked = user.DeletedAtUtc != null || user.IsAdminBlocked ||
             (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow);
 
         if (isBlocked)

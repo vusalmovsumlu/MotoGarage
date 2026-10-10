@@ -17,6 +17,7 @@ export function MerchantDetail({
   AppointmentEditor,
   ReviewCard,
   ReviewEditor,
+  preview = false,
 }) {
   const {
     item,
@@ -31,11 +32,18 @@ export function MerchantDetail({
     toast,
     appointment,
     review,
-  } = useMerchantDetail({ type, slug, resourceApi, extrasPath });
+  } = useMerchantDetail({ type, slug, resourceApi, extrasPath, preview });
   return (
     <Page
       title={item?.businessName || item?.storeName || "Biznes profili"}
       description={item?.address}
+      actions={
+        preview && (
+          <a href="#/business" className="button secondary">
+            Biznes profilinə qayıt
+          </a>
+        )
+      }
     >
       <Resource state={state} skeleton="detail">
         {item && (
@@ -47,10 +55,12 @@ export function MerchantDetail({
               setAppointment={setAppointment}
               act={act}
               chatApi={chatApi}
+              preview={preview}
             />
             <div className="section-heading">
               <h2>{mechanic ? "Müştəri rəyləri" : "Mağazanın məhsulları"}</h2>
               {mechanic &&
+                !preview &&
                 item.userId !== user.id &&
                 !extras.loading &&
                 !extras.error &&
@@ -75,24 +85,35 @@ export function MerchantDetail({
                         extras={extras}
                         state={state}
                         toast={toast}
+                        readOnly={preview}
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="catalog-grid">
                     {extras.data.map((product) => (
-                      <ProductCard product={product} key={product.id} />
+                      <ProductCard
+                        product={product}
+                        key={product.id}
+                        readOnly={preview}
+                      />
                     ))}
                   </div>
                 )
               ) : (
                 <Empty
                   title={
-                    mechanic ? "İlk rəyi siz yazın" : "Hazırda məhsul yoxdur"
+                    mechanic
+                      ? preview
+                        ? "Hələ müştəri rəyi yoxdur"
+                        : "İlk rəyi siz yazın"
+                      : "Hazırda məhsul yoxdur"
                   }
                   description={
                     mechanic
-                      ? "Təcrübənizi bölüşərək başqalarına kömək edin."
+                      ? preview
+                        ? "Müştərilərinizin rəyləri burada görünəcək."
+                        : "Təcrübənizi bölüşərək başqalarına kömək edin."
                       : "Mağazanın əlavə etdiyi məhsullar burada görünəcək."
                   }
                 />

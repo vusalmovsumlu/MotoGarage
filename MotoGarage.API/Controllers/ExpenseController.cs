@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.Expense;
 using MotoGarage.Application.Interfaces.Services;
@@ -9,7 +9,7 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/expenses")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class ExpenseController : ControllerBase
 {
     private readonly IExpenseService _expenseService;

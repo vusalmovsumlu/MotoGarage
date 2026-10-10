@@ -22,6 +22,14 @@ public class Appointment
 
     public DateTime CreatedAt { get; set; }
 
+    public DateTime? EmailReminderSentAtUtc { get; set; }
+
+    public Guid? EmailReminderLeaseId { get; set; }
+
+    public DateTime? EmailReminderLeaseUntilUtc { get; set; }
+
+    public DateTime? EmailReminderNextAttemptAtUtc { get; set; }
+
 
     public User User { get; set; } = null!;
 

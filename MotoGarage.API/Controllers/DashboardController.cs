@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.Interfaces.Services;
 using System.Security.Claims;
@@ -7,7 +7,7 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/dashboard")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

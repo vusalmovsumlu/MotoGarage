@@ -3,6 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
 using MotoGarage.Application.Interfaces.Services;
+using MotoGarage.Application.DTOs.Vehicle;
 
 namespace MotoGarage.Infrastructure.Email;
 
@@ -21,39 +22,7 @@ public class SmtpEmailService : IEmailService
         string fullName,
         string code)
     {
-        var host =
-            _configuration["Email:SmtpHost"]
-            ?? throw new InvalidOperationException(
-                "SMTP host tapılmadı.");
-
-        var portText =
-            _configuration["Email:SmtpPort"]
-            ?? throw new InvalidOperationException(
-                "SMTP port tapılmadı.");
-
-        var username =
-            _configuration["Email:Username"]
-            ?? throw new InvalidOperationException(
-                "SMTP username tapılmadı.");
-
-        var password =
-            _configuration["Email:Password"]
-            ?? throw new InvalidOperationException(
-                "SMTP password tapılmadı.");
-
-        var fromName =
-            _configuration["Email:FromName"]
-            ?? "MotoGarage";
-
         var message = new MimeMessage();
-
-        message.From.Add(
-            new MailboxAddress(
-                fromName,
-                username));
-
-        message.To.Add(
-            MailboxAddress.Parse(email));
 
         message.Subject =
             "MotoGarage - Email təsdiqləmə kodu";
@@ -86,19 +55,38 @@ public class SmtpEmailService : IEmailService
             }
             .ToMessageBody();
 
+        await SendAsync(email, message, CancellationToken.None);
+    }
+
+    public Task SendVehicleHistoryAsync(string email, string vehicleName, byte[] attachment, string fileName, CancellationToken cancellationToken = default)
+    {
+        var message = new MimeMessage();
+        message.Subject = $"MotoGarage - {vehicleName} tarixçəsi";
+        var body = new BodyBuilder
+        {
+            TextBody = $"Salam.\n\n{vehicleName} üçün sahibin MotoGarage-dən paylaşdığı Excel hesabatı əlavə olunub. Faylda nəqliyyat vasitəsi məlumatları, servis işləri, kilometr, xərclər və yanacaq qeydləri var.\n\nHesabat sahibin daxil etdiyi qeydlərə əsaslanır."
+        };
+        body.Attachments.Add(fileName, attachment, ContentType.Parse(VehicleHistoryFile.ContentType));
+        message.Body = body.ToMessageBody();
+        return SendAsync(email, message, cancellationToken);
+    }
+
+    public Task SendAppointmentReminderAsync(string email, MotoGarage.Application.DTOs.Appointment.AppointmentReminderEmail reminder, CancellationToken cancellationToken = default) =>
+        SendAsync(email, AppointmentReminderEmailBuilder.Create(reminder), cancellationToken);
+
+    private async Task SendAsync(string email, MimeMessage message, CancellationToken cancellationToken)
+    {
+        var host = _configuration["Email:SmtpHost"] ?? throw new InvalidOperationException("SMTP host tapılmadı.");
+        var portText = _configuration["Email:SmtpPort"] ?? throw new InvalidOperationException("SMTP port tapılmadı.");
+        var username = _configuration["Email:Username"] ?? throw new InvalidOperationException("SMTP username tapılmadı.");
+        var password = _configuration["Email:Password"] ?? throw new InvalidOperationException("SMTP password tapılmadı.");
+        message.From.Add(new MailboxAddress(_configuration["Email:FromName"] ?? "MotoGarage", username));
+        message.To.Add(MailboxAddress.Parse(email));
         using var smtp = new SmtpClient();
-
-        await smtp.ConnectAsync(
-            host,
-            int.Parse(portText),
-            SecureSocketOptions.StartTls);
-
-        await smtp.AuthenticateAsync(
-            username,
-            password);
-
-        await smtp.SendAsync(message);
-
-        await smtp.DisconnectAsync(true);
+        smtp.Timeout = 30000;
+        await smtp.ConnectAsync(host, int.Parse(portText), SecureSocketOptions.StartTls, cancellationToken);
+        await smtp.AuthenticateAsync(username, password, cancellationToken);
+        await smtp.SendAsync(message, cancellationToken);
+        await smtp.DisconnectAsync(true, cancellationToken);
     }
 }

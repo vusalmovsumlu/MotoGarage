@@ -15,6 +15,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Role)
             .IsRequired();
         builder.Property(x => x.BusinessApprovalStatus).IsConcurrencyToken();
+        builder.Property(x => x.DeletedAtUtc).IsConcurrencyToken();
+        builder.HasOne<User>().WithMany().HasForeignKey(x => x.DeletedByAdminId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(x => x.CreatedAt)
             .IsRequired();

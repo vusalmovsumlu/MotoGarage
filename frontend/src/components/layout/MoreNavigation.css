@@ -1,0 +1,41 @@
+.nav-more > summary::-webkit-details-marker {
+  display: none;
+}
+.nav-more > summary[aria-expanded="true"],
+.nav-more--active > summary {
+  background: var(--control);
+  color: var(--link);
+}
+.nav-more-chevron {
+  transition: transform 220ms ease;
+}
+.nav-more > summary[aria-expanded="true"] .nav-more-chevron {
+  transform: rotate(180deg);
+}
+.more-menu-panel {
+  position: fixed;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 12px 35px color-mix(in srgb, var(--text) 12%, transparent);
+  z-index: 20;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top center;
+}
+.more-menu-panel[data-state="closed"] {
+  pointer-events: none;
+}
+.more-menu-panel .branched-menu {
+  width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-more-chevron {
+    transition: none;
+  }
+}

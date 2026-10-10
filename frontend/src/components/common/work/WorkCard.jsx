@@ -30,7 +30,7 @@ export function WorkCard({
           <p className="meta">
             {orders
               ? date(item.createdAt, true)
-              : `${date(item.appointmentDate, true)} · Nəqliyyat #${item.vehicleId} · ${incoming ? "Müştəri" : "Usta"} #${incoming ? item.userId : item.mechanicId}`}
+              : `${date(item.appointmentDate, true)} · ${item.vehicleName || "Nəqliyyat məlumatı yoxdur"} · ${incoming ? item.customerName || "Müştəri adı yoxdur" : item.mechanicName || "Usta adı yoxdur"}`}
           </p>
         </div>
         <Badge value={item.status} />

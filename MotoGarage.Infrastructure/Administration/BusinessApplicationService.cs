@@ -11,7 +11,7 @@ namespace MotoGarage.Infrastructure.Administration;
 public class BusinessApplicationService(AppDbContext context) : IBusinessApplicationService
 {
     private IQueryable<BusinessApplicationDto> Query() => context.BusinessApplications.AsNoTracking()
-        .Where(x => x.User.EmailConfirmed)
+        .Where(x => x.User.DeletedAtUtc == null && x.User.EmailConfirmed)
         .OrderByDescending(x => x.CreatedAt)
         .Select(x => new BusinessApplicationDto
         {
@@ -38,11 +38,11 @@ public class BusinessApplicationService(AppDbContext context) : IBusinessApplica
         comment = comment?.Trim();
         if (!approve && (string.IsNullOrWhiteSpace(comment) || comment.Length > 1000))
             throw new DomainException("Rədd etmə səbəbi məcburidir və maksimum 1000 simvol ola bilər.");
-        if (!await context.Users.AnyAsync(x => x.Id == adminId && x.Role == UserRole.Admin && x.EmailConfirmed && !x.IsAdminBlocked))
+        if (!await context.Users.AnyAsync(x => x.Id == adminId && x.Role == UserRole.Admin && x.DeletedAtUtc == null && x.EmailConfirmed && !x.IsAdminBlocked))
             throw new ForbiddenException("Yalnız administrator müraciətə qərar verə bilər.");
         var application = await context.BusinessApplications.Include(x => x.User).Include(x => x.Photos).SingleOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Müraciət tapılmadı.");
-        if (!application.User.EmailConfirmed || application.User.IsAdminBlocked)
+        if (application.User.DeletedAtUtc != null || !application.User.EmailConfirmed || application.User.IsAdminBlocked)
             throw new DomainException("Əvvəl email təsdiqlənməlidir və hesab bloklanmamış olmalıdır.");
         if (application.Status != BusinessApprovalStatus.Pending || application.User.BusinessApprovalStatus != BusinessApprovalStatus.Pending)
             throw new ConflictException("Bu müraciətə artıq qərar verilib.");

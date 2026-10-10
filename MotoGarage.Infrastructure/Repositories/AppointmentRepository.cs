@@ -20,6 +20,8 @@ public class AppointmentRepository
     {
         return await _context.Appointments.AsNoTracking()
             .Include(x => x.Mechanic)
+                .ThenInclude(x => x.User)
+            .Include(x => x.User)
             .Include(x => x.Vehicle)
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.AppointmentDate)
@@ -32,6 +34,8 @@ public class AppointmentRepository
         return await _context.Appointments.AsNoTracking()
             .Include(x => x.User)
             .Include(x => x.Vehicle)
+            .Include(x => x.Mechanic)
+                .ThenInclude(x => x.User)
             .Where(x => x.MechanicId == mechanicId)
             .OrderByDescending(x => x.AppointmentDate)
             .ToListAsync();
@@ -42,6 +46,7 @@ public class AppointmentRepository
         return await _context.Appointments
             .Include(x => x.User)
             .Include(x => x.Mechanic)
+                .ThenInclude(x => x.User)
             .Include(x => x.Vehicle)
             .FirstOrDefaultAsync(x => x.Id == id);
     }

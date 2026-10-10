@@ -2,6 +2,8 @@
 
 public class AdminDashboardDto
 {
+    public int PendingBusinessApplications { get; set; }
+    public int BlockedUsers { get; set; }
     public int TotalUsers { get; set; }
 
     public int TotalMechanics { get; set; }

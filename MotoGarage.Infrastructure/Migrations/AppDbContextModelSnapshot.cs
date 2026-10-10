@@ -173,6 +173,18 @@ namespace MotoGarage.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid?>("EmailReminderLeaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("EmailReminderLeaseUntilUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EmailReminderNextAttemptAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EmailReminderSentAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("MechanicId")
                         .HasColumnType("int");
 
@@ -192,6 +204,10 @@ namespace MotoGarage.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppointmentDate")
+                        .HasDatabaseName("IX_Appointments_EmailReminderDue")
+                        .HasFilter("[EmailReminderSentAtUtc] IS NULL AND [Status] IN (1, 2)");
 
                     b.HasIndex("UserId");
 
@@ -988,6 +1004,13 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DeletedByAdminId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -1040,6 +1063,8 @@ namespace MotoGarage.Infrastructure.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeletedByAdminId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -1454,6 +1479,14 @@ namespace MotoGarage.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MotoGarage.Domain.Entities.User", b =>
+                {
+                    b.HasOne("MotoGarage.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByAdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("MotoGarage.Domain.Entities.Vehicle", b =>

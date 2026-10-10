@@ -4,7 +4,8 @@ import { MessageCircle } from "lucide-react";
 import { date } from "../../../shared/utils/format.js";
 import { Empty } from "../../../components/feedback/Empty.jsx";
 
-export function ConversationList({ conversations, active, title }) {
+export function ConversationList({ conversations, active, title, role }) {
+  const business = ["Mechanic", "Store"].includes(role);
   return (
     <aside className="conversation-sidebar">
       <div className="section-heading">
@@ -33,11 +34,17 @@ export function ConversationList({ conversations, active, title }) {
         ) : (
           <Empty
             title="Söhbət yoxdur"
-            description="Usta və ya mağaza profilindən mesaj yazın."
+            description={
+              business
+                ? "Müştərilərinizin mesajları burada görünəcək."
+                : "Usta və ya mağaza profilindən mesaj yazın."
+            }
             action={
-              <a href="#/mechanics" className="text-link">
-                Ustalara bax
-              </a>
+              !business && (
+                <a href="#/mechanics" className="text-link">
+                  Ustalara bax
+                </a>
+              )
             }
           />
         )}

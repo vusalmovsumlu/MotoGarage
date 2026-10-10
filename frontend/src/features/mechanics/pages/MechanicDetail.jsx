@@ -6,11 +6,12 @@ import { ReviewCard } from "../../reviews/components/ReviewCard.jsx";
 import { ReviewEditor } from "../../reviews/components/ReviewEditor.jsx";
 import { AppointmentEditor } from "../../appointments/components/AppointmentEditor.jsx";
 const extrasPath = (item) => reviewsApi.mechanicReviewsPath(item.id);
-export function MechanicDetail({ slug }) {
+export function MechanicDetail({ slug, preview = false }) {
   return (
     <MerchantDetail
       type="mechanics"
       slug={slug}
+      preview={preview}
       resourceApi={mechanicsApi}
       extrasPath={extrasPath}
       chatApi={chatApi}

@@ -9,28 +9,43 @@ for (const role of ["User", "Mechanic", "Store", "Admin"]) {
     page.on("pageerror", (error) => errors.push(error.message));
     await mockApi(page, role);
     await login(page);
-    const routes = [
-      "/vehicles",
-      "/products",
-      "/mechanics",
-      "/stores",
-      "/appointments",
-      "/orders",
-      "/profile",
-      "/notifications",
-      "/records/fuel",
-      "/records/expenses",
-      "/records/service",
-      "/records/reminders",
-      "/chat",
-      ...(role === "Mechanic"
-        ? ["/business", "/work/appointments"]
-        : role === "Store"
-          ? ["/business", "/inventory", "/work/orders"]
-          : role === "Admin"
-            ? ["/admin/users"]
-            : []),
-    ];
+    const routes =
+      role === "Admin"
+        ? ["/home", "/admin/users", "/admin/applications", "/profile"]
+        : role === "Mechanic"
+          ? [
+              "/home",
+              "/business",
+              "/work/appointments",
+              "/profile",
+              "/notifications",
+              "/chat",
+            ]
+          : role === "Store"
+            ? [
+                "/home",
+                "/business",
+                "/inventory",
+                "/work/orders",
+                "/profile",
+                "/notifications",
+                "/chat",
+              ]
+            : [
+                "/vehicles",
+                "/products",
+                "/mechanics",
+                "/stores",
+                "/appointments",
+                "/orders",
+                "/profile",
+                "/notifications",
+                "/records/fuel",
+                "/records/expenses",
+                "/records/service",
+                "/records/reminders",
+                "/chat",
+              ];
     for (const route of routes) {
       await page.goto(`/#${route}`);
       await expect(page.locator("main h1")).toBeVisible();

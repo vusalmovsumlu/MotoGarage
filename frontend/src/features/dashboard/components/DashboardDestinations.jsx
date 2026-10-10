@@ -30,24 +30,38 @@ export function DashboardDestinations({ admin, shortcuts, user, work }) {
           </a>
         ))}
       </div>
-      <div className="quick-links">
-        <a href="#/chat">
-          <MessageCircle size={20} />
-          <div>
-            <strong>Söhbətlər</strong>
-            <span className="meta">Ustanız və mağazanızla əlaqədə qalın.</span>
-          </div>
-          <ArrowRight size={17} />
-        </a>
-        <a href="#/orders">
-          <ClipboardList size={20} />
-          <div>
-            <strong>Sifarişlərim</strong>
-            <span className="meta">Alışlarınızın gedişatını izləyin.</span>
-          </div>
-          <ArrowRight size={17} />
-        </a>
-      </div>
+      {!admin && (
+        <div className="quick-links">
+          <a href="#/chat">
+            <MessageCircle size={20} />
+            <div>
+              <strong>Söhbətlər</strong>
+              <span className="meta">
+                {user.role === "User"
+                  ? "Ustanız və mağazanızla əlaqədə qalın."
+                  : "Müştərilərinizlə əlaqədə qalın."}
+              </span>
+            </div>
+            <ArrowRight size={17} />
+          </a>
+          {user.role !== "Mechanic" && (
+            <a href={user.role === "Store" ? "#/work/orders" : "#/orders"}>
+              <ClipboardList size={20} />
+              <div>
+                <strong>
+                  {user.role === "Store" ? "Gələn sifarişlər" : "Sifarişlərim"}
+                </strong>
+                <span className="meta">
+                  {user.role === "Store"
+                    ? "Müştəri sifarişlərini idarə edin."
+                    : "Alışlarınızın gedişatını izləyin."}
+                </span>
+              </div>
+              <ArrowRight size={17} />
+            </a>
+          )}
+        </div>
+      )}
       {["Mechanic", "Store"].includes(user.role) && (
         <Section
           title={

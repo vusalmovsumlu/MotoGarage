@@ -1,27 +1,29 @@
-import { IconButton } from "../ui/IconButton.jsx";
-import { X } from "lucide-react";
+import { CircleCheck, CircleAlert } from "lucide-react";
+import SwipeToast from "./SwipeToast.jsx";
 
 export function ToastRegion({ notices, setNotices }) {
   return (
-    <div className="toast-region" aria-live="polite" aria-atomic="false">
+    <div className="toast-region">
       {notices.map((item) => (
-        <div
-          className={`toast ${item.error ? "toast-error" : ""}`}
+        <SwipeToast
           key={item.id}
+          inline
+          title={item.message}
           role={item.error ? "alert" : "status"}
-        >
-          <span>{item.message}</span>
-          <IconButton
-            label="Bildirişi bağla"
-            onClick={() =>
-              setNotices((current) =>
-                current.filter((value) => value.id !== item.id),
-              )
-            }
-          >
-            <X size={16} />
-          </IconButton>
-        </div>
+          icon={item.error ? <CircleAlert /> : <CircleCheck />}
+          background="var(--surface)"
+          color="var(--text)"
+          fuseColor={item.error ? "var(--red)" : "var(--primary)"}
+          radius={16}
+          duration={6500}
+          closeButton
+          className={item.error ? "swipe-toast--error" : "swipe-toast--success"}
+          onClose={() =>
+            setNotices((current) =>
+              current.filter((value) => value.id !== item.id),
+            )
+          }
+        />
       ))}
     </div>
   );

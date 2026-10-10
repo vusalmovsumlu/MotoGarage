@@ -21,6 +21,7 @@ using MotoGarage.Infrastructure.Identity;
 using MotoGarage.Infrastructure.Repositories;
 using MotoGarage.Infrastructure.Notifications;
 using MotoGarage.Infrastructure.Storage;
+using MotoGarage.Infrastructure.Exports;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -231,7 +232,7 @@ builder.Services
                         return;
                     }
 
-                    var isBlocked = user.IsAdminBlocked ||
+                    var isBlocked = user.DeletedAtUtc != null || user.IsAdminBlocked ||
                         (user.LockoutEnd.HasValue &&
                          user.LockoutEnd.Value > DateTimeOffset.UtcNow);
 
@@ -281,7 +282,9 @@ builder.Services.AddRateLimiter(options =>
         (Name: "auth-register", Limit: 5, Minutes: 10),
         (Name: "auth-verify", Limit: 20, Minutes: 1),
         (Name: "auth-resend", Limit: 5, Minutes: 10),
-        (Name: "image-upload", Limit: 20, Minutes: 1)
+        (Name: "image-upload", Limit: 20, Minutes: 1),
+        (Name: "vehicle-history-export", Limit: 10, Minutes: 1),
+        (Name: "vehicle-history-email", Limit: 5, Minutes: 60)
     })
     {
         options.AddPolicy(setting.Name, context =>
@@ -414,6 +417,8 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAdminService,
     AdminService>();
+
+builder.Services.AddScoped<IAccountAccessService, AccountAccessService>();
 builder.Services.AddScoped<IBusinessApplicationService, BusinessApplicationService>();
 
 builder.Services.AddScoped<
@@ -439,6 +444,12 @@ builder.Services.AddOptions<ReminderNotificationOptions>()
     .ValidateOnStart();
 builder.Services.AddScoped<IReminderNotificationDispatcher, ReminderNotificationDispatcher>();
 builder.Services.AddHostedService<ReminderNotificationWorker>();
+builder.Services.AddOptions<AppointmentEmailReminderOptions>()
+    .Bind(builder.Configuration.GetSection(AppointmentEmailReminderOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddScoped<IAppointmentEmailReminderDispatcher, AppointmentEmailReminderDispatcher>();
+builder.Services.AddHostedService<AppointmentEmailReminderWorker>();
 
 builder.Services.AddScoped<
     IServiceRecordService,
@@ -487,6 +498,7 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IImageService,
     CloudinaryImageService>();
+builder.Services.AddScoped<IVehicleHistoryExportService, VehicleHistoryExportService>();
 
 
 // =========================

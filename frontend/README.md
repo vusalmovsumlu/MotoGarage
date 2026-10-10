@@ -26,12 +26,16 @@ npm run dev -- --host 127.0.0.1
 - Giriş, qeydiyyat, email OTP, kodun təkrar göndərilməsi, Google giriş, refresh-token rotasiyası və çıxış.
 - Qeydiyyatda ayrı məcburi Ad/Soyad sahələri API-yə mövcud `fullName` kimi birləşdirilir. OTP sahəsində React Bits CodeSlots istifadə olunur: 6 rəqəm, klaviatura/paste, səhv kodun animasiya ilə təmizlənməsi, mobil ölçü və reduced-motion dəstəyi. Komponent yalnız OTP səhifəsində yüklənir.
 - Usta/mağaza qeydiyyatında 3 fərqli real şəklin Cloudinary-yə yüklənməsi, email təsdiqindən sonra adminin biznes müraciətlərini qəbul/rədd etməsi və məcburi rədd şərhinin istifadəçiyə göstərilməsi. Detallar: [biznes müraciətləri](../docs/business-applications.md).
+- Usta/mağaza qeydiyyatında 3 şəkli bir seçimlə əlavə etmək, önizləmə və ayrı şəkli əvəzləmək mümkündür. Admin qəbul pəncərəsi təsdiq ikonuyla göstərilir. Usta və mağaza menyuları yalnız öz biznes alətlərini göstərir; iş masası şəxsi qaraj statistikası yerinə gələn görüş/sifariş məlumatlarından istifadə edir.
 - Qaraj CRUD, Car/Motorcycle seçimi, yanacaq və sərfiyyat göstəriciləri, xərc və servis qeydləri, xatırlatmalar.
+- Qaraj detalında **Tarixçəni paylaş**: avtomobil/motosikletin servis, xərc və yanacaq tarixçəsini Excel olaraq yükləmək və alıcının emailinə əlavə kimi göndərmək. Kilometr servis və yanacaq qeydlərində göstərilir; mövcud xərc qeydlərində kilometr saxlanmır. [İstifadə və API qaydaları](../docs/vehicle-history-export.md).
 - Usta, mağaza və məhsul kataloqları, axtarış/filterlər, slug üzrə detallar və rəylər.
 - Usta rəylərində müəllifin adı və soyadı backend-in `userFullName` cavabından göstərilir; mövcud rəylər də bu məlumatı əlaqəli User-dən alır.
 - Görüş yaratma/ləğv etmə, ustanın qəbul/rədd/tamamlama əməliyyatları.
+- Aktiv görüşə təxminən 2 saat qalmış hesabın təsdiqlənmiş emailinə avtomatik xatırlatma. Brauzer bağlı olanda da backend işləyirsə göndərilir; tarix və saat Bakı vaxtı ilə göstərilir. [Migration və sazlamalar](../docs/appointment-email-reminders.md).
 - Bir mağazaya aid səbət, sifariş və mağazanın icazə verilən status keçidləri, məhsul/stok idarəetməsi.
 - Biznes profili, istifadəçi profili, bildirişlər, admin statistikası və istifadəçi bloklama/açma.
+- Admin üçün yalnız idarəetmə menyusu, biznes müraciətləri və təsdiqlə hesab silinməsi. Şəxsi qaraj/alış/chat axınları adminə göstərilmir. Silinmə girişləri bağlayır və hesab məlumatlarını anonimləşdirir; əlaqəli tarixçə saxlanılır. [Qaydalar və tələb olunan migration](../docs/admin-accounts.md).
 - JWT ilə SignalR chat, yenidən qoşulma, mesajların ID üzrə təkrarlanmasının qarşısının alınması, HTTP göndərmə/oxundu fallback-i.
 
 Runtime məlumatları API-dən gəlir. JWT-dəki rol menyunu müəyyən edir; icazə və ownership üçün son qərarı backend verir. Tokenlər tabın sessionStorage yaddaşında saxlanır. Eyni səhifədə paralel refresh sorğuları birləşdirilir; gecikmiş refresh cavabı çıxış edilmiş sessiyanı bərpa etmir. Native dialog-lar, klaviatura fokusları, forma limitləri, upload zamanı save/close kilidi və destructive əməliyyatlar üçün təsdiq var.
@@ -55,6 +59,8 @@ Production-dan əvvəl real test hesabları ilə hər rolun girişini, SMTP OTP-
 
 ## Vizual mənbələr
 
+Qısa əməliyyat mesajları istifadəçinin təqdim etdiyi React Bits SwipeToast əsasında göstərilir. Mövcud `toast(message, error)` çağırışları saxlanılıb; bütün səhifələr eyni feedback region-dan istifadə edir. Açıq/tünd temada kart səthi və mətn rəngləri tətbiqin palitrasından, uğurlu mesajın vurğusu mavi və xəta vurğusu qırmızı rəngdən gəlir. Aşağı sürüşdürmək, bağlama düyməsi və fokuslanmış kartda Escape ilə bağlanır. Normal halda əvvəlki kimi 6.5 saniyə sonra bağlanır; mouse hover, klaviatura fokusu, sürüşdürmə və gizli tab zamanı sayğac dayanır. Maksimum üç mesaj, slot bağlanma animasiyası və reduced-motion dəstəyi var. Mənbə lisenziyası `public/licenses/react-bits.txt` daxilində saxlanır.
+
 API məlumatları yüklənərkən səhifəyə uyğun skeleton göstərilir: iş masası, kartlar, detal, profil, forma, siyahı, admin cədvəli və chat. Skeleton animasiyası reduced-motion seçiminə uyğun dayanır. Rəy yaratma və redaktə formasında [React Bits Peek Rating](https://reactbits.dev/micro/peek-rating) istifadə edilir; 1–5 ulduz seçimi mouse, touch və klaviatura ilə işləyir. Rəy kartlarında həmin komponentin read-only variantı var. Komponent mövcud Lucide ikonlarına, Azərbaycan dilinə və tema rənglərinə uyğunlaşdırılıb; lisenziya `public/licenses/react-bits.txt` daxilində saxlanır.
 
 Inter şriftləri `public/fonts/LICENSE` altında lisenziyalanır. Schedule, homework və settings ikonları istifadəçinin verdiyi skill-dəndir. `garage.png`, `mechanic.png`, `market.png` builtin imagegen vasitəsilə yaradılıb. Qaraj ikonu istifadəçinin təqdim etdiyi motosiklet fotosuna əsasən image edit rejimində yenilənib: öndən baxış, qara aerodinamik korpus, iti ağ LED faralar və qızılı amortizatorlar; mavi həcmli tile və şəffaf fon saxlanıb. Digər prompt mövzuları: teal tile üzərində çarpaz servis alətləri; amber tile üzərində dişli və alış-veriş çantası. Heç bir əlavə mətn/brend nişanı yaradılmayıb. Fayllar `public/icons/` altındadır.
@@ -76,6 +82,8 @@ Hər bildirişdə “Sil”, səhifədə “Hamısını sil” düyməsi var. Si
 Qaraj detallarında və nəqliyyat vasitəsinin qeydlərində ID əvəzinə sabit slug ünvanları istifadə olunur. Routing, ownership, köhnə keçidlərin yönləndirilməsi və migration qaydaları [vehicle-slugs.md](../docs/vehicle-slugs.md) daxilindədir.
 
 ## Navbar və saat formatı
+
+“Digər” menyusu istifadəçinin təqdim etdiyi React Bits BranchedMenu əsasında qurulub: planlar/alış-veriş, nəqliyyat qeydləri və rola uyğun biznes/idarəetmə bölmələri. SVG budaqlarının aktiv xətti, açılıb-yığılma və panel animasiyası mövcud tema rənglərindən istifadə edir. Keçidlər əvvəlki hash URL-lərini saxlayır; aktiv seçim URL və nəqliyyatın slug-lu qeyd səhifələri ilə sinxron qalır. Bölmə başlıqları Enter/Space ilə işləyir, bağlı bölmələr fokusdan çıxarılır, Escape fokusu “Digər”ə qaytarır və kənara klik paneli bağlayır. Panel viewport daxilində yerləşir, qısa ekranlarda öz daxilində scroll edir və reduced-motion dəstəyi var. Mənbə lisenziyası `public/licenses/react-bits.txt` daxilində saxlanır.
 
 Əsas navbar [React Bits Gooey Nav](https://reactbits.dev/components/gooey-nav) əsasında uyğunlaşdırılıb. Aktiv keçid hash route-dan hesablanır; rol keçidləri, Digər menyusu, klaviatura ilə Enter və brauzer history-si saxlanılıb. Animasiya mövcud tema palitrasından istifadə edir, mobil wrap/resize vəziyyətlərinə uyğunlaşır və reduced-motion seçimini nəzərə alır. Animasiya timer-ləri unmount zamanı təmizlənir. Mənbə lisenziyası `public/licenses/react-bits.txt` daxilindədir.
 

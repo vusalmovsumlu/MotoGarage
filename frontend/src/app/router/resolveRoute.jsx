@@ -22,6 +22,7 @@ import { Inventory } from "../../features/products/pages/Inventory.jsx";
 import { Page } from "../../components/layout/Page.jsx";
 import { Empty } from "../../components/feedback/Empty.jsx";
 import { vehicleSlugFromRoute } from "../../shared/utils/vehicleRoutes.js";
+import { businessLinks, isBusinessRoute } from "./navigation.js";
 
 const catalogPages = {
   mechanics: MechanicCatalog,
@@ -32,6 +33,35 @@ const merchantPages = { mechanics: MechanicDetail, stores: StoreDetail };
 const workPages = { orders: Orders, appointments: Appointments };
 export function resolveRoute(route, user) {
   const path = route.split("?")[0];
+  if (businessLinks[user.role] && !isBusinessRoute(path, user.role))
+    return (
+      <Page title="Bu bölmə biznes hesabı üçün nəzərdə tutulmayıb">
+        <Empty
+          title="Biznes iş masasından işlərinizi idarə edin."
+          action={
+            <a href="#/home" className="button primary">
+              İş masasına keç
+            </a>
+          }
+        />
+      </Page>
+    );
+  if (
+    user.role === "Admin" &&
+    !["/home", "/admin/users", "/admin/applications", "/profile"].includes(path)
+  )
+    return (
+      <Page title="Bu bölmə admin hesabı üçün nəzərdə tutulmayıb">
+        <Empty
+          title="Admin panelindən platformanı idarə edin."
+          action={
+            <a href="#/home" className="button primary">
+              Admin iş masasına keç
+            </a>
+          }
+        />
+      </Page>
+    );
   const parts = path.split("/").filter(Boolean);
   const RecordPage = recordPages[parts[1]];
   const CatalogPage = catalogPages[parts[0]];
@@ -39,6 +69,10 @@ export function resolveRoute(route, user) {
   const WorkPage = workPages[parts[0]];
   const BusinessPage =
     user.role === "Mechanic" ? MechanicProfile : StoreProfile;
+  if (path === "/business/preview" && businessLinks[user.role]) {
+    const OwnDetail = user.role === "Mechanic" ? MechanicDetail : StoreDetail;
+    return <OwnDetail preview />;
+  }
   if (path === "/home") return <Home />;
   if (path === "/vehicles") return <Vehicles />;
   if (parts[0] === "vehicles" && /^\d+$/.test(parts[1] || ""))

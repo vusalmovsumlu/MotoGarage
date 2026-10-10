@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.FuelRecord;
 using MotoGarage.Application.Interfaces.Services;
@@ -8,7 +8,7 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/fuel-records")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class FuelRecordController : ControllerBase
 {
     private readonly IFuelRecordService _fuelRecordService;

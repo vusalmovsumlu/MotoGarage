@@ -18,6 +18,7 @@ public class OrderService : IOrderService
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IMapper _mapper;
+    private readonly IAccountAccessService _accountAccess;
 
     public OrderService(
         IOrderRepository orderRepository,
@@ -25,9 +26,11 @@ public class OrderService : IOrderService
         IStoreRepository storeRepository,
         IMapper mapper,
         IUnitOfWork unitOfWork,
-        INotificationService notifications)
+        INotificationService notifications,
+        IAccountAccessService accountAccess)
     {
         _notifications = notifications;
+        _accountAccess = accountAccess;
         _unitOfWork = unitOfWork;
         _orderRepository = orderRepository;
         _productRepository = productRepository;
@@ -112,6 +115,7 @@ public class OrderService : IOrderService
         DtoValidation.Validate(dto);
         return await _unitOfWork.ExecuteAsync(async () =>
         {
+            await _accountAccess.RequireParticipantAsync(userId);
             DtoValidation.Validate(dto);
             if (dto.Items is null || dto.Items.Count == 0)
             {

@@ -22,7 +22,9 @@ export default function GooeyNav({ items, path, children }) {
   useLayoutEffect(() => {
     const container = containerRef.current;
     const effect = effectRef.current;
-    const activeLink = container.querySelector('a[aria-current="page"]');
+    const activeLink = container.querySelector(
+      ':scope > a[aria-current="page"]',
+    );
     const update = () => {
       effect.hidden = !activeLink;
       if (!activeLink) return;

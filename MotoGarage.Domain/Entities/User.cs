@@ -13,6 +13,10 @@ public class User : IdentityUser<int>
 
     public bool IsAdminBlocked { get; set; }
 
+    public DateTime? DeletedAtUtc { get; set; }
+
+    public int? DeletedByAdminId { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public ICollection<Vehicle> Vehicles { get; set; }

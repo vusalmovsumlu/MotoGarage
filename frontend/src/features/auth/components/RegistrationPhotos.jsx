@@ -14,18 +14,43 @@ function PhotoPreview({ file, index }) {
 
 export function RegistrationPhotos({ role, photos, setPhotos }) {
   const [error, setError] = useState("");
-  const inputs = useRef([]);
-  const change = (index, file) => {
+  const choose = (event) => {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = ""; // Allow choosing the same file again after removing it.
+    if (!selected.length) return;
     setError("");
     if (
-      file &&
-      (file.size > 5 * 1024 * 1024 || !/\.(jpe?g|png|webp)$/i.test(file.name))
+      selected.some(
+        (file) =>
+          !file.size ||
+          file.size > 5 * 1024 * 1024 ||
+          !/\.(jpe?g|png|webp)$/i.test(file.name) ||
+          !/^image\/(jpeg|png|webp)$/.test(file.type),
+      )
     ) {
       setError("JPG, PNG və ya WEBP seçin. Hər şəkil maksimum 5 MB ola bilər.");
-      file = null;
+      return;
     }
-    if (!file && inputs.current[index]) inputs.current[index].value = "";
-    setPhotos(photos.map((current, slot) => (slot === index ? file : current)));
+    const next = selected.length === 3 ? [null, null, null] : [...photos];
+    if (selected.length > next.filter((file) => !file).length) {
+      setError(
+        "Cəmi 3 şəkil seçin. Dəyişmək üçün əvvəl şəkli silin və ya 3 yeni şəkli birlikdə seçin.",
+      );
+      return;
+    }
+    const existing = next.filter(Boolean);
+    const key = (file) => `${file.name}:${file.size}:${file.lastModified}`;
+    if (
+      new Set([...existing, ...selected].map(key)).size !==
+      existing.length + selected.length
+    ) {
+      setError("3 fərqli şəkil seçin. Eyni şəkli təkrar əlavə etmək olmaz.");
+      return;
+    }
+    selected.forEach((file) => {
+      next[next.indexOf(null)] = file;
+    });
+    setPhotos(next);
   };
   return (
     <div className="registration-evidence">
@@ -38,35 +63,45 @@ export function RegistrationPhotos({ role, photos, setPhotos }) {
           : "Mağazada olan real detalların 3 fərqli şəklini əlavə edin."}{" "}
         Admin şəkillərə baxıb müraciətinizə qərar verəcək.
       </p>
+      <div className="registration-photo-picker">
+        <label htmlFor="registration-photos" className="button secondary">
+          <Camera size={16} aria-hidden="true" /> Şəkilləri seç
+        </label>
+        <input
+          id="registration-photos"
+          type="file"
+          multiple
+          accept="image/jpeg,image/png,image/webp"
+          onChange={choose}
+        />
+        <span className="meta" role="status">
+          {photos.filter(Boolean).length} / 3 şəkil seçilib
+        </span>
+      </div>
       <div className="registration-photo-slots">
         {photos.map((file, index) => (
           <div className="registration-photo-slot" key={index}>
-            <label htmlFor={`registration-photo-${index}`}>
+            <div className="registration-photo-preview">
               {file ? (
                 <PhotoPreview file={file} index={index} />
               ) : (
                 <Camera size={23} />
               )}
               <span>Şəkil {index + 1}</span>
-            </label>
-            <input
-              ref={(element) => {
-                inputs.current[index] = element;
-              }}
-              id={`registration-photo-${index}`}
-              type="file"
-              required
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) =>
-                change(index, event.target.files?.[0] || null)
-              }
-            />
+            </div>
             {file && (
               <button
                 type="button"
                 className="registration-photo-remove"
                 aria-label={`Şəkil ${index + 1} sil`}
-                onClick={() => change(index, null)}
+                onClick={() => {
+                  setError("");
+                  setPhotos(
+                    photos.map((current, slot) =>
+                      slot === index ? null : current,
+                    ),
+                  );
+                }}
               >
                 <X size={14} />
               </button>
@@ -75,7 +110,8 @@ export function RegistrationPhotos({ role, photos, setPhotos }) {
         ))}
       </div>
       <small className="meta">
-        JPG, PNG, WEBP · hər şəkil maksimum 5 MB · 3 fərqli şəkil
+        Şəkilləri birlikdə seçə bilərsiniz. JPG, PNG, WEBP · hər şəkil maksimum
+        5 MB
       </small>
       {error && (
         <p role="alert" className="form-error">

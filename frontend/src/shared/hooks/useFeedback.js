@@ -1,18 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 
 export function useFeedback(notificationReload) {
   const [notices, setNotices] = useState([]);
   const [confirmation, setConfirmation] = useState(null);
-  const timers = useRef(new Set());
   const toast = useCallback(
     (message, error = false) => {
       const id = crypto.randomUUID();
       setNotices((current) => [...current.slice(-2), { id, message, error }]);
-      const timer = setTimeout(() => {
-        setNotices((current) => current.filter((item) => item.id !== id));
-        timers.current.delete(timer);
-      }, 6500);
-      timers.current.add(timer);
     },
     [setNotices],
   );
@@ -30,6 +24,5 @@ export function useFeedback(notificationReload) {
     },
     [toast, notificationReload],
   );
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
   return { notices, setNotices, confirmation, setConfirmation, toast, act };
 }

@@ -9,6 +9,9 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
     public void Configure(EntityTypeBuilder<Appointment> builder)
     {
         builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.HasIndex(x => x.AppointmentDate)
+            .HasDatabaseName("IX_Appointments_EmailReminderDue")
+            .HasFilter("[EmailReminderSentAtUtc] IS NULL AND [Status] IN (1, 2)");
         builder.HasIndex(x => new { x.MechanicId, x.AppointmentDate })
             .HasDatabaseName("UX_Appointments_ActiveSlot").IsUnique()
             .HasFilter("[Status] IN (1, 2)");

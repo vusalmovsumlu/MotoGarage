@@ -8,7 +8,7 @@ import { Empty } from "../../feedback/Empty.jsx";
 import { BusinessProfileEditor } from "./BusinessProfileEditor.jsx";
 
 export function BusinessProfile({ resourceApi }) {
-  const { mechanic, state, setEdit, endpoint, confirm, toast, edit, user } =
+  const { mechanic, state, setEdit, confirm, toast, edit, user } =
     useBusinessProfile({ resourceApi });
   return (
     <Page
@@ -27,7 +27,6 @@ export function BusinessProfile({ resourceApi }) {
           <BusinessProfileCard
             state={state}
             mechanic={mechanic}
-            endpoint={endpoint}
             confirm={confirm}
             resourceApi={resourceApi}
             toast={toast}

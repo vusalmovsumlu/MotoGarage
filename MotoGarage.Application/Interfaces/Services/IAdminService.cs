@@ -16,4 +16,6 @@ public interface IAdminService
         int currentAdminId);
 
     Task UnblockUserAsync(int userId);
+
+    Task DeleteUserAsync(int userId, int currentAdminId);
 }

@@ -1,5 +1,10 @@
 export const dashboardApi = {
-  summaryPath: (role) => (role === "Admin" ? "/admin/dashboard" : "/dashboard"),
+  summaryPath: (role) =>
+    role === "Admin"
+      ? "/admin/dashboard"
+      : role === "User"
+        ? "/dashboard"
+        : null,
   queuePath: (role) =>
     role === "Mechanic"
       ? "/appointments/mechanic"

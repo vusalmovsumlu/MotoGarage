@@ -28,12 +28,20 @@ export default function Chat({ selectedId }) {
     setContent,
   } = useChat({ selectedId });
   return (
-    <Page title="Söhbətlər" description="Usta və mağazalarla birbaşa əlaqə.">
+    <Page
+      title="Söhbətlər"
+      description={
+        user.role === "User"
+          ? "Usta və mağazalarla birbaşa əlaqə."
+          : "Müştərilərinizlə birbaşa əlaqə."
+      }
+    >
       <div className="card chat-layout">
         <ConversationList
           conversations={conversations}
           active={active}
           title={title}
+          role={user.role}
         />
         <section className="chat-panel" aria-label="Mesajlar">
           {active ? (

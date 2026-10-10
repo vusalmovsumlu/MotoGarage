@@ -2,13 +2,15 @@ import { useState } from "react";
 
 import { Modal } from "../ui/Modal.jsx";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, ShieldCheck } from "lucide-react";
 
 import { Button } from "../ui/Button.jsx";
 
 export function ConfirmDialog({ value, onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const approval = value.intent === "approval";
+  const Icon = approval ? ShieldCheck : Trash2;
   return (
     <Modal
       title={value.title}
@@ -16,8 +18,10 @@ export function ConfirmDialog({ value, onClose }) {
       onClose={onClose}
       busy={busy}
     >
-      <div className="confirm-icon">
-        <Trash2 size={24} />
+      <div
+        className={`confirm-icon${approval ? " confirm-icon--approval" : ""}`}
+      >
+        <Icon size={24} aria-hidden="true" />
       </div>
       {error && (
         <p role="alert" className="form-error">
@@ -29,7 +33,7 @@ export function ConfirmDialog({ value, onClose }) {
           İmtina
         </Button>
         <Button
-          variant="danger"
+          variant={approval ? "primary" : "danger"}
           busy={busy}
           onClick={async () => {
             setBusy(true);

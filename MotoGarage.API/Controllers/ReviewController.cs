@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.Review;
 using MotoGarage.Application.Interfaces.Services;
@@ -8,7 +8,7 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/reviews")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class ReviewController : ControllerBase
 {
     private readonly IReviewService _reviewService;

@@ -9,15 +9,18 @@ export function DashboardSummary({ admin, data }) {
       {admin ? (
         <Section title="Diqqət gözləyənlər">
           <div className="summary-row">
-            <span>Gözləyən sifarişlər</span>
-            <strong>{data.pendingOrders}</strong>
+            <span>Biznes müraciətləri</span>
+            <strong>{number(data.pendingBusinessApplications)}</strong>
           </div>
           <div className="summary-row">
-            <span>Gözləyən görüşlər</span>
-            <strong>{data.pendingAppointments}</strong>
+            <span>Bloklanmış hesablar</span>
+            <strong>{number(data.blockedUsers)}</strong>
           </div>
           <a className="text-link" href="#/admin/users">
             İstifadəçiləri idarə et <ArrowRight size={14} />
+          </a>
+          <a className="text-link" href="#/admin/applications">
+            Müraciətlərə bax <ArrowRight size={14} />
           </a>
         </Section>
       ) : (
@@ -34,7 +37,9 @@ export function DashboardSummary({ admin, data }) {
                   <strong>
                     {item.description || `Servis görüşü #${item.id}`}
                   </strong>
-                  <span className="meta">Usta #{item.mechanicId}</span>
+                  <span className="meta">
+                    {item.mechanicName || "Usta adı yoxdur"}
+                  </span>
                 </a>
               )}
             />

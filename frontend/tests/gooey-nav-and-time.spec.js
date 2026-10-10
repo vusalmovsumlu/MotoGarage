@@ -6,7 +6,7 @@ test("Gooey navigation follows route, browser history, keyboard and role links",
 }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await mockApi(page, "Admin");
+  await mockApi(page);
   await login(page);
   const nav = page.getByRole("navigation", { name: "Əsas menyu" });
   await expect(nav.locator(".gooey-effect")).toBeVisible();
@@ -22,9 +22,9 @@ test("Gooey navigation follows route, browser history, keyboard and role links",
   await expect(
     nav.getByRole("link", { name: "Qarajım", exact: true }),
   ).toHaveAttribute("aria-current", "page");
-  await nav.getByRole("link", { name: "İstifadəçilər", exact: true }).focus();
+  await nav.getByRole("link", { name: "Məhsullar", exact: true }).focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#\/admin\/users$/);
+  await expect(page).toHaveURL(/#\/products$/);
   await page.goBack();
   await expect(
     nav.getByRole("link", { name: "Qarajım", exact: true }),

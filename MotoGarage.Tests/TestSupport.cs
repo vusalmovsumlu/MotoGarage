@@ -40,7 +40,7 @@ internal static class TestSupport
 
     public static OrderService Orders(AppDbContext context) => new(
         new OrderRepository(context), new ProductRepository(context), new StoreRepository(context),
-        Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), Mapper()));
+        Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), Mapper()), new AccountAccessService(context));
 
     public static async Task SeedOrderData(AppDbContext context, int stock = 1)
     {
@@ -76,6 +76,10 @@ internal sealed class TestUnitOfWork(AppDbContext context) : IUnitOfWork
 
 internal sealed class TestEmail : IEmailService
 {
+    public Task SendAppointmentReminderAsync(string email, MotoGarage.Application.DTOs.Appointment.AppointmentReminderEmail reminder, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Use an explicit appointment-reminder fake; real mail is never sent.");
+    public Task SendVehicleHistoryAsync(string email, string vehicleName, byte[] attachment, string fileName, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Tests must use an explicit history-email fake; real mail is never sent.");
     public bool Fail { get; set; }
     public string? LastCode { get; private set; }
     public Task SendVerificationCodeAsync(string email, string fullName, string code)

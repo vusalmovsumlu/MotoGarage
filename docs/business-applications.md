@@ -10,6 +10,16 @@ Təsdiq gözləyən və rədd edilmiş biznes hesabları frontenddə müraciət 
 
 ## Endpoint-lər
 
+Frontend qeydiyyatında **Şəkilləri seç** bir `multiple` file input-dur: 3 şəkli birlikdə seçmək, önizləmədən birini silib yenisini əlavə etmək mümkündür. 3 yeni şəkil birlikdə seçilərsə əvvəlki seçim əvəzlənir. Etibarsız format/ölçü, eyni fayl və sayın aşılması əvvəlki etibarlı seçimi itirmir. Qeydiyyat yenə də dəqiq 3 şəkil tələb edir və API-yə eyni multipart `photos` contract-ı ilə göndərir; Cloudinary yükləməsi backend-də qalır.
+
+Adminin qəbul təsdiqi `ShieldCheck` ikonu və mavi əsas düymə ilə göstərilir. Silmə əməliyyatlarının qırmızı dizaynı saxlanılır; rədd etmənin məcburi şərhi dəyişmir.
+
+Təsdiqlənmiş usta hesabının menyusunda iş masası, gələn görüşlər və biznes profili; mağazada iş masası, məhsullar/stok, gələn sifarişlər və biznes profili var. Hər iki rol söhbət, bildiriş və hesab parametrlərini aça bilir. Şəxsi qaraj, yanacaq/xərc/servis qeydləri, şəxsi görüş/sifariş və alış kataloqları frontend-də göstərilmir; birbaşa bu URL-lərə keçid səhifə komponentini və onun API sorğularını işə salmır. Bu frontend bölgüsüdür, backend icazələri və endpoint contract-ları bu dəyişiklikdə yenidən yazılmayıb.
+
+Biznes iş masasının rəqəmləri ustada `/appointments/mechanic`, mağazada `/orders/store` cavablarının real statuslarından hesablanır. Şəxsi `/dashboard` biznes hesabları üçün çağırılmır. User/Admin iş masaları saxlanılır. Göstəricilər yeni sorğu və ya səhifə yenilənməsi ilə yenilənir; bu dəyişiklik yeni polling əlavə etmir.
+
+Biznes profilində **Müştəri görünüşü** `/#/business/preview` səhifəsini açır. Məlumatlar cari hesabın `my-profile` sorğusundan gəlir: usta öz rəylərini, mağaza öz məhsullarını görür. Bu görünüşdə görüş, alış, mesaj və rəy redaktəsi düymələri yoxdur. Məhsul idarəetməsində məhsul adına klik həmin məhsulun redaktə pəncərəsini açır. Boş biznes chat-ında müştəri mesajlarını gözləmə izahı göstərilir.
+
 | Metod | Endpoint | Contract / icazə |
 | --- | --- | --- |
 | POST | `/api/auth/register-business` | Anonymous, auth-register rate limit, multipart: `FullName`, `Email`, `Password`, `Role=Mechanic/Store`, 3 təkrarlanan `photos` faylı |

@@ -35,6 +35,7 @@ public class AdminService : IAdminService
         var query =
             _context.Users
                 .AsNoTracking()
+                .Where(x => x.DeletedAtUtc == null)
                 .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -87,8 +88,10 @@ public class AdminService : IAdminService
     {
         return new AdminDashboardDto
         {
+            PendingBusinessApplications = await _context.BusinessApplications.CountAsync(x => x.Status == BusinessApprovalStatus.Pending && x.User.EmailConfirmed && x.User.DeletedAtUtc == null),
+            BlockedUsers = await _context.Users.CountAsync(x => x.DeletedAtUtc == null && (x.IsAdminBlocked || x.LockoutEnd > DateTimeOffset.UtcNow)),
             TotalUsers =
-                await _context.Users.CountAsync(),
+                await _context.Users.CountAsync(x => x.DeletedAtUtc == null),
 
             TotalMechanics =
                 await _context.Mechanics.CountAsync(
@@ -133,7 +136,7 @@ public class AdminService : IAdminService
                 await _userManager.FindByIdAsync(
                     userId.ToString());
 
-            if (user is null)
+            if (user is null || user.DeletedAtUtc != null)
             {
                 throw new KeyNotFoundException(
                     "İstifadəçi tapılmadı.");
@@ -176,7 +179,7 @@ public class AdminService : IAdminService
                 await _userManager.FindByIdAsync(
                     userId.ToString());
 
-            if (user is null)
+            if (user is null || user.DeletedAtUtc != null)
             {
                 throw new KeyNotFoundException(
                     "İstifadəçi tapılmadı.");
@@ -194,6 +197,59 @@ public class AdminService : IAdminService
                 ThrowIdentityErrors(result);
             }
         });
+    }
+
+    public async Task DeleteUserAsync(int userId, int currentAdminId)
+    {
+        await _unitOfWork.ExecuteAsync(async () =>
+        {
+            var administrator = await _context.Users.SingleOrDefaultAsync(x => x.Id == currentAdminId);
+            if (administrator is null || administrator.Role != UserRole.Admin || !administrator.EmailConfirmed ||
+                administrator.DeletedAtUtc != null || administrator.IsAdminBlocked || administrator.LockoutEnd > DateTimeOffset.UtcNow)
+                throw new ForbiddenException("Yalnız aktiv administrator hesab sile bilər.");
+            if (userId == currentAdminId)
+                throw new DomainException("Öz admin hesabınızı silə bilməzsiniz.");
+            var user = await _context.Users.SingleOrDefaultAsync(x => x.Id == userId)
+                ?? throw new KeyNotFoundException("İstifadəçi tapılmadı.");
+            if (user.Role == UserRole.Admin)
+                throw new DomainException("Admin hesabları bu əməliyyatla silinə bilməz.");
+            if (user.DeletedAtUtc != null) return; // Repeated DELETE remains safe.
+
+            if (await _context.Orders.AnyAsync(x => (x.UserId == userId || x.Store.UserId == userId) &&
+                (x.Status == OrderStatus.Pending || x.Status == OrderStatus.Confirmed || x.Status == OrderStatus.Preparing || x.Status == OrderStatus.Shipped)) ||
+                await _context.Appointments.AnyAsync(x => (x.UserId == userId || x.Mechanic.UserId == userId) &&
+                    (x.Status == AppointmentStatus.Pending || x.Status == AppointmentStatus.Accepted)))
+                throw new ConflictException("Hesabın aktiv sifariş və ya görüşləri var. Əvvəl onları tamamlayın və ya ləğv edin.");
+
+            var now = DateTime.UtcNow;
+            user.DeletedAtUtc = now;
+            user.DeletedByAdminId = currentAdminId;
+            user.IsAdminBlocked = true;
+            user.LockoutEnabled = true;
+            user.LockoutEnd = DateTimeOffset.MaxValue;
+            user.FullName = "Silinmiş istifadəçi";
+            user.Email = user.NormalizedEmail = user.PhoneNumber = user.PasswordHash = null;
+            user.UserName = $"deleted-{user.Id}-{Guid.NewGuid():N}";
+            user.NormalizedUserName = _userManager.NormalizeName(user.UserName);
+            user.EmailConfirmed = user.PhoneNumberConfirmed = user.TwoFactorEnabled = false;
+            user.SecurityStamp = Guid.NewGuid().ToString("N");
+            user.ConcurrencyStamp = Guid.NewGuid().ToString("N");
+            user.BusinessApprovalStatus = BusinessApprovalStatus.Rejected;
+            foreach (var token in await _context.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAt == null).ToListAsync())
+                token.RevokedAt = now;
+            _context.EmailVerificationCodes.RemoveRange(await _context.EmailVerificationCodes.Where(x => x.UserId == userId).ToListAsync());
+            _context.UserLogins.RemoveRange(await _context.UserLogins.Where(x => x.UserId == userId).ToListAsync());
+            _context.UserTokens.RemoveRange(await _context.UserTokens.Where(x => x.UserId == userId).ToListAsync());
+            _context.UserClaims.RemoveRange(await _context.UserClaims.Where(x => x.UserId == userId).ToListAsync());
+            _context.UserRoles.RemoveRange(await _context.UserRoles.Where(x => x.UserId == userId).ToListAsync());
+            _context.Notifications.RemoveRange(await _context.Notifications.Where(x => x.UserId == userId).ToListAsync());
+            foreach (var mechanic in await _context.Mechanics.Where(x => x.UserId == userId).ToListAsync()) mechanic.IsActive = false;
+            foreach (var store in await _context.Stores.Where(x => x.UserId == userId).ToListAsync()) store.IsActive = false;
+            foreach (var product in await _context.Products.Where(x => x.Store.UserId == userId).ToListAsync()) product.IsActive = false;
+            // Keep foreign keys and completed history; this is account deletion, not a cascade purge.
+            await _context.SaveChangesAsync();
+        });
+        _connections.Disconnect(userId); // External action runs only after the transaction commits.
     }
 
     private static void ThrowIdentityErrors(

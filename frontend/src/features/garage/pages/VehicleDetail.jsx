@@ -15,11 +15,14 @@ import {
 import { Badge } from "../../../components/ui/Badge.jsx";
 import { labels } from "../../../shared/constants/labels.js";
 import { number } from "../../../shared/utils/format.js";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "../../../components/ui/Button.jsx";
+import { VehicleHistoryExport } from "../components/VehicleHistoryExport.jsx";
 import { vehiclePath } from "../../../shared/utils/vehicleRoutes.js";
 import { replaceRoute } from "../../../app/router/useRoute.js";
 
 export function VehicleDetail({ id, slug }) {
+  const [exportOpen, setExportOpen] = useState(false);
   const state = useResource(
     slug ? garageApi.slugPath(slug) : garageApi.detailPath(id),
   );
@@ -35,6 +38,11 @@ export function VehicleDetail({ id, slug }) {
         state.data ? `${vehicle.brand} ${vehicle.model}` : "Nəqliyyat vasitəsi"
       }
       description="Qarajınızdakı bütün qeydlərə bir yerdən keçin."
+      actions={
+        state.data?.slug && (
+          <Button onClick={() => setExportOpen(true)}>Tarixçəni paylaş</Button>
+        )
+      }
     >
       <Resource state={state} skeleton="detail">
         <div className="card vehicle-detail">
@@ -82,6 +90,12 @@ export function VehicleDetail({ id, slug }) {
           ))}
         </div>
       </Resource>
+      {exportOpen && state.data && (
+        <VehicleHistoryExport
+          vehicle={vehicle}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
     </Page>
   );
 }

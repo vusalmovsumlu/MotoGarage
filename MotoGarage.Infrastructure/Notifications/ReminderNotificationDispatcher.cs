@@ -21,7 +21,7 @@ public sealed class ReminderNotificationDispatcher(
             context.ChangeTracker.Clear();
             var now = timeProvider.GetUtcNow().UtcDateTime;
             var due = await context.Reminders
-                .Where(x => !x.IsCompleted && x.NotificationSentAtUtc == null &&
+                .Where(x => x.Vehicle.User.DeletedAtUtc == null && !x.IsCompleted && x.NotificationSentAtUtc == null &&
                     (x.ReminderDate <= now ||
                         (x.ReminderKm.HasValue && x.Vehicle.CurrentKm >= x.ReminderKm.Value)))
                 .OrderBy(x => x.ReminderDate).ThenBy(x => x.Id)

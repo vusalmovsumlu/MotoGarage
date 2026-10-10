@@ -12,6 +12,26 @@ export async function mockApi(
     accessTokenExpiresAt: new Date(Date.now() + 3600000).toISOString(),
     refreshTokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
   };
+  const adminUsers = [
+    {
+      id: 1,
+      fullName: "Vüqar Məmmədov",
+      email: "test@example.invalid",
+      role: "Admin",
+      emailConfirmed: true,
+      isBlocked: false,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      fullName: "Aysel Əliyeva",
+      email: "user@example.invalid",
+      role: "User",
+      emailConfirmed: true,
+      isBlocked: false,
+      createdAt: new Date().toISOString(),
+    },
+  ];
   const vehicles = [
     {
       id: 1,
@@ -114,6 +134,9 @@ export async function mockApi(
     userId: 1,
     mechanicId: 10,
     vehicleId: 1,
+    vehicleName: "Toyota Corolla",
+    mechanicName: "Əli Məmmədov",
+    customerName: "Vüqar Məmmədov",
     appointmentDate: now,
     description: "Əyləc sisteminin yoxlanması",
     status: "Pending",
@@ -202,6 +225,13 @@ export async function mockApi(
     if (fail && method === "GET" && path === "/Vehicle")
       return respond({ message: "Test üçün server xətası." }, 500);
     if (method !== "GET") {
+      if (method === "DELETE" && /^\/admin\/users\/\d+$/.test(path)) {
+        const index = adminUsers.findIndex(
+          (user) => user.id === Number(path.split("/").pop()),
+        );
+        if (index >= 0) adminUsers.splice(index, 1);
+        return route.fulfill({ status: 204 });
+      }
       if (method === "DELETE" && path === "/notifications") {
         notifications.splice(0);
         return route.fulfill({ status: 204 });
@@ -256,6 +286,8 @@ export async function mockApi(
     if (path === "/admin/dashboard")
       return respond({
         totalUsers: 42,
+        pendingBusinessApplications: 2,
+        blockedUsers: 1,
         totalMechanics: 8,
         totalStores: 6,
         totalProducts: 125,
@@ -263,27 +295,8 @@ export async function mockApi(
         pendingOrders: 4,
         pendingAppointments: 3,
       });
-    if (path === "/admin/users")
-      return respond([
-        {
-          id: 1,
-          fullName: "Vüqar Məmmədov",
-          email: "test@example.invalid",
-          role: "Admin",
-          emailConfirmed: true,
-          isBlocked: false,
-          createdAt: now,
-        },
-        {
-          id: 2,
-          fullName: "Aysel Əliyeva",
-          email: "user@example.invalid",
-          role: "User",
-          emailConfirmed: true,
-          isBlocked: false,
-          createdAt: now,
-        },
-      ]);
+    if (path === "/admin/users") return respond(adminUsers);
+    if (path === "/admin/business-applications") return respond([]);
     if (path === "/profile")
       return respond({
         id: 1,

@@ -8,17 +8,25 @@ import { money, number } from "../../../shared/utils/format.js";
 
 import { Button } from "../../../components/ui/Button.jsx";
 
-export function ProductCard({ product }) {
+export function ProductCard({ product, readOnly = false }) {
   const { addCart } = useApp();
+  const Image = readOnly ? "div" : "a";
   return (
     <article className="card product-card">
-      <a href={`#/products/${product.slug}`} className="product-image">
+      <Image
+        {...(!readOnly && { href: `#/products/${product.slug}` })}
+        className="product-image"
+      >
         <Thumbnail src={product.imageUrl} icon={Package} alt={product.name} />
-      </a>
+      </Image>
       <div className="product-body">
         <span className="meta">{product.brand || "Ehtiyat hissəsi"}</span>
         <h2>
-          <a href={`#/products/${product.slug}`}>{product.name}</a>
+          {readOnly ? (
+            product.name
+          ) : (
+            <a href={`#/products/${product.slug}`}>{product.name}</a>
+          )}
         </h2>
         <p className="meta">
           {product.vehicleCompatibility ||
@@ -32,13 +40,15 @@ export function ProductCard({ product }) {
               : "Stokda yoxdur"}
           </span>
         </div>
-        <Button
-          variant="secondary"
-          disabled={product.stock < 1}
-          onClick={() => addCart(product)}
-        >
-          <Plus size={15} /> Səbətə əlavə et
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="secondary"
+            disabled={product.stock < 1}
+            onClick={() => addCart(product)}
+          >
+            <Plus size={15} /> Səbətə əlavə et
+          </Button>
+        )}
       </div>
     </article>
   );

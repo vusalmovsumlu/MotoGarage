@@ -96,7 +96,13 @@ public class MappingProfile : Profile
         // Appointment
         // =========================
 
-        CreateMap<Appointment, AppointmentDto>();
+        CreateMap<Appointment, AppointmentDto>()
+            .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.Brand + " " + src.Vehicle.Model : null))
+            .ForMember(dest => dest.MechanicName, opt => opt.MapFrom(src => src.Mechanic != null
+                ? src.Mechanic.User != null && !string.IsNullOrWhiteSpace(src.Mechanic.User.FullName)
+                    ? src.Mechanic.User.FullName : src.Mechanic.BusinessName
+                : null))
+            .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : null));
         CreateMap<CreateAppointmentDto, Appointment>();
 
 

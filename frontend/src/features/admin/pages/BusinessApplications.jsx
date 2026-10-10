@@ -28,6 +28,7 @@ export function BusinessApplications() {
   }, [reload]);
   const accept = (item) =>
     confirm({
+      intent: "approval",
       title: "Müraciəti təsdiqləmək istəyirsiniz?",
       description: `${item.fullName} — ${item.role === "Mechanic" ? "Usta" : "Mağaza"}`,
       label: "Təsdiqlə",

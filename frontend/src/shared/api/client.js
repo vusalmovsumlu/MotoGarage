@@ -142,7 +142,13 @@ export async function getAccessToken() {
 }
 export async function api(
   path,
-  { method = "GET", body, signal, anonymous = false } = {},
+  {
+    method = "GET",
+    body,
+    signal,
+    anonymous = false,
+    responseType = "json",
+  } = {},
 ) {
   let token = anonymous ? null : await getAccessToken();
   const send = () =>
@@ -170,6 +176,7 @@ export async function api(
       response = await send();
       if (response.status === 401) setSession(null);
     }
+    if (response.ok && responseType === "blob") return await response.blob();
     return await readResponse(response);
   } catch (error) {
     if (error.name === "AbortError" || error instanceof ApiError) throw error;

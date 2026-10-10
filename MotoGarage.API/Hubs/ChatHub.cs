@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MotoGarage.API.Hubs;
 
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class ChatHub : Hub
 {
     private readonly IUserConnectionRegistry _connections;
@@ -135,7 +135,7 @@ public class ChatHub : Hub
     {
         var id = GetCurrentUserId();
         var user = await _userManager.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id);
-        if (user is null || !user.EmailConfirmed || user.IsAdminBlocked ||
+        if (user is null || user.DeletedAtUtc != null || !user.EmailConfirmed || user.IsAdminBlocked ||
             (user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow) ||
             Context.User?.FindFirstValue(ClaimTypes.Role) != user.Role.ToString())
         {

@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useApp } from "../../../shared/hooks/useApp.js";
 import { useResource } from "../../../shared/hooks/useResource.js";
 import { dashboardApi } from "../api/dashboardApi.js";
-import { Users, Package } from "lucide-react";
+import { Users, Package, ShieldCheck, Settings } from "lucide-react";
 import { destinations } from "../utils/destinations.js";
 
 export function useDashboard() {
   const [today] = useState(() => new Date().toISOString());
   const { user } = useApp();
-  const dashboard = useResource(dashboardApi.summaryPath(user.role));
+  const summary = useResource(dashboardApi.summaryPath(user.role));
   const work = useResource(dashboardApi.queuePath(user.role));
+  const business = ["Mechanic", "Store"].includes(user.role);
+  const dashboard = business ? work : summary;
   const data = dashboard.data || {};
   const admin = user.role === "Admin";
   const firstName = user.fullName.split(" ")[0];
@@ -22,22 +24,16 @@ export function useDashboard() {
           icon: Users,
         },
         {
-          title: "Ustalar",
-          description: "Servis kataloqu",
-          path: "/mechanics",
-          art: "mechanic.png",
-        },
-        {
-          title: "Məhsullar",
-          description: "Məhsul kataloqu",
-          path: "/products",
-          art: "market.png",
+          title: "Biznes müraciətləri",
+          description: "Usta və mağazaları yoxlayın",
+          path: "/admin/applications",
+          icon: ShieldCheck,
         },
         {
           title: "Profil",
           description: "Hesabınız",
           path: "/profile",
-          art: "settings.webp",
+          icon: Settings,
         },
       ]
     : user.role === "Mechanic"
@@ -54,9 +50,6 @@ export function useDashboard() {
             path: "/business",
             art: "mechanic.png",
           },
-          ...destinations.filter((x) =>
-            ["/vehicles", "/products", "/profile"].includes(x.path),
-          ),
         ]
       : user.role === "Store"
         ? [
@@ -78,9 +71,18 @@ export function useDashboard() {
               path: "/business",
               art: "settings.webp",
             },
-            ...destinations.filter((x) => x.path === "/vehicles"),
           ]
         : destinations;
 
-  return { user, firstName, admin, today, dashboard, data, shortcuts, work };
+  return {
+    user,
+    firstName,
+    admin,
+    business,
+    today,
+    dashboard,
+    data,
+    shortcuts,
+    work,
+  };
 }

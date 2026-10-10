@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.DTOs.Vehicle;
 using MotoGarage.Application.Interfaces.Services;
@@ -8,14 +8,16 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class VehicleController : ControllerBase
 {
     private readonly IVehicleService _vehicleService;
+    private readonly IVehicleHistoryExportService _history;
 
-    public VehicleController(IVehicleService vehicleService)
+    public VehicleController(IVehicleService vehicleService, IVehicleHistoryExportService history)
     {
         _vehicleService = vehicleService;
+        _history = history;
     }
 
     // GET: api/vehicle
@@ -57,6 +59,22 @@ public class VehicleController : ControllerBase
     [HttpGet("by-slug/{slug}")]
     public async Task<IActionResult> GetBySlug(string slug) =>
         Ok(await _vehicleService.GetBySlugAsync(slug, GetCurrentUserId()));
+
+    [HttpGet("by-slug/{slug}/history.xlsx")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("vehicle-history-export")]
+    public async Task<IActionResult> ExportHistory(string slug, CancellationToken cancellationToken)
+    {
+        var file = await _history.ExportAsync(slug, GetCurrentUserId(), cancellationToken);
+        return File(file.Content, VehicleHistoryFile.ContentType, file.FileName);
+    }
+
+    [HttpPost("by-slug/{slug}/history/email")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("vehicle-history-email")]
+    public async Task<IActionResult> SendHistory(string slug, SendVehicleHistoryDto dto, CancellationToken cancellationToken)
+    {
+        await _history.SendAsync(slug, GetCurrentUserId(), dto, cancellationToken);
+        return Ok(new { message = "Excel hesabatı göstərilən email ünvanına göndərildi." });
+    }
 
     // POST: api/vehicle
     [HttpPost]

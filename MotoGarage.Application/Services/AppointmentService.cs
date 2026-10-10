@@ -18,6 +18,7 @@ public class AppointmentService : IAppointmentService
     private readonly IMechanicRepository _mechanicRepository;
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IMapper _mapper;
+    private readonly IAccountAccessService _accountAccess;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
@@ -25,9 +26,11 @@ public class AppointmentService : IAppointmentService
         IVehicleRepository vehicleRepository,
         IMapper mapper,
         IUnitOfWork unitOfWork,
-        INotificationService notifications)
+        INotificationService notifications,
+        IAccountAccessService accountAccess)
     {
         _notifications = notifications;
+        _accountAccess = accountAccess;
         _unitOfWork = unitOfWork;
         _appointmentRepository = appointmentRepository;
         _mechanicRepository = mechanicRepository;
@@ -118,6 +121,7 @@ public class AppointmentService : IAppointmentService
         DtoValidation.Validate(dto);
         return await _unitOfWork.ExecuteAsync(async () =>
         {
+            await _accountAccess.RequireParticipantAsync(userId);
             var vehicle =
                 await _vehicleRepository.GetByIdAsync(dto.VehicleId);
 
@@ -166,7 +170,7 @@ public class AppointmentService : IAppointmentService
 
             await _notifications.CreateAsync(mechanic.UserId, NotificationType.Appointment,
                 "Yeni randevu", $"Yeni randevu yaradıldı: #{appointment.Id}.", $"/appointments/{appointment.Id}");
-            return _mapper.Map<AppointmentDto>(appointment);
+            return _mapper.Map<AppointmentDto>(await _appointmentRepository.GetDetailsByIdAsync(appointment.Id));
         });
     }
 

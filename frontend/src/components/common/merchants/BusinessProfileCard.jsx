@@ -6,7 +6,6 @@ import { Button } from "../../ui/Button.jsx";
 export function BusinessProfileCard({
   state,
   mechanic,
-  endpoint,
   confirm,
   resourceApi,
   toast,
@@ -28,10 +27,7 @@ export function BusinessProfileCard({
           <p>{money(state.data.hourlyRate)} / saat</p>
         )}
         <div className="actions">
-          <a
-            className="button secondary"
-            href={`#${endpoint}/${state.data.slug}`}
-          >
+          <a className="button secondary" href="#/business/preview">
             Müştəri görünüşü
           </a>
           <Button

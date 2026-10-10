@@ -3,6 +3,7 @@ import { roleNames } from "../../../shared/constants/labels.js";
 import { Badge } from "../../../components/ui/Badge.jsx";
 import { Button } from "../../../components/ui/Button.jsx";
 import { adminApi } from "../api/adminApi.js";
+import { Trash2 } from "lucide-react";
 
 export function AdminUsersTable({ state, user, confirm, toast }) {
   return (
@@ -42,28 +43,48 @@ export function AdminUsersTable({ state, user, confirm, toast }) {
                   </Badge>
                 </td>
                 <td>
-                  <Button
-                    variant="secondary"
-                    disabled={item.id === user.id || item.role === "Admin"}
-                    onClick={() =>
-                      confirm({
-                        title: item.isBlocked
-                          ? "Hesabın blokunu açmaq istəyirsiniz?"
-                          : "İstifadəçini bloklamaq istəyirsiniz?",
-                        description: item.isBlocked
-                          ? "İstifadəçi yenidən giriş edə biləcək. Əvvəlki sessiyaları bərpa olunmayacaq."
-                          : "Aktiv sessiyalar və chat bağlantıları dayandırılacaq.",
-                        label: item.isBlocked ? "Bloku aç" : "Blokla",
-                        action: async () => {
-                          await adminApi.toggleBlock(item);
-                          state.reload();
-                          toast("Hesabın vəziyyəti yeniləndi.");
-                        },
-                      })
-                    }
-                  >
-                    {item.isBlocked ? "Bloku aç" : "Blokla"}
-                  </Button>
+                  <div className="admin-user-actions">
+                    <Button
+                      variant="secondary"
+                      disabled={item.id === user.id || item.role === "Admin"}
+                      onClick={() =>
+                        confirm({
+                          title: item.isBlocked
+                            ? "Hesabın blokunu açmaq istəyirsiniz?"
+                            : "İstifadəçini bloklamaq istəyirsiniz?",
+                          description: item.isBlocked
+                            ? "İstifadəçi yenidən giriş edə biləcək. Əvvəlki sessiyaları bərpa olunmayacaq."
+                            : "Aktiv sessiyalar və chat bağlantıları dayandırılacaq.",
+                          label: item.isBlocked ? "Bloku aç" : "Blokla",
+                          action: async () => {
+                            await adminApi.toggleBlock(item);
+                            state.reload();
+                            toast("Hesabın vəziyyəti yeniləndi.");
+                          },
+                        })
+                      }
+                    >
+                      {item.isBlocked ? "Bloku aç" : "Blokla"}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      disabled={item.id === user.id || item.role === "Admin"}
+                      onClick={() =>
+                        confirm({
+                          title: `${item.fullName} hesabını silmək istəyirsiniz?`,
+                          description: `${item.email} hesabının girişi və sessiyaları ləğv ediləcək, şəxsi hesab məlumatları anonimləşdiriləcək. Sifariş və görüş tarixçəsi saxlanılacaq. Bu əməliyyat geri qaytarılmır. Aktiv sifariş və ya görüş varsa, əvvəl tamamlanmalı və ya ləğv edilməlidir.`,
+                          label: "Hesabı sil",
+                          action: async () => {
+                            await adminApi.deleteUser(item.id);
+                            state.reload();
+                            toast("İstifadəçi hesabı silindi.");
+                          },
+                        })
+                      }
+                    >
+                      <Trash2 size={14} /> Sil
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -2,9 +2,17 @@ import { useResource } from "./useResource.js";
 import { useState } from "react";
 import { useApp } from "./useApp.js";
 
-export function useMerchantDetail({ type, slug, resourceApi, extrasPath }) {
+export function useMerchantDetail({
+  type,
+  slug,
+  resourceApi,
+  extrasPath,
+  preview,
+}) {
   const mechanic = type === "mechanics";
-  const state = useResource(resourceApi.detailPath(slug));
+  const state = useResource(
+    preview ? resourceApi.ownPath() : resourceApi.detailPath(slug),
+  );
   const item = state.data;
   const extras = useResource(item ? extrasPath(item, slug) : null);
   const [appointment, setAppointment] = useState(false);

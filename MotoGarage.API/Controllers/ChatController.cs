@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MotoGarage.API.Hubs;
@@ -10,7 +10,7 @@ namespace MotoGarage.API.Controllers;
 
 [ApiController]
 [Route("api/chat")]
-[Authorize]
+[Authorize(Roles = "User,Mechanic,Store")]
 public class ChatController : ControllerBase
 {
     private readonly IChatService _chatService;

@@ -11,6 +11,7 @@ export function MerchantHeader({
   setAppointment,
   act,
   chatApi,
+  preview = false,
 }) {
   return (
     <div className="card merchant-detail">
@@ -38,7 +39,7 @@ export function MerchantHeader({
             <strong>{money(item.hourlyRate)} / saat</strong>
           )}
         </div>
-        {item.userId !== user.id && (
+        {!preview && item.userId !== user.id && (
           <div className="actions">
             {mechanic && (
               <Button onClick={() => setAppointment(true)}>

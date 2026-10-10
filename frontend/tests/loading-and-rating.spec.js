@@ -50,7 +50,7 @@ for (const width of [1440, 1000, 799, 390, 320]) {
 test("Page skeletons match cards, details, profile, table and chat content", async ({
   page,
 }) => {
-  await mockApi(page, "Admin");
+  await mockApi(page, "User");
   await login(page);
   await page.setViewportSize({ width: 320, height: 900 });
   for (const [route, path, variant] of [
@@ -61,7 +61,6 @@ test("Page skeletons match cards, details, profile, table and chat content", asy
       "detail",
     ],
     ["/profile", "/profile", "profile"],
-    ["/admin/users", "/admin/users*", "table"],
     ["/chat/90", "/chat/conversations/90/messages", "messages"],
   ]) {
     const release = await holdResponse(page, path);
@@ -79,6 +78,19 @@ test("Page skeletons match cards, details, profile, table and chat content", asy
     await expect(page.locator(`.skeleton-${variant}`)).toHaveCount(0);
     await page.unroute(`**/api${path}`);
   }
+});
+
+test("Admin users table retains its loading skeleton", async ({ page }) => {
+  await mockApi(page, "Admin");
+  await login(page);
+  const release = await holdResponse(page, "/admin/users*");
+  try {
+    await page.goto("/#/admin/users");
+    await expect(page.locator(".skeleton-table")).toBeVisible();
+  } finally {
+    release();
+  }
+  await expect(page.locator(".skeleton-table")).toHaveCount(0);
 });
 
 test("Skeleton exits on failure and reduced motion disables shimmer", async ({

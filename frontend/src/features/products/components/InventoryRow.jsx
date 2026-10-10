@@ -16,9 +16,13 @@ export function InventoryRow({
     <div className="inventory-row" key={item.id}>
       <Thumbnail src={item.imageUrl} icon={Package} />
       <div className="record-info">
-        <a href={`#/products/${item.slug}`}>
+        <button
+          type="button"
+          className="inventory-product-name"
+          onClick={() => setEdit(item)}
+        >
           <strong>{item.name}</strong>
-        </a>
+        </button>
         <span className="meta">
           {item.brand || "Marka qeyd edilməyib"} · {money(item.price)}
         </span>
