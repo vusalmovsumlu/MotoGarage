@@ -375,6 +375,48 @@ export async function mockApi(
       );
     if (path.startsWith("/reminders/vehicle/"))
       return respond(empty ? [] : [reminder]);
+    if (path === "/appointments/availability") {
+      const day = url.searchParams.get("date");
+      return respond({
+        timeZone: "Asia/Baku",
+        durationMinutes: 60,
+        slots: empty
+          ? []
+          : [
+              new Date(`${day}T10:00:00+04:00`).toISOString(),
+              new Date(`${day}T11:00:00+04:00`).toISOString(),
+            ],
+      });
+    }
+    if (path === "/appointments/working-hours")
+      return respond(
+        Array.from({ length: 7 }, (_, dayOfWeek) => ({
+          dayOfWeek,
+          isOpen: dayOfWeek !== 0,
+          start: "09:00:00",
+          end: "18:00:00",
+        })),
+      );
+    if (path === "/appointments/calendar")
+      return respond(empty ? [] : [appointment]);
+    if (/^\/appointments\/\d+\/report$/.test(path)) return respond(null);
+    if (path === "/business/statistics")
+      return respond({
+        role,
+        completedCount: 2,
+        cancelledCount: 1,
+        pendingCount: 1,
+        amount: 120,
+        averageRating: 4.5,
+        reviewCount: 2,
+        lowStockCount: 1,
+        outOfStockCount: 1,
+        bestSellers: empty
+          ? []
+          : [{ productId: 30, name: "Motor oil", quantity: 2, amount: 120 }],
+      });
+    if (path === "/admin/audit-logs")
+      return respond({ total: 0, page: 1, pageSize: 25, items: [] });
     if (path.startsWith("/appointments/"))
       return respond(empty ? [] : [appointment]);
     if (path.startsWith("/orders/")) return respond(empty ? [] : [order]);

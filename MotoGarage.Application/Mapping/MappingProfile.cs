@@ -131,7 +131,8 @@ public class MappingProfile : Profile
 
         CreateMap<Product, ProductDto>();
         CreateMap<CreateProductDto, Product>();
-        CreateMap<UpdateProductDto, Product>();
+        CreateMap<UpdateProductDto, Product>()
+            .ForMember(dest => dest.LowStockThreshold, opt => opt.Condition(src => src.LowStockThreshold.HasValue));
 
 
         // =========================

@@ -424,7 +424,15 @@ export default function CodeSlots({
   }, [status]);
   useEffect(() => () => clearTimeout(drainTimer.current), []);
   useEffect(() => {
-    if (autoFocus) inputRef.current?.focus();
+    const activeElement = document.activeElement;
+    // A lazy-loaded OTP field must not interrupt someone already editing another field.
+    if (
+      autoFocus &&
+      (!activeElement ||
+        activeElement === document.body ||
+        activeElement === document.documentElement)
+    )
+      inputRef.current?.focus();
   }, [autoFocus]);
 
   const view =

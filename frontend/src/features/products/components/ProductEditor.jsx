@@ -7,7 +7,20 @@ export function ProductEditor({ edit, setEdit, state, toast }) {
     <Editor
       title={edit.id ? "Məhsulu dəyiş" : "Yeni məhsul"}
       initial={edit}
-      fields={[...productFields, ...(!edit.id ? [stockField] : [])]}
+      fields={[
+        ...productFields,
+        {
+          key: "lowStockThreshold",
+          label: "Stok xəbərdarlıq həddi",
+          type: "number",
+          required: true,
+          min: 0,
+          max: 10000000,
+          default: 5,
+          hint: "Stok bu həddə düşəndə bir bildiriş göndərilir.",
+        },
+        ...(!edit.id ? [stockField] : []),
+      ]}
       image
       onClose={() => setEdit(null)}
       onSave={async (values) => {

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 namespace MotoGarage.Application.DTOs.ServiceRecord;
 
 public class CreateServiceRecordDto
@@ -10,6 +10,7 @@ public class CreateServiceRecordDto
 
     [StringLength(500)]
     public string? Description { get; set; }
+    [StringLength(1000)] public string? ReplacedParts { get; set; }
 
     [Range(typeof(decimal), "0", "999999999.99", ParseLimitsInInvariantCulture = true, ConvertValueInInvariantCulture = true)]
     public decimal Cost { get; set; }

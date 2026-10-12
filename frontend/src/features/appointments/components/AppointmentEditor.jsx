@@ -5,6 +5,7 @@ import { Resource } from "../../../components/feedback/Resource.jsx";
 import { Empty } from "../../../components/feedback/Empty.jsx";
 import { Button } from "../../../components/ui/Button.jsx";
 import Editor from "../../../components/common/Editor.jsx";
+import { AvailabilityPicker } from "./AvailabilityPicker.jsx";
 import { appointmentsApi } from "../api/appointmentsApi.js";
 
 export function AppointmentEditor({ mechanicId, onClose, onDone }) {
@@ -54,6 +55,7 @@ export function AppointmentEditor({ mechanicId, onClose, onDone }) {
                   ? [
                       {
                         key: "mechanicId",
+                        reset: ["appointmentDate"],
                         label: "Usta",
                         options: mechanics.data.map((item) => ({
                           value: String(item.id),
@@ -67,9 +69,19 @@ export function AppointmentEditor({ mechanicId, onClose, onDone }) {
                 {
                   key: "appointmentDate",
                   label: "Görüş tarixi və saatı",
-                  type: "datetime-local",
+                  type: "slot",
                   required: true,
-                  hint: "Saat bu cihazın yerli saat qurşağı ilə daxil edilir.",
+                  default: "",
+                  wide: true,
+                  render: ({ values, value, onChange, id }) => (
+                    <AvailabilityPicker
+                      key={mechanicId || values.mechanicId}
+                      id={id}
+                      mechanicId={mechanicId || values.mechanicId}
+                      value={value}
+                      onChange={onChange}
+                    />
+                  ),
                 },
                 {
                   key: "description",
@@ -81,7 +93,10 @@ export function AppointmentEditor({ mechanicId, onClose, onDone }) {
               ]}
               onClose={onClose}
               onSave={async (values) => {
-                if (new Date(values.appointmentDate) <= new Date())
+                if (
+                  !values.appointmentDate ||
+                  new Date(values.appointmentDate) <= new Date()
+                )
                   throw new Error("Gələcək tarix və saat seçin.");
                 await appointmentsApi.create({
                   ...values,

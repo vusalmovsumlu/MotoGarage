@@ -1,4 +1,4 @@
-﻿namespace MotoGarage.Application.DTOs.ServiceRecord;
+namespace MotoGarage.Application.DTOs.ServiceRecord;
 
 public class ServiceRecordDto
 {
@@ -9,6 +9,7 @@ public class ServiceRecordDto
     public string ServiceName { get; set; } = null!;
 
     public string? Description { get; set; }
+    public string? ReplacedParts { get; set; }
 
     public decimal Cost { get; set; }
 

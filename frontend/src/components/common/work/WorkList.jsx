@@ -18,6 +18,7 @@ export function WorkList({
   resourceApi,
   transitions,
   AppointmentEditor,
+  renderExtra,
 }) {
   const {
     title,
@@ -72,6 +73,7 @@ export function WorkList({
                 state={state}
                 toast={toast}
                 transition={transition}
+                extra={renderExtra?.({ item, incoming, onDone: state.reload })}
               />
             ))}
           </div>

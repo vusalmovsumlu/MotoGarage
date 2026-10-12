@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using MotoGarage.Application.DTOs.Product;
 using MotoGarage.Application.Helpers;
 using MotoGarage.Application.Interfaces.Repositories;
@@ -15,19 +15,21 @@ public class ProductService : IProductService
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IMapper _mapper;
+    private readonly IStockAlertService _stockAlerts;
 
     public ProductService(
         IProductRepository productRepository,
         IStoreRepository storeRepository,
         IMapper mapper,
         IUnitOfWork unitOfWork,
-        IImageService images)
+        IImageService images, IStockAlertService stockAlerts)
     {
         _images = images;
         _unitOfWork = unitOfWork;
         _productRepository = productRepository;
         _storeRepository = storeRepository;
         _mapper = mapper;
+        _stockAlerts = stockAlerts;
     }
 
     public async Task<IEnumerable<ProductDto>> GetAllAsync()
@@ -158,6 +160,7 @@ public class ProductService : IProductService
                 product.CreatedAt = DateTime.UtcNow;
 
                 await _productRepository.AddAsync(product);
+                await _stockAlerts.EvaluateAsync(product);
 
                 await _productRepository.SaveChangesAsync();
 
@@ -203,6 +206,7 @@ public class ProductService : IProductService
 
 
 
+            await _stockAlerts.EvaluateAsync(product);
             await _productRepository.UpdateAsync(product);
 
             await _productRepository.SaveChangesAsync();
@@ -240,6 +244,7 @@ public class ProductService : IProductService
 
             product.Stock = dto.Stock;
 
+            await _stockAlerts.EvaluateAsync(product);
             await _productRepository.UpdateAsync(product);
 
             await _productRepository.SaveChangesAsync();
@@ -268,6 +273,7 @@ public class ProductService : IProductService
 
             product.IsActive = false;
 
+            await _stockAlerts.EvaluateAsync(product);
             await _productRepository.UpdateAsync(product);
 
             await _productRepository.SaveChangesAsync();

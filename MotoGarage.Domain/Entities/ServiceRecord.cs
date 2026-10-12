@@ -1,4 +1,4 @@
-﻿namespace MotoGarage.Domain.Entities;
+namespace MotoGarage.Domain.Entities;
 
 public class ServiceRecord
 {
@@ -9,6 +9,7 @@ public class ServiceRecord
     public string ServiceName { get; set; } = null!;
 
     public string? Description { get; set; }
+    public string? ReplacedParts { get; set; }
 
     public decimal Cost { get; set; }
 

@@ -41,6 +41,9 @@ export function RecordRow({
         {item.description && kind !== "expenses" && (
           <span className="meta">{item.description}</span>
         )}
+        {kind === "service" && item.replacedParts && (
+          <span className="meta">Dəyişən hissələr: {item.replacedParts}</span>
+        )}
       </div>
       <strong className="row-value">
         {kind === "fuel" ? (

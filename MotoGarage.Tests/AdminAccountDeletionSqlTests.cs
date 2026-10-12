@@ -63,7 +63,7 @@ public class AdminAccountDeletionSqlTests
             async Task<Exception?> Order()
             {
                 await using var context = new AppDbContext(options);
-                var service = new OrderService(new OrderRepository(context), new ProductRepository(context), new StoreRepository(context), TestSupport.Mapper(), new UnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context));
+                var service = new OrderService(new OrderRepository(context), new ProductRepository(context), new StoreRepository(context), TestSupport.Mapper(), new UnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context));
                 try { await service.CreateAsync(customer.Id, new() { Items = [new() { ProductId = product.Id, Quantity = 1 }] }); return null; }
                 catch (Exception failure) { return failure; }
             }
@@ -71,12 +71,15 @@ public class AdminAccountDeletionSqlTests
             database.ChangeTracker.Clear();
             var deleted = (await database.Users.SingleAsync(x => x.Id == customer.Id)).DeletedAtUtc != null;
             var count = await database.Orders.CountAsync(x => x.UserId == customer.Id);
-            if (deleted) {
+            if (deleted)
+            {
                 Assert.Null(results[0]);
                 Assert.IsType<UnauthorizedAccessException>(results[1]);
                 Assert.Equal(0, count);
                 Assert.Equal(3, (await database.Products.SingleAsync()).Stock);
-            } else {
+            }
+            else
+            {
                 Assert.IsType<ConflictException>(results[0]);
                 Assert.Null(results[1]);
                 Assert.Equal(1, count);

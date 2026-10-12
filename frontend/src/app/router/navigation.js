@@ -8,6 +8,8 @@ import {
   CalendarDays,
   Package,
   BriefcaseBusiness,
+  History,
+  ChartNoAxesCombined,
 } from "lucide-react";
 
 export const adminLinks = [
@@ -18,6 +20,7 @@ export const adminLinks = [
     title: "Biznes müraciətləri",
     icon: ShieldCheck,
   },
+  { path: "/admin/audit", title: "Əməliyyat tarixçəsi", icon: History },
 ];
 
 export const links = [
@@ -31,12 +34,15 @@ export const businessLinks = {
   Mechanic: [
     links[0],
     { path: "/work/appointments", title: "Gələn görüşlər", icon: CalendarDays },
+    { path: "/work/calendar", title: "Təqvim", icon: CalendarDays },
+    { path: "/statistics", title: "Statistika", icon: ChartNoAxesCombined },
     { path: "/business", title: "Biznes profilim", icon: BriefcaseBusiness },
   ],
   Store: [
     links[0],
     { path: "/inventory", title: "Məhsullarım", icon: Package },
     { path: "/work/orders", title: "Gələn sifarişlər", icon: ShoppingBag },
+    { path: "/statistics", title: "Statistika", icon: ChartNoAxesCombined },
     { path: "/business", title: "Biznes profilim", icon: BriefcaseBusiness },
   ],
 };

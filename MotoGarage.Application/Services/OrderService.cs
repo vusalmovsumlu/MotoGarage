@@ -1,4 +1,4 @@
-﻿using MotoGarage.Application.Helpers;
+using MotoGarage.Application.Helpers;
 using AutoMapper;
 using MotoGarage.Application.DTOs.Order;
 using MotoGarage.Application.Interfaces.Repositories;
@@ -18,6 +18,7 @@ public class OrderService : IOrderService
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IMapper _mapper;
+    private readonly IStockAlertService _stockAlerts;
     private readonly IAccountAccessService _accountAccess;
 
     public OrderService(
@@ -27,7 +28,7 @@ public class OrderService : IOrderService
         IMapper mapper,
         IUnitOfWork unitOfWork,
         INotificationService notifications,
-        IAccountAccessService accountAccess)
+        IAccountAccessService accountAccess, IStockAlertService stockAlerts)
     {
         _notifications = notifications;
         _accountAccess = accountAccess;
@@ -36,6 +37,7 @@ public class OrderService : IOrderService
         _productRepository = productRepository;
         _storeRepository = storeRepository;
         _mapper = mapper;
+        _stockAlerts = stockAlerts;
     }
 
     // =========================
@@ -191,6 +193,7 @@ public class OrderService : IOrderService
                 // stok azaldılır
                 product.Stock -= itemDto.Quantity;
 
+                await _stockAlerts.EvaluateAsync(product);
                 await _productRepository.UpdateAsync(product);
             }
 
@@ -268,6 +271,8 @@ public class OrderService : IOrderService
             if (dto.Status == OrderStatus.Cancelled)
                 await RestoreStockAsync(order);
             order.Status = dto.Status;
+            if (dto.Status == OrderStatus.Completed) order.CompletedAtUtc = DateTime.UtcNow;
+            if (dto.Status == OrderStatus.Cancelled) order.CancelledAtUtc = DateTime.UtcNow;
 
             await _orderRepository.UpdateAsync(order);
 
@@ -309,6 +314,7 @@ public class OrderService : IOrderService
             await RestoreStockAsync(order);
 
             order.Status = OrderStatus.Cancelled;
+            order.CancelledAtUtc = DateTime.UtcNow;
 
             await _orderRepository.UpdateAsync(order);
 
@@ -351,6 +357,7 @@ public class OrderService : IOrderService
             if (product.Stock > int.MaxValue - item.Quantity)
                 throw new ConflictException("Stokun maksimum həddi keçilir.");
             product.Stock += item.Quantity;
+            await _stockAlerts.EvaluateAsync(product);
         }
     }
 }

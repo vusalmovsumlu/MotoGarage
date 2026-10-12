@@ -1,4 +1,4 @@
-﻿namespace MotoGarage.Domain.Entities;
+namespace MotoGarage.Domain.Entities;
 
 public class Product
 {
@@ -17,6 +17,8 @@ public class Product
     public decimal Price { get; set; }
 
     public int Stock { get; set; }
+    public int LowStockThreshold { get; set; } = 5;
+    public bool LowStockAlertActive { get; set; }
 
     public string? Brand { get; set; }
 

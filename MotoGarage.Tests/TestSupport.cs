@@ -23,6 +23,8 @@ internal static class TestSupport
     public static AppDbContext Context() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
+    public static MotoGarage.Infrastructure.Scheduling.AppointmentPlanningService Planning(AppDbContext context) => new(context, new TestUnitOfWork(context), new AccountAccessService(context), Mapper());
+
     public static IMapper Mapper() => new MapperConfiguration(
         cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
 
@@ -40,7 +42,7 @@ internal static class TestSupport
 
     public static OrderService Orders(AppDbContext context) => new(
         new OrderRepository(context), new ProductRepository(context), new StoreRepository(context),
-        Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), Mapper()), new AccountAccessService(context));
+        Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context));
 
     public static async Task SeedOrderData(AppDbContext context, int stock = 1)
     {

@@ -49,7 +49,7 @@ public sealed class VehicleHistoryExportService(AppDbContext context, IEmailServ
         Info("Xərc məbləğləri (AZN)", 0);
         Info("Yanacaq qeydlərinin sayı", fuels.Count);
         Info("Yanacaq məbləğləri (AZN)", 0);
-        foreach (var moneyRow in new[] {14, 16, 18}) summary.Cell(moneyRow, 2).Style.NumberFormat.Format = "#,##0.00";
+        foreach (var moneyRow in new[] { 14, 16, 18 }) summary.Cell(moneyRow, 2).Style.NumberFormat.Format = "#,##0.00";
         Info("Mənbə", "MotoGarage-də sahibin daxil etdiyi qeydlər");
         Info("Məbləğlər haqqında", "Servis, xərc və yanacaq məbləğləri ayrı hesablanıb. Eyni ödəniş müxtəlif bölmələrdə qeyd edilə bilər.");
         Info("Xərc kilometri haqqında", "Xərc qeydlərində odometr saxlanmır. Kilometr servis və yanacaq vərəqlərində göstərilir.");
@@ -62,7 +62,7 @@ public sealed class VehicleHistoryExportService(AppDbContext context, IEmailServ
             serviceSheet.Cell(row, 1).Value = Baku(record.ServiceDate);
             serviceSheet.Cell(row, 2).Value = record.Kilometer;
             serviceSheet.Cell(row, 3).Value = record.ServiceName;
-            serviceSheet.Cell(row, 4).Value = record.Description ?? "";
+            serviceSheet.Cell(row, 4).Value = string.Join("\n", new[] { record.Description, string.IsNullOrWhiteSpace(record.ReplacedParts) ? null : "Dəyişən hissələr: " + record.ReplacedParts }.Where(x => !string.IsNullOrWhiteSpace(x)));
             serviceSheet.Cell(row++, 5).Value = record.Cost;
         }
         DateAndMoney(serviceSheet, 5); serviceSheet.Column(2).Style.NumberFormat.Format = "#,##0";

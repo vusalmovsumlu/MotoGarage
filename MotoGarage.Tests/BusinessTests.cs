@@ -27,7 +27,8 @@ public class BusinessTests
         Assert.Equal(1, (await context.Products.SingleAsync()).Stock);
         await service.CancelAsync(order.Id, 1);
         Assert.Equal(1, (await context.Products.SingleAsync()).Stock);
-        Assert.Equal(2, await context.Notifications.CountAsync());
+        Assert.Equal(2, await context.Notifications.CountAsync(x => x.Type == NotificationType.Order));
+        Assert.Single(await context.Notifications.Where(x => x.Type == NotificationType.General).ToListAsync());
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-﻿using MotoGarage.Application.Helpers;
+using MotoGarage.Application.Helpers;
 using AutoMapper;
 using MotoGarage.Application.DTOs.Appointment;
 using MotoGarage.Application.Interfaces.Repositories;
@@ -19,6 +19,7 @@ public class AppointmentService : IAppointmentService
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IMapper _mapper;
     private readonly IAccountAccessService _accountAccess;
+    private readonly IAppointmentPlanningService _planning;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
@@ -27,10 +28,11 @@ public class AppointmentService : IAppointmentService
         IMapper mapper,
         IUnitOfWork unitOfWork,
         INotificationService notifications,
-        IAccountAccessService accountAccess)
+        IAccountAccessService accountAccess, IAppointmentPlanningService planning)
     {
         _notifications = notifications;
         _accountAccess = accountAccess;
+        _planning = planning;
         _unitOfWork = unitOfWork;
         _appointmentRepository = appointmentRepository;
         _mechanicRepository = mechanicRepository;
@@ -149,6 +151,7 @@ public class AppointmentService : IAppointmentService
             dto.AppointmentDate = dto.AppointmentDate.Kind == DateTimeKind.Unspecified
                 ? DateTime.SpecifyKind(dto.AppointmentDate, DateTimeKind.Utc)
                 : dto.AppointmentDate.ToUniversalTime();
+            await _planning.ValidateSlotAsync(dto.MechanicId, dto.VehicleId, dto.AppointmentDate, dto.DurationMinutes);
             if (await _appointmentRepository.HasActiveSlotAsync(dto.MechanicId, dto.AppointmentDate))
                 throw new ConflictException("Bu vaxt üçün aktiv randevu artıq mövcuddur.");
             if (dto.AppointmentDate <= DateTime.UtcNow)
@@ -215,6 +218,12 @@ public class AppointmentService : IAppointmentService
             StatusTransitions.Validate(appointment.Status, dto.Status);
 
             appointment.Status = dto.Status;
+            if (dto.Status == AppointmentStatus.Completed) appointment.CompletedAtUtc = DateTime.UtcNow;
+            if (dto.Status is AppointmentStatus.Completed or AppointmentStatus.Rejected)
+            {
+                appointment.ProposedAppointmentDateUtc = null;
+                appointment.RescheduleProposedByUserId = null;
+            }
 
             await _appointmentRepository.UpdateAsync(appointment);
 
@@ -253,6 +262,8 @@ public class AppointmentService : IAppointmentService
             StatusTransitions.Validate(appointment.Status, AppointmentStatus.Cancelled);
 
             appointment.Status = AppointmentStatus.Cancelled;
+            appointment.ProposedAppointmentDateUtc = null;
+            appointment.RescheduleProposedByUserId = null;
 
             await _appointmentRepository.UpdateAsync(appointment);
 

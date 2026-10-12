@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MotoGarage.Domain.Entities;
 
@@ -9,6 +9,9 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
     public void Configure(EntityTypeBuilder<Appointment> builder)
     {
         builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.Property(x => x.DurationMinutes).HasDefaultValue(60);
+        builder.HasIndex(x => new { x.VehicleId, x.AppointmentDate });
+        builder.ToTable(t => t.HasCheckConstraint("CK_Appointments_Duration", "[DurationMinutes] BETWEEN 15 AND 240 AND [DurationMinutes] % 15 = 0"));
         builder.HasIndex(x => x.AppointmentDate)
             .HasDatabaseName("IX_Appointments_EmailReminderDue")
             .HasFilter("[EmailReminderSentAtUtc] IS NULL AND [Status] IN (1, 2)");

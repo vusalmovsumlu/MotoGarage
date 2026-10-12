@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MotoGarage.Application.DTOs.Admin;
 using MotoGarage.Application.Interfaces.Services;
@@ -122,10 +122,11 @@ public class AdminService : IAdminService
 
     public async Task BlockUserAsync(
         int userId,
-        int currentAdminId)
+        int currentAdminId, string? reason = null)
     {
         await _unitOfWork.ExecuteAsync(async () =>
         {
+            var administrator = await AdminAuditWriter.RequireAdmin(_context, currentAdminId);
             if (userId == currentAdminId)
             {
                 throw new DomainException(
@@ -142,6 +143,8 @@ public class AdminService : IAdminService
                     "İstifadəçi tapılmadı.");
             }
 
+            if (user.IsAdminBlocked) return;
+            AdminAuditWriter.Add(_context, administrator, "UserBlocked", "User", user.Id, user.FullName, AuditReason(reason, "Admin tərəfindən bloklandı."));
             user.IsAdminBlocked = true;
             var enableResult =
                 await _userManager.SetLockoutEnabledAsync(
@@ -171,10 +174,11 @@ public class AdminService : IAdminService
     }
 
     public async Task UnblockUserAsync(
-        int userId)
+        int userId, int currentAdminId, string? reason = null)
     {
         await _unitOfWork.ExecuteAsync(async () =>
         {
+            var administrator = await AdminAuditWriter.RequireAdmin(_context, currentAdminId);
             var user =
                 await _userManager.FindByIdAsync(
                     userId.ToString());
@@ -185,6 +189,8 @@ public class AdminService : IAdminService
                     "İstifadəçi tapılmadı.");
             }
 
+            if (!user.IsAdminBlocked && !(user.LockoutEnd > DateTimeOffset.UtcNow)) return;
+            AdminAuditWriter.Add(_context, administrator, "UserUnblocked", "User", user.Id, user.FullName, AuditReason(reason, "Blok admin tərəfindən götürüldü."));
             user.IsAdminBlocked = false;
             user.AccessFailedCount = 0;
             var result =
@@ -196,17 +202,15 @@ public class AdminService : IAdminService
             {
                 ThrowIdentityErrors(result);
             }
+            await _context.SaveChangesAsync();
         });
     }
 
-    public async Task DeleteUserAsync(int userId, int currentAdminId)
+    public async Task DeleteUserAsync(int userId, int currentAdminId, string? reason = null)
     {
         await _unitOfWork.ExecuteAsync(async () =>
         {
-            var administrator = await _context.Users.SingleOrDefaultAsync(x => x.Id == currentAdminId);
-            if (administrator is null || administrator.Role != UserRole.Admin || !administrator.EmailConfirmed ||
-                administrator.DeletedAtUtc != null || administrator.IsAdminBlocked || administrator.LockoutEnd > DateTimeOffset.UtcNow)
-                throw new ForbiddenException("Yalnız aktiv administrator hesab sile bilər.");
+            var administrator = await AdminAuditWriter.RequireAdmin(_context, currentAdminId);
             if (userId == currentAdminId)
                 throw new DomainException("Öz admin hesabınızı silə bilməzsiniz.");
             var user = await _context.Users.SingleOrDefaultAsync(x => x.Id == userId)
@@ -221,6 +225,7 @@ public class AdminService : IAdminService
                     (x.Status == AppointmentStatus.Pending || x.Status == AppointmentStatus.Accepted)))
                 throw new ConflictException("Hesabın aktiv sifariş və ya görüşləri var. Əvvəl onları tamamlayın və ya ləğv edin.");
 
+            AdminAuditWriter.Add(_context, administrator, "UserDeleted", "User", user.Id, user.FullName, AuditReason(reason, "Hesab silindi; tamamlanmış əməliyyat tarixçəsi saxlanıldı."));
             var now = DateTime.UtcNow;
             user.DeletedAtUtc = now;
             user.DeletedByAdminId = currentAdminId;
@@ -250,6 +255,12 @@ public class AdminService : IAdminService
             await _context.SaveChangesAsync();
         });
         _connections.Disconnect(userId); // External action runs only after the transaction commits.
+    }
+
+    private static string AuditReason(string? reason, string fallback)
+    {
+        if (reason?.Length > 1000) throw new DomainException("Admin qeydi maksimum 1000 simvol ola bilər.");
+        return string.IsNullOrWhiteSpace(reason) ? fallback : reason.Trim();
     }
 
     private static void ThrowIdentityErrors(

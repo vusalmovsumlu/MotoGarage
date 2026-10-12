@@ -93,7 +93,15 @@ export function EntityForm({
                   </span>
                 )}
               </label>
-              {field.type === "rating" ? (
+              {field.render ? (
+                field.render({
+                  values,
+                  value: values[field.key],
+                  id: `${id}-${field.key}`,
+                  onChange: (value) =>
+                    setValues({ ...values, [field.key]: value }),
+                })
+              ) : field.type === "rating" ? (
                 <div className="rating-field">
                   <PeekRating
                     value={Number(values[field.key])}
@@ -128,7 +136,13 @@ export function EntityForm({
                   value={values[field.key]}
                   required={field.required}
                   onChange={(event) =>
-                    setValues({ ...values, [field.key]: event.target.value })
+                    setValues({
+                      ...values,
+                      ...Object.fromEntries(
+                        (field.reset || []).map((key) => [key, ""]),
+                      ),
+                      [field.key]: event.target.value,
+                    })
                   }
                 >
                   {!field.required && <option value="">Seçilməyib</option>}
@@ -149,7 +163,13 @@ export function EntityForm({
                   maxLength={field.maxLength}
                   rows={3}
                   onChange={(event) =>
-                    setValues({ ...values, [field.key]: event.target.value })
+                    setValues({
+                      ...values,
+                      ...Object.fromEntries(
+                        (field.reset || []).map((key) => [key, ""]),
+                      ),
+                      [field.key]: event.target.value,
+                    })
                   }
                 />
               ) : (
@@ -167,7 +187,13 @@ export function EntityForm({
                   placeholder={field.placeholder}
                   autoComplete={field.autoComplete || "off"}
                   onChange={(event) =>
-                    setValues({ ...values, [field.key]: event.target.value })
+                    setValues({
+                      ...values,
+                      ...Object.fromEntries(
+                        (field.reset || []).map((key) => [key, ""]),
+                      ),
+                      [field.key]: event.target.value,
+                    })
                   }
                 />
               )}

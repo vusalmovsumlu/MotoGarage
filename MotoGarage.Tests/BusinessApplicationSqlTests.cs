@@ -57,7 +57,7 @@ public class BusinessApplicationSqlTests
                     User = new User { FullName = "New Applicant", Role = UserRole.Mechanic, EmailConfirmed = true, BusinessApprovalStatus = BusinessApprovalStatus.Pending },
                     CreatedAt = DateTime.UtcNow,
                     Photos = Enumerable.Range(1, 3).Select(i => new BusinessApplicationPhoto
-                        { Position = i, PublicId = "test/" + Guid.NewGuid(), Url = $"https://res.cloudinary.com/test/{i}.png" }).ToList()
+                    { Position = i, PublicId = "test/" + Guid.NewGuid(), Url = $"https://res.cloudinary.com/test/{i}.png" }).ToList()
                 };
                 database.BusinessApplications.Add(application);
                 await database.SaveChangesAsync();
@@ -84,6 +84,7 @@ public class BusinessApplicationSqlTests
             Assert.NotEqual(BusinessApprovalStatus.Pending, decided.Status);
             Assert.Equal(decided.Status, decided.User.BusinessApprovalStatus);
             Assert.Single(await database.Notifications.Where(x => x.UserId == application.UserId).ToListAsync());
+            Assert.Single(await database.AdminAuditLogs.Where(x => x.TargetType == "BusinessApplication" && x.TargetId == application.Id).ToListAsync());
 
             await database.Notifications.ExecuteDeleteAsync();
             var failing = await Seed();
@@ -96,6 +97,7 @@ public class BusinessApplicationSqlTests
             Assert.Equal(BusinessApprovalStatus.Pending, unchanged.User.BusinessApprovalStatus);
             Assert.Null(unchanged.ReviewedAt);
             Assert.Empty(await database.Notifications.Where(x => x.UserId == failing.UserId).ToListAsync());
+            Assert.Empty(await database.AdminAuditLogs.Where(x => x.TargetType == "BusinessApplication" && x.TargetId == failing.Id).ToListAsync());
             await database.Database.ExecuteSqlRawAsync("ALTER TABLE [Notifications] DROP CONSTRAINT [CK_Test_ApprovalNotification];");
             Console.WriteLine("PASS: migration preserves existing accounts; concurrent reviews commit one decision; notification failures roll back approval.");
         }

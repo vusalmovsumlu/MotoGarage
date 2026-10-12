@@ -1,6 +1,7 @@
 import { WorkList } from "../../../components/common/work/WorkList.jsx";
 import { appointmentsApi } from "../api/appointmentsApi.js";
 import { appointmentTransitions } from "../utils/appointmentTransitions.js";
+import { AppointmentActions } from "../components/AppointmentActions.jsx";
 import { AppointmentEditor } from "../components/AppointmentEditor.jsx";
 export function Appointments({ incoming }) {
   return (
@@ -10,6 +11,7 @@ export function Appointments({ incoming }) {
       resourceApi={appointmentsApi}
       transitions={appointmentTransitions}
       AppointmentEditor={AppointmentEditor}
+      renderExtra={(props) => <AppointmentActions {...props} />}
     />
   );
 }

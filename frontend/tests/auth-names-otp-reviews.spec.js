@@ -1,6 +1,28 @@
 import { test, expect } from "@playwright/test";
 import { mockApi, login } from "./fixtures";
 
+test("Late OTP loading preserves focus and email already being edited", async ({
+  page,
+}) => {
+  await mockApi(page);
+  let release;
+  const ready = new Promise((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/src/components/ui/CodeSlots.jsx*", async (route) => {
+    await ready;
+    await route.continue();
+  });
+  await page.goto("/#/verify", { waitUntil: "domcontentloaded" });
+  const email = page.getByLabel("Email ünvanı");
+  await email.fill("test@example.invalid");
+  await expect(email).toBeFocused();
+  release();
+  await expect(page.getByLabel("Təsdiqləmə kodu")).toBeVisible();
+  await expect(email).toBeFocused();
+  await expect(email).toHaveValue("test@example.invalid");
+});
+
 test("Separate required first and last names preserve the registration FullName contract", async ({
   page,
 }) => {

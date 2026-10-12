@@ -7,7 +7,7 @@ test("Admin workspace contains management tools, no personal links or personal A
   const { requests } = await mockApi(page, "Admin");
   await login(page);
   const nav = page.getByRole("navigation", { name: "Əsas menyu", exact: true });
-  await expect(nav.getByRole("link")).toHaveCount(3);
+  await expect(nav.getByRole("link")).toHaveCount(4);
   for (const name of ["İş masası", "İstifadəçilər", "Biznes müraciətləri"])
     await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   await expect(page.locator(".nav-more")).toHaveCount(0);

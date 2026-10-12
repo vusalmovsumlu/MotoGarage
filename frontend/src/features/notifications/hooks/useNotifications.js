@@ -17,6 +17,11 @@ export function useNotifications() {
   const { act, notificationReload, user, confirm, toast } = useApp();
   function destination(item) {
     const link = item.link || "";
+    if (
+      ["/inventory?stock=low", "/inventory?stock=out"].includes(link) &&
+      user.role === "Store"
+    )
+      return link;
     if (link === "/business-application") return "/business";
     if (/^\/garage\/[a-z0-9-]+\/reminders$/.test(link)) return link;
     if (link.startsWith("/chat/")) return link;

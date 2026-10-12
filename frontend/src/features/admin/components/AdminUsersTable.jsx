@@ -56,8 +56,9 @@ export function AdminUsersTable({ state, user, confirm, toast }) {
                             ? "İstifadəçi yenidən giriş edə biləcək. Əvvəlki sessiyaları bərpa olunmayacaq."
                             : "Aktiv sessiyalar və chat bağlantıları dayandırılacaq.",
                           label: item.isBlocked ? "Bloku aç" : "Blokla",
-                          action: async () => {
-                            await adminApi.toggleBlock(item);
+                          reasonLabel: "Admin qeydi (istəyə bağlı)",
+                          action: async (reason) => {
+                            await adminApi.toggleBlock(item, reason);
                             state.reload();
                             toast("Hesabın vəziyyəti yeniləndi.");
                           },
@@ -74,8 +75,9 @@ export function AdminUsersTable({ state, user, confirm, toast }) {
                           title: `${item.fullName} hesabını silmək istəyirsiniz?`,
                           description: `${item.email} hesabının girişi və sessiyaları ləğv ediləcək, şəxsi hesab məlumatları anonimləşdiriləcək. Sifariş və görüş tarixçəsi saxlanılacaq. Bu əməliyyat geri qaytarılmır. Aktiv sifariş və ya görüş varsa, əvvəl tamamlanmalı və ya ləğv edilməlidir.`,
                           label: "Hesabı sil",
-                          action: async () => {
-                            await adminApi.deleteUser(item.id);
+                          reasonLabel: "Admin qeydi (istəyə bağlı)",
+                          action: async (reason) => {
+                            await adminApi.deleteUser(item.id, reason);
                             state.reload();
                             toast("İstifadəçi hesabı silindi.");
                           },

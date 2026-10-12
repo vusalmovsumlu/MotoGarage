@@ -77,14 +77,15 @@ public class AdminAccountDeletionTests
         Assert.Equal(OrderStatus.Completed, (await context.Orders.Include(x => x.User).SingleAsync()).Status);
         Assert.Equal(AppointmentStatus.Completed, (await context.Appointments.SingleAsync()).Status);
         Assert.Equal(3, (await context.Products.SingleAsync()).Stock);
-        if (role == UserRole.Store) {
+        if (role == UserRole.Store)
+        {
             Assert.False((await context.Stores.SingleAsync()).IsActive);
             Assert.False((await context.Products.SingleAsync()).IsActive);
         }
         if (role == UserRole.Mechanic) Assert.False((await context.Mechanics.SingleAsync()).IsActive);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => auth.LoginAsync(new() { Email = "delete@example.invalid", Password = "pass123" }));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => auth.RefreshTokenAsync(new() { RefreshToken = login.RefreshToken }));
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UnblockUserAsync(1));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.UnblockUserAsync(1, 99));
         await Assert.ThrowsAsync<KeyNotFoundException>(() => service.BlockUserAsync(1, 99));
         await service.DeleteUserAsync(1, 99);
         Assert.Equal(deleted.DeletedAtUtc, (await context.Users.SingleAsync(x => x.Id == 1)).DeletedAtUtc);
@@ -110,10 +111,14 @@ public class AdminAccountDeletionTests
     }
 
     [Theory]
-    [InlineData(OrderStatus.Pending, false)] [InlineData(OrderStatus.Confirmed, false)]
-    [InlineData(OrderStatus.Preparing, false)] [InlineData(OrderStatus.Shipped, false)]
-    [InlineData(OrderStatus.Pending, true)] [InlineData(OrderStatus.Confirmed, true)]
-    [InlineData(OrderStatus.Preparing, true)] [InlineData(OrderStatus.Shipped, true)]
+    [InlineData(OrderStatus.Pending, false)]
+    [InlineData(OrderStatus.Confirmed, false)]
+    [InlineData(OrderStatus.Preparing, false)]
+    [InlineData(OrderStatus.Shipped, false)]
+    [InlineData(OrderStatus.Pending, true)]
+    [InlineData(OrderStatus.Confirmed, true)]
+    [InlineData(OrderStatus.Preparing, true)]
+    [InlineData(OrderStatus.Shipped, true)]
     public async Task ActiveBuyerOrStoreOrdersPreventDeletionWithoutChangingStock(OrderStatus status, bool store)
     {
         using var context = TestSupport.Context();
@@ -131,8 +136,10 @@ public class AdminAccountDeletionTests
     }
 
     [Theory]
-    [InlineData(AppointmentStatus.Pending, false)] [InlineData(AppointmentStatus.Accepted, false)]
-    [InlineData(AppointmentStatus.Pending, true)] [InlineData(AppointmentStatus.Accepted, true)]
+    [InlineData(AppointmentStatus.Pending, false)]
+    [InlineData(AppointmentStatus.Accepted, false)]
+    [InlineData(AppointmentStatus.Pending, true)]
+    [InlineData(AppointmentStatus.Accepted, true)]
     public async Task ActiveCustomerOrMechanicAppointmentsPreventDeletion(AppointmentStatus status, bool mechanic)
     {
         using var context = TestSupport.Context();
@@ -171,7 +178,7 @@ public class AdminAccountDeletionTests
         await new AdminService(context, users, new TestUnitOfWork(context), new UserConnectionRegistry()).DeleteUserAsync(1, 99);
         var appointments = new AppointmentService(new AppointmentRepository(context), new MechanicRepository(context),
             new VehicleRepository(context), TestSupport.Mapper(), new TestUnitOfWork(context),
-            new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context));
+            new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), TestSupport.Planning(context));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => appointments.CreateAsync(1, new() { MechanicId = 10, VehicleId = 40, AppointmentDate = DateTime.UtcNow.AddDays(1) }));
         await Assert.ThrowsAsync<ForbiddenException>(() => appointments.CreateAsync(99, new() { MechanicId = 10, VehicleId = 40, AppointmentDate = DateTime.UtcNow.AddDays(1) }));
         Assert.Single(context.Appointments);

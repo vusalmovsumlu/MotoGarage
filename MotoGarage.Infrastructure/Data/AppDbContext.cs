@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MotoGarage.Domain.Entities;
@@ -26,6 +26,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public DbSet<Reminder> Reminders { get; set; }
     public DbSet<Mechanic> Mechanics { get; set; }
     public DbSet<Appointment> Appointments { get; set; }
+    public DbSet<MechanicWorkingHour> MechanicWorkingHours { get; set; }
+    public DbSet<AppointmentServiceReport> AppointmentServiceReports { get; set; }
+    public DbSet<AdminAuditLog> AdminAuditLogs { get; set; }
     public DbSet<Review> Reviews { get; set; }
     public DbSet<Store> Stores { get; set; }
     public DbSet<Product> Products { get; set; }

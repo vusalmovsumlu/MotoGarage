@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 namespace MotoGarage.Application.DTOs.Product;
 
 public class UpdateProductDto
@@ -11,6 +11,7 @@ public class UpdateProductDto
 
     [Range(typeof(decimal), "0", "999999999.99", ParseLimitsInInvariantCulture = true, ConvertValueInInvariantCulture = true)]
     public decimal Price { get; set; }
+    [Range(0, 10000000)] public int? LowStockThreshold { get; set; }
 
     [StringLength(100)]
     public string? Brand { get; set; }

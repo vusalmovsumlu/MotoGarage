@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -420,6 +420,10 @@ builder.Services.AddScoped<
 
 builder.Services.AddScoped<IAccountAccessService, AccountAccessService>();
 builder.Services.AddScoped<IBusinessApplicationService, BusinessApplicationService>();
+builder.Services.AddScoped<IAdminAuditService, AdminAuditService>();
+builder.Services.AddScoped<IBusinessStatisticsService, BusinessStatisticsService>();
+builder.Services.AddScoped<IAppointmentPlanningService, MotoGarage.Infrastructure.Scheduling.AppointmentPlanningService>();
+builder.Services.AddScoped<IStockAlertService, MotoGarage.Infrastructure.Inventory.StockAlertService>();
 
 builder.Services.AddScoped<
     IUserProfileService,

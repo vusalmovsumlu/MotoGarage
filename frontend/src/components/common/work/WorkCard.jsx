@@ -14,6 +14,7 @@ export function WorkCard({
   state,
   toast,
   transition,
+  extra,
 }) {
   return (
     <article className="card work-card" key={item.id}>
@@ -104,6 +105,7 @@ export function WorkCard({
             </Button>
           )}
       </div>
+      {extra}
     </article>
   );
 }

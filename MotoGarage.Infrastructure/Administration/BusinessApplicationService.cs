@@ -15,8 +15,13 @@ public class BusinessApplicationService(AppDbContext context) : IBusinessApplica
         .OrderByDescending(x => x.CreatedAt)
         .Select(x => new BusinessApplicationDto
         {
-            Id = x.Id, FullName = x.User.FullName, Email = x.User.Email!, Role = x.User.Role,
-            Status = x.Status, CreatedAt = x.CreatedAt, ReviewedAt = x.ReviewedAt,
+            Id = x.Id,
+            FullName = x.User.FullName,
+            Email = x.User.Email!,
+            Role = x.User.Role,
+            Status = x.Status,
+            CreatedAt = x.CreatedAt,
+            ReviewedAt = x.ReviewedAt,
             DecisionComment = x.DecisionComment,
             Photos = x.Photos.OrderBy(p => p.Position).Select(p => p.Url).ToList()
         });
@@ -38,8 +43,7 @@ public class BusinessApplicationService(AppDbContext context) : IBusinessApplica
         comment = comment?.Trim();
         if (!approve && (string.IsNullOrWhiteSpace(comment) || comment.Length > 1000))
             throw new DomainException("Rədd etmə səbəbi məcburidir və maksimum 1000 simvol ola bilər.");
-        if (!await context.Users.AnyAsync(x => x.Id == adminId && x.Role == UserRole.Admin && x.DeletedAtUtc == null && x.EmailConfirmed && !x.IsAdminBlocked))
-            throw new ForbiddenException("Yalnız administrator müraciətə qərar verə bilər.");
+        var administrator = await AdminAuditWriter.RequireAdmin(context, adminId);
         var application = await context.BusinessApplications.Include(x => x.User).Include(x => x.Photos).SingleOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Müraciət tapılmadı.");
         if (application.User.DeletedAtUtc != null || !application.User.EmailConfirmed || application.User.IsAdminBlocked)
@@ -54,12 +58,16 @@ public class BusinessApplicationService(AppDbContext context) : IBusinessApplica
         application.ReviewedAt = DateTime.UtcNow;
         application.ReviewedById = adminId;
         application.DecisionComment = approve ? null : comment;
+        AdminAuditWriter.Add(context, administrator, approve ? "ApplicationApproved" : "ApplicationRejected",
+            "BusinessApplication", application.Id, application.User.FullName, approve ? "Biznes müraciəti təsdiqləndi." : comment);
         context.Notifications.Add(new Notification
         {
-            UserId = application.UserId, Type = NotificationType.General,
+            UserId = application.UserId,
+            Type = NotificationType.General,
             Title = approve ? "Biznes müraciətiniz təsdiqləndi" : "Biznes müraciətiniz rədd edildi",
             Message = approve ? "Usta və ya mağaza hesabınızdan istifadə edə bilərsiniz." : comment!,
-            Link = "/business-application", CreatedAt = DateTime.UtcNow
+            Link = "/business-application",
+            CreatedAt = DateTime.UtcNow
         });
         // Decision, live authorization state and notification commit together; status tokens prevent double decisions.
         await context.SaveChangesAsync();

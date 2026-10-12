@@ -1,4 +1,4 @@
-﻿using MotoGarage.Domain.Enums;
+using MotoGarage.Domain.Enums;
 
 namespace MotoGarage.Domain.Entities;
 
@@ -15,6 +15,11 @@ public class Appointment
     public int VehicleId { get; set; }
 
     public DateTime AppointmentDate { get; set; }
+    public int DurationMinutes { get; set; } = 60;
+    public DateTime? CompletedAtUtc { get; set; }
+    public DateTime? ProposedAppointmentDateUtc { get; set; }
+    public int? RescheduleProposedByUserId { get; set; }
+    public int RescheduleRevision { get; set; }
 
     public string? Description { get; set; }
 

@@ -246,7 +246,24 @@ test("Bulk photos preserve valid selections after invalid batches, allow removal
   ]);
   await expect(page.getByRole("alert")).toContainText("JPG, PNG və ya WEBP");
   await expect(previews).toHaveCount(3);
-  await picker.setInputFiles([photo(8), photo(8), photo(9)]);
+  // Reusing a real file preserves its lastModified timestamp. Synthetic uploads
+  // created separately can cross a millisecond boundary and differ accidentally.
+  await picker.evaluate((input) => {
+    const duplicate = new File(["photo"], "workplace-8.png", {
+      type: "image/png",
+      lastModified: 1,
+    });
+    const distinct = new File(["photo"], "workplace-9.png", {
+      type: "image/png",
+      lastModified: 1,
+    });
+    const selection = new DataTransfer();
+    [duplicate, duplicate, distinct].forEach((file) =>
+      selection.items.add(file),
+    );
+    input.files = selection.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   await expect(page.getByRole("alert")).toContainText("3 fərqli şəkil seçin");
   await expect(previews).toHaveCount(3);
   await picker.setInputFiles({

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Enums;
@@ -58,14 +58,14 @@ public class AdminController : ControllerBase
     // api/admin/users/5/block
     [HttpPatch("users/{id}/block")]
     public async Task<IActionResult> BlockUser(
-        int id)
+        int id, [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] AdminActionDto? dto = null)
     {
         var adminId =
             GetCurrentUserId();
 
         await _adminService.BlockUserAsync(
             id,
-            adminId);
+            adminId, dto?.Reason);
 
         return NoContent();
     }
@@ -74,21 +74,25 @@ public class AdminController : ControllerBase
     // api/admin/users/5/unblock
     [HttpPatch("users/{id}/unblock")]
     public async Task<IActionResult> UnblockUser(
-        int id)
+        int id, [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] AdminActionDto? dto = null)
     {
-        await _adminService.UnblockUserAsync(id);
+        await _adminService.UnblockUserAsync(id, GetCurrentUserId(), dto?.Reason);
 
         return NoContent();
     }
+
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> Audit([FromServices] IAdminAuditService audit, int page = 1, int pageSize = 25, string? action = null) =>
+        Ok(await audit.GetAsync(GetCurrentUserId(), page, pageSize, action));
 
     [HttpGet("business-applications")]
     public async Task<IActionResult> GetApplications([FromQuery] BusinessApprovalStatus? status = BusinessApprovalStatus.Pending) =>
         Ok(await _applications.GetApplicationsAsync(status));
 
     [HttpDelete("users/{id:int:min(1)}")]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<IActionResult> DeleteUser(int id, [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] AdminActionDto? dto = null)
     {
-        await _adminService.DeleteUserAsync(id, GetCurrentUserId());
+        await _adminService.DeleteUserAsync(id, GetCurrentUserId(), dto?.Reason);
         return NoContent();
     }
 

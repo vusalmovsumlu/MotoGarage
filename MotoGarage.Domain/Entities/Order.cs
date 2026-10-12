@@ -1,4 +1,4 @@
-﻿using MotoGarage.Domain.Enums;
+using MotoGarage.Domain.Enums;
 
 namespace MotoGarage.Domain.Entities;
 
@@ -17,6 +17,8 @@ public class Order
     public OrderStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
+    public DateTime? CancelledAtUtc { get; set; }
 
     public User User { get; set; } = null!;
 

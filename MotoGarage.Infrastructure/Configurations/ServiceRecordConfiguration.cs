@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MotoGarage.Domain.Entities;
 
@@ -8,6 +8,7 @@ public class ServiceRecordConfiguration : IEntityTypeConfiguration<ServiceRecord
 {
     public void Configure(EntityTypeBuilder<ServiceRecord> builder)
     {
+        builder.Property(x => x.ReplacedParts).HasMaxLength(1000);
         builder.Property(x => x.ServiceName)
             .IsRequired()
             .HasMaxLength(100);

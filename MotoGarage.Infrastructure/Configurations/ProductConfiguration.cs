@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MotoGarage.Domain.Entities;
 
@@ -10,6 +10,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
     {
         builder.Property(x => x.ImagePublicId).HasMaxLength(255);
         builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.Property(x => x.LowStockThreshold).HasDefaultValue(5).HasSentinel(-1);
+        builder.ToTable(t => t.HasCheckConstraint("CK_Products_LowStockThreshold", "[LowStockThreshold] BETWEEN 0 AND 10000000"));
         builder.ToTable("Products", table => table.HasCheckConstraint("CK_Products_Stock", "[Stock] >= 0"));
         builder.Property(x => x.Name)
             .IsRequired()

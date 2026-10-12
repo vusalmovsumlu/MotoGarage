@@ -21,5 +21,12 @@ export const recordDefinition = {
       required: true,
     },
     description,
+    {
+      key: "replacedParts",
+      label: "Dəyişdirilən hissələr",
+      type: "textarea",
+      maxLength: 1000,
+      wide: true,
+    },
   ],
 };

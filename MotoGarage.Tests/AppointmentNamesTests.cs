@@ -19,9 +19,11 @@ public class AppointmentNamesTests
         context.ChangeTracker.Clear();
     }
 
+    static DateTime NextSlot() { var day = DateTime.UtcNow.AddHours(4).Date.AddDays(2); if (day.DayOfWeek == DayOfWeek.Sunday) day = day.AddDays(1); return DateTime.SpecifyKind(day.AddHours(6), DateTimeKind.Utc); }
+
     static AppointmentService Service(AppDbContext context) => new(
         new AppointmentRepository(context), new MechanicRepository(context), new VehicleRepository(context),
-        TestSupport.Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new MotoGarage.Infrastructure.Authentication.AccountAccessService(context));
+        TestSupport.Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new MotoGarage.Infrastructure.Authentication.AccountAccessService(context), TestSupport.Planning(context));
 
     [Fact]
     public async Task ExistingAppointmentsReturnRealNamesInBothListsDetailAndDashboardWithoutTrackerFixup()
@@ -54,7 +56,7 @@ public class AppointmentNamesTests
         using var context = TestSupport.Context();
         await Seed(context);
         var service = Service(context);
-        var created = await service.CreateAsync(1, new() { MechanicId = 10, VehicleId = 5, AppointmentDate = DateTime.UtcNow.AddDays(2), Description = "Yağ dəyişimi" });
+        var created = await service.CreateAsync(1, new() { MechanicId = 10, VehicleId = 5, AppointmentDate = NextSlot(), Description = "Yağ dəyişimi" });
         Assert.Equal("Toyota Corolla", created.VehicleName);
         Assert.Equal("Əli Məmmədov", created.MechanicName);
         Assert.Equal("Vüsal Mövsümlü", created.CustomerName);

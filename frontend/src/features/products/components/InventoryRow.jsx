@@ -25,6 +25,11 @@ export function InventoryRow({
         </button>
         <span className="meta">
           {item.brand || "Marka qeyd edilməyib"} · {money(item.price)}
+          {item.stock === 0
+            ? " · Stok bitib"
+            : item.stock <= (item.lowStockThreshold ?? 5)
+              ? " · Az stok"
+              : ""}
         </span>
       </div>
       <button className="stock-button" onClick={() => setStock(item)}>

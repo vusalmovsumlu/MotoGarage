@@ -13,8 +13,20 @@ for (const role of ["Mechanic", "Store"]) {
     });
     await expect(nav.getByRole("link")).toHaveText(
       role === "Mechanic"
-        ? ["İş masası", "Gələn görüşlər", "Biznes profilim"]
-        : ["İş masası", "Məhsullarım", "Gələn sifarişlər", "Biznes profilim"],
+        ? [
+            "İş masası",
+            "Gələn görüşlər",
+            "Təqvim",
+            "Statistika",
+            "Biznes profilim",
+          ]
+        : [
+            "İş masası",
+            "Məhsullarım",
+            "Gələn sifarişlər",
+            "Statistika",
+            "Biznes profilim",
+          ],
     );
     await expect(page.locator(".nav-more")).toHaveCount(0);
     await expect(page.getByRole("link", { name: /^Səbət/ })).toHaveCount(0);

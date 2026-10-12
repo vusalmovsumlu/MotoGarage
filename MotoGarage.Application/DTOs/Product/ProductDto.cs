@@ -1,4 +1,4 @@
-﻿namespace MotoGarage.Application.DTOs.Product;
+namespace MotoGarage.Application.DTOs.Product;
 
 public class ProductDto
 {
@@ -15,6 +15,7 @@ public class ProductDto
     public decimal Price { get; set; }
 
     public int Stock { get; set; }
+    public int LowStockThreshold { get; set; }
 
     public string? Brand { get; set; }
 

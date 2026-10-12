@@ -153,7 +153,7 @@ for (const [kind, key, label, fields] of [
   });
 }
 
-test("Appointments use 24 hour input and displayed midnight is 00:00", async ({
+test("Appointments use available Baku slots and displayed midnight is 00:00", async ({
   page,
 }) => {
   const { requests } = await mockApi(page);
@@ -161,13 +161,11 @@ test("Appointments use 24 hour input and displayed midnight is 00:00", async ({
   await page.goto("/#/appointments");
   await page.getByRole("button", { name: "Görüş yarat", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.locator('input[type="date"]').fill("2030-10-09");
+  const day = await dialog.locator('input[type="date"]').inputValue();
+  const expected = new Date(`${day}T11:00:00+04:00`).toISOString();
   await dialog
-    .getByRole("textbox", { name: "Görüş tarixi və saatı — saat (24 saat)" })
-    .fill("21:05");
-  const expected = await page.evaluate(() =>
-    new Date("2030-10-09T21:05").toISOString(),
-  );
+    .getByRole("combobox", { name: "Boş saat" })
+    .selectOption({ label: "11:00" });
   await dialog.getByRole("button", { name: "Yadda saxla" }).click();
   await expect(dialog).toHaveCount(0);
   expect(

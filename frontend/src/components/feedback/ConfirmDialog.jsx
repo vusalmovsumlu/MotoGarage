@@ -8,6 +8,7 @@ import { Button } from "../ui/Button.jsx";
 
 export function ConfirmDialog({ value, onClose }) {
   const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const approval = value.intent === "approval";
   const Icon = approval ? ShieldCheck : Trash2;
@@ -23,6 +24,17 @@ export function ConfirmDialog({ value, onClose }) {
       >
         <Icon size={24} aria-hidden="true" />
       </div>
+      {value.reasonLabel && (
+        <label className="field">
+          {value.reasonLabel}
+          <textarea
+            maxLength={1000}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            disabled={busy}
+          />
+        </label>
+      )}
       {error && (
         <p role="alert" className="form-error">
           {error}
@@ -39,7 +51,7 @@ export function ConfirmDialog({ value, onClose }) {
             setBusy(true);
             setError("");
             try {
-              await value.action();
+              await value.action(reason.trim());
               onClose();
             } catch (failure) {
               setError(failure.message);
