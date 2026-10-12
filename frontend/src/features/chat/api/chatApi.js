@@ -1,6 +1,8 @@
 import { api } from "../../../shared/api/client.js";
+import { conversationPath } from "../utils/conversationRoutes.js";
 
 export const chatApi = {
+  path: conversationPath,
   conversationsPath: () => "/chat/conversations",
   messagesPath: (id) => `/chat/conversations/${id}/messages`,
   start: (type, id) => api(`/chat/${type}/${id}`, { method: "POST" }),

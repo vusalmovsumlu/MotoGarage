@@ -54,7 +54,7 @@ export function MerchantHeader({
                     mechanic ? "mechanic" : "store",
                     item.id,
                   );
-                  navigate(`/chat/${result.id}`);
+                  navigate(chatApi.path(result));
                 })
               }
             >

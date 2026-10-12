@@ -172,7 +172,17 @@ export async function mockApi(
     },
   ];
   const conversations = [
-    { id: 90, userId: 1, storeId: 20, mechanicId: null, createdAt: now },
+    {
+      id: 90,
+      userId: 1,
+      storeId: 20,
+      mechanicId: null,
+      createdAt: now,
+      userFullName: "Vüqar Məmmədov",
+      storeName: "Moto Parts",
+      participantName: role === "User" ? "Moto Parts" : "Vüqar Məmmədov",
+      slug: role === "User" ? "moto-parts" : "vuqar-memmedov",
+    },
   ];
   const messages = [
     {

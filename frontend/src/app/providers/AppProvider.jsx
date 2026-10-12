@@ -1,6 +1,7 @@
 import { useAuthSession } from "../../features/auth/hooks/useAuthSession.js";
 import { useTheme } from "../../shared/hooks/useTheme.js";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
+import { useNotificationRealtime } from "../../features/notifications/hooks/useNotificationRealtime.js";
 import { useFeedback } from "../../shared/hooks/useFeedback.js";
 import { useCart } from "../../features/orders/hooks/useCart.js";
 import { authApi } from "../../features/auth/api/authApi.js";
@@ -14,10 +15,18 @@ export function AppProvider({ children }) {
   const { user, setOverride } = useAuthSession();
   const { theme, toggleTheme } = useTheme();
   const notificationRef = useRef(() => {});
+  const [notificationVersion, setNotificationVersion] = useState(0);
   const setNotificationReload = useCallback((fn) => {
     notificationRef.current = fn;
   }, []);
-  const notificationReload = useCallback(() => notificationRef.current(), []);
+  const notificationReload = useCallback(() => {
+    notificationRef.current();
+  }, []);
+  const notificationChanged = useCallback(() => {
+    notificationRef.current();
+    setNotificationVersion((value) => value + 1);
+  }, []);
+  useNotificationRealtime(user, notificationChanged);
 
   const { notices, setNotices, confirmation, setConfirmation, toast, act } =
     useFeedback(notificationReload);
@@ -45,6 +54,7 @@ export function AppProvider({ children }) {
     theme,
     toggleTheme,
     notificationReload,
+    notificationVersion,
     updateUser: (values) => setOverride({ id: user.id, ...values }),
     logout,
     setNotificationReload,

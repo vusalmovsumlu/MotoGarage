@@ -1,8 +1,6 @@
 import { useApp } from "../../../shared/hooks/useApp.js";
 import { useResource } from "../../../shared/hooks/useResource.js";
 import { chatApi } from "../api/chatApi.js";
-import { mechanicsApi } from "../../mechanics/api/mechanicsApi.js";
-import { storesApi } from "../../stores/api/storesApi.js";
 import { useState, useRef, useEffect } from "react";
 import {
   HubConnectionBuilder,
@@ -12,13 +10,22 @@ import {
 import { HUB_URL } from "../../../shared/config/environment.js";
 import { getAccessToken } from "../../../shared/api/client.js";
 import { profileApi } from "../../profile/api/profileApi.js";
+import { replaceRoute } from "../../../app/router/useRoute.js";
+import { conversationPath } from "../utils/conversationRoutes.js";
 
 export function useChat({ selectedId }) {
-  const { user, notificationReload } = useApp();
-  const conversations = useResource(chatApi.conversationsPath());
-  const mechanics = useResource(mechanicsApi.listPath());
-  const stores = useResource(storesApi.listPath());
-  const active = Number(selectedId) || null;
+  const { user, notificationReload, notificationVersion } = useApp();
+  const conversations = useResource(chatApi.conversationsPath(), {
+    keepPreviousData: true,
+  });
+  const current = conversations.data?.find(
+    (item) => item.slug === selectedId || String(item.id) === selectedId,
+  );
+  const active =
+    current?.id ||
+    (conversations.loading && /^\d+$/.test(selectedId || "")
+      ? Number(selectedId)
+      : null);
   const messages = useResource(active ? chatApi.messagesPath(active) : null);
   const [liveMessages, setMessages] = useState([]);
   const [content, setContent] = useState("");
@@ -48,17 +55,24 @@ export function useChat({ selectedId }) {
   useEffect(() => {
     historyRef.current = history;
   });
-  const current = conversations.data?.find((item) => item.id === active);
   const title = (item) =>
-    !item
-      ? "Söhbət seçin"
-      : item.userId !== user.id
-        ? `Müştəri #${item.userId}`
-        : item.mechanicId
-          ? mechanics.data?.find((value) => value.id === item.mechanicId)
-              ?.businessName || `Usta #${item.mechanicId}`
-          : stores.data?.find((value) => value.id === item.storeId)
-              ?.storeName || `Mağaza #${item.storeId}`;
+    item
+      ? item.participantName ||
+        (item.userId !== user.id
+          ? item.userFullName
+          : item.mechanicName || item.storeName) ||
+        "Söhbət"
+      : "Söhbət seçin";
+  useEffect(() => {
+    if (current?.slug && current.slug !== selectedId)
+      replaceRoute(conversationPath(current));
+  }, [current, selectedId]);
+  useEffect(() => {
+    reloadConversations();
+  }, [notificationVersion, reloadConversations]);
+  useEffect(() => {
+    reloadMessages();
+  }, [notificationVersion, reloadMessages]);
   useEffect(() => {
     if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
   }, [messages.data, liveMessages]);

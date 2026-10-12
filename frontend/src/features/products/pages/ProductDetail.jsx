@@ -50,7 +50,7 @@ export function ProductDetail({ slug }) {
                   onClick={() =>
                     act(async () => {
                       const result = await chatApi.start("store", item.storeId);
-                      navigate(`/chat/${result.id}`);
+                      navigate(chatApi.path(result));
                     })
                   }
                 >

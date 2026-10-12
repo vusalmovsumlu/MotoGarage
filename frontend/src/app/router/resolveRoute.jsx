@@ -117,7 +117,11 @@ export function resolveRoute(route, user) {
     return <WorkPage key={path} />;
   if (path === "/profile") return <Profile />;
   if (path === "/notifications") return <Notifications />;
-  if (parts[0] === "chat" && (!parts[1] || /^\d+$/.test(parts[1])))
+  if (
+    parts[0] === "chat" &&
+    parts.length <= 2 &&
+    (!parts[1] || /^[a-z0-9-]+$/.test(parts[1]))
+  )
     return <Chat key={path} selectedId={parts[1]} />;
   if (path === "/admin/users" && user.role === "Admin") return <AdminUsers />;
   if (path === "/admin/applications" && user.role === "Admin")

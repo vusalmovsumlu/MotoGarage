@@ -88,12 +88,19 @@ builder.Services.AddSwaggerGen(options =>
 // Database
 // =========================
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddSingleton<NotificationChangeQueue>();
+builder.Services.AddSingleton<INotificationChangeQueue>(services => services.GetRequiredService<NotificationChangeQueue>());
+builder.Services.AddScoped<NotificationChangeInterceptor>();
+builder.Services.AddScoped<NotificationTransactionInterceptor>();
+builder.Services.AddHostedService<NotificationRealtimeWorker>();
+builder.Services.AddDbContext<AppDbContext>((services, options) =>
 {
     options.UseSqlServer(
         builder.Configuration.GetConnectionString(
             "DefaultConnection"),
         sql => sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(2), new[] { 1205 }));
+    options.AddInterceptors(services.GetRequiredService<NotificationChangeInterceptor>(),
+        services.GetRequiredService<NotificationTransactionInterceptor>());
 });
 
 

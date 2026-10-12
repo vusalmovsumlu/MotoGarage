@@ -7,6 +7,8 @@ using MotoGarage.Application.Interfaces.Services;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Domain.Enums;
 using MotoGarage.Domain.Exceptions;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MotoGarage.Application.Services;
 
@@ -84,7 +86,22 @@ public class ChatService : IChatService
             .OrderByDescending(x =>
                 x.LastMessageAt ?? x.CreatedAt);
 
-        return _mapper.Map<IEnumerable<ConversationDto>>(result);
+        var items = _mapper.Map<List<ConversationDto>>(result);
+        foreach (var item in items)
+        {
+            item.ParticipantName = item.UserId != userId
+                ? item.UserFullName
+                : item.MechanicName ?? item.StoreName ?? "Söhbət";
+            item.Slug = SlugHelper.Generate(item.ParticipantName);
+            if (item.Slug.All(char.IsDigit)) item.Slug += "-chat";
+        }
+        // Names are private to this participant's list; equal names must never
+        // select another customer's conversation accidentally.
+        foreach (var group in items.GroupBy(x => x.Slug).Where(x => x.Count() > 1))
+            foreach (var item in group)
+                item.Slug += "-" + Convert.ToHexString(SHA256.HashData(
+                    Encoding.UTF8.GetBytes($"conversation:{item.Id}")))[..12].ToLowerInvariant();
+        return items;
     }
 
     // =========================
@@ -100,7 +117,7 @@ public class ChatService : IChatService
                 conversationId,
                 userId);
 
-        return _mapper.Map<ConversationDto>(conversation);
+        return (await GetMyConversationsAsync(userId)).Single(x => x.Id == conversation.Id);
     }
 
     // =========================
@@ -156,8 +173,7 @@ public class ChatService : IChatService
 
             if (existingConversation is not null)
             {
-                return _mapper.Map<ConversationDto>(
-                    existingConversation);
+                return await GetByIdAsync(existingConversation.Id, userId);
             }
 
             var conversation = new Conversation
@@ -172,7 +188,7 @@ public class ChatService : IChatService
 
             await _conversationRepository.SaveChangesAsync();
 
-            return _mapper.Map<ConversationDto>(conversation);
+            return await GetByIdAsync(conversation.Id, userId);
         });
     }
 
@@ -210,8 +226,7 @@ public class ChatService : IChatService
 
             if (existingConversation is not null)
             {
-                return _mapper.Map<ConversationDto>(
-                    existingConversation);
+                return await GetByIdAsync(existingConversation.Id, userId);
             }
 
             var conversation = new Conversation
@@ -226,7 +241,7 @@ public class ChatService : IChatService
 
             await _conversationRepository.SaveChangesAsync();
 
-            return _mapper.Map<ConversationDto>(conversation);
+            return await GetByIdAsync(conversation.Id, userId);
         });
     }
 

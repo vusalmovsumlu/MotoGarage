@@ -53,6 +53,6 @@ export function isBusinessRoute(path, role) {
     ["/profile", "/notifications", "/chat", "/business/preview"].includes(
       path,
     ) ||
-    /^\/chat\/\d+$/.test(path)
+    /^\/chat\/[a-z0-9-]+$/.test(path)
   );
 }

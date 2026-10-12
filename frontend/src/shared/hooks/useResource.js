@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 
 import { api } from "../api/client.js";
 
-export function useResource(path) {
+export function useResource(path, { keepPreviousData = false } = {}) {
   const [state, setState] = useState({
     data: null,
     error: null,
@@ -27,7 +27,10 @@ export function useResource(path) {
   }, [path, version]);
   const current = path && state.path === path && state.version === version;
   return {
-    data: current ? state.data : null,
+    data:
+      current || (keepPreviousData && path && state.path === path)
+        ? state.data
+        : null,
     error: current ? state.error : null,
     loading: Boolean(path) && !current,
     reload,

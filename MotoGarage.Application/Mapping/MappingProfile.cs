@@ -159,7 +159,12 @@ public class MappingProfile : Profile
         // Chat
         // =========================
 
-        CreateMap<Conversation, ConversationDto>();
+        CreateMap<Conversation, ConversationDto>()
+            .ForMember(x => x.UserFullName, o => o.MapFrom(x => x.User.FullName))
+            .ForMember(x => x.MechanicName, o => o.MapFrom(x => x.Mechanic != null ? x.Mechanic.BusinessName : null))
+            .ForMember(x => x.StoreName, o => o.MapFrom(x => x.Store != null ? x.Store.StoreName : null))
+            .ForMember(x => x.ParticipantName, o => o.Ignore())
+            .ForMember(x => x.Slug, o => o.Ignore());
 
         CreateMap<Message, MessageDto>();
 

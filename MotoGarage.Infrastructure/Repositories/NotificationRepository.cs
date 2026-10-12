@@ -2,6 +2,7 @@
 using MotoGarage.Application.Interfaces.Repositories;
 using MotoGarage.Domain.Entities;
 using MotoGarage.Infrastructure.Data;
+using MotoGarage.Infrastructure.Notifications;
 
 namespace MotoGarage.Infrastructure.Repositories;
 
@@ -10,12 +11,14 @@ public class NotificationRepository
       INotificationRepository
 {
     private readonly AppDbContext _context;
+    private readonly NotificationChangeInterceptor? _changes;
 
     public NotificationRepository(
-        AppDbContext context)
+        AppDbContext context, NotificationChangeInterceptor? changes = null)
         : base(context)
     {
         _context = context;
+        _changes = changes;
     }
 
     public async Task<IEnumerable<Notification>>
@@ -49,6 +52,7 @@ public class NotificationRepository
 
     public async Task DeleteByUserIdAsync(int userId)
     {
-        await _context.Notifications.Where(x => x.UserId == userId).ExecuteDeleteAsync();
+        var deleted = await _context.Notifications.Where(x => x.UserId == userId).ExecuteDeleteAsync();
+        if (deleted > 0) _changes?.Changed(userId, _context);
     }
 }

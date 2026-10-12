@@ -116,6 +116,7 @@ public class ChatHub : Hub
         {
             // Close the race between authentication and registration after an admin block.
             await GetAuthorizedUserIdAsync();
+            await Groups.AddToGroupAsync(Context.ConnectionId, GetUserGroup(userId));
             await base.OnConnectedAsync();
         }
         catch
@@ -166,4 +167,6 @@ public class ChatHub : Hub
     {
         return $"conversation-{conversationId}";
     }
+
+    public static string GetUserGroup(int userId) => $"user-{userId}";
 }

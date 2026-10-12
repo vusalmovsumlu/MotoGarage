@@ -3,6 +3,7 @@ import { navigate } from "../../../app/router/useRoute.js";
 import { MessageCircle } from "lucide-react";
 import { date } from "../../../shared/utils/format.js";
 import { Empty } from "../../../components/feedback/Empty.jsx";
+import { conversationPath } from "../utils/conversationRoutes.js";
 
 export function ConversationList({ conversations, active, title, role }) {
   const business = ["Mechanic", "Store"].includes(role);
@@ -18,7 +19,7 @@ export function ConversationList({ conversations, active, title, role }) {
             <button
               className={`conversation-item ${item.id === active ? "active" : ""}`}
               key={item.id}
-              onClick={() => navigate(`/chat/${item.id}`)}
+              onClick={() => navigate(conversationPath(item))}
             >
               <span className="conversation-avatar">
                 <MessageCircle size={18} />

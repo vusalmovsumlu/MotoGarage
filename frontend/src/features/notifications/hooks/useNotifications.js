@@ -14,7 +14,11 @@ export function useNotifications() {
     }, 30000);
     return () => clearInterval(interval);
   }, [reload]);
-  const { act, notificationReload, user, confirm, toast } = useApp();
+  const { act, notificationReload, notificationVersion, user, confirm, toast } =
+    useApp();
+  useEffect(() => {
+    reload();
+  }, [notificationVersion, reload]);
   function destination(item) {
     const link = item.link || "";
     if (
