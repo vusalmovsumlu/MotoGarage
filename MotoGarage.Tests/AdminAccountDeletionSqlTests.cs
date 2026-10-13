@@ -64,7 +64,7 @@ public class AdminAccountDeletionSqlTests
             {
                 await using var context = new AppDbContext(options);
                 var service = new OrderService(new OrderRepository(context), new ProductRepository(context), new StoreRepository(context), TestSupport.Mapper(), new UnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context));
-                try { await service.CreateAsync(customer.Id, new() { Items = [new() { ProductId = product.Id, Quantity = 1 }] }); return null; }
+                try { await service.CreateAsync(customer.Id, TestSupport.Order(product.Id)); return null; }
                 catch (Exception failure) { return failure; }
             }
             var results = await Task.WhenAll(Delete(), Order());

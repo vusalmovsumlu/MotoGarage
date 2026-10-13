@@ -167,7 +167,7 @@ public class BusinessOperationsTests
         using var context = TestSupport.Context(); await Seed(context);
         var productService = new ProductService(new ProductRepository(context), new StoreRepository(context), TestSupport.Mapper(), new TestUnitOfWork(context), new TestImages(), new StockAlertService(context));
         await productService.UpdateStockAsync("oil", 4, new() { Stock = 6 });
-        await TestSupport.Orders(context).CreateAsync(1, new() { Items = [new() { ProductId = 40, Quantity = 1 }] });
+        await TestSupport.Orders(context).CreateAsync(1, TestSupport.Order(40));
         Assert.Single(await context.Notifications.Where(x => x.Type == NotificationType.General).ToListAsync());
         await productService.UpdateStockAsync("oil", 4, new() { Stock = 8 });
         await productService.UpdateAsync("oil", 4, new() { Name = "Oil", Price = 10, LowStockThreshold = 8 });

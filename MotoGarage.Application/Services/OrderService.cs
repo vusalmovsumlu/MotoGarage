@@ -216,6 +216,11 @@ public class OrderService : IOrderService
             {
                 UserId = userId,
                 StoreId = storeId.Value,
+                RecipientName = dto.RecipientName.Trim(),
+                DeliveryPhone = dto.DeliveryPhone.Trim(),
+                DeliveryCity = dto.DeliveryCity.Trim(),
+                DeliveryAddress = dto.DeliveryAddress.Trim(),
+                DeliveryNote = string.IsNullOrWhiteSpace(dto.DeliveryNote) ? null : dto.DeliveryNote.Trim(),
                 TotalAmount = totalAmount,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,

@@ -68,7 +68,7 @@ public class NotificationRealtimeHubTests
         using (var scope = app.Services.CreateScope())
         {
             var c = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            c.Users.AddRange(new User { Id = 1, FullName = "Customer", EmailConfirmed = true },
+            c.Users.AddRange(new User { Id = 1, FullName = "Customer", EmailConfirmed = true, Role = UserRole.User },
                 new User { Id = 2, FullName = "Business", EmailConfirmed = true, Role = role });
             if (role == UserRole.Store)
                 c.Stores.Add(new Store { Id = 1, UserId = 2, StoreName = "Store", Slug = "store", Address = "Baku", Description = "Parts", PhoneNumber = "123", IsActive = true });

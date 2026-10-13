@@ -27,7 +27,7 @@ public sealed class NotificationChangeInterceptor(INotificationChangeQueue queue
         saving = [];
     }
 
-    internal void Committed() { queue.Enqueue(pending); Clear(); }
+    internal void Committed() { queue.Enqueue(pending); pending.Clear(); }
     internal void Begin() => pending.Clear();
     internal void Changed(int userId, DbContext context)
     {

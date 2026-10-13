@@ -7,6 +7,7 @@ public class MechanicDto
     public int UserId { get; set; }
 
     public string BusinessName { get; set; } = null!;
+    public string FullName { get; set; } = "";
 
     public string Slug { get; set; } = null!;
 

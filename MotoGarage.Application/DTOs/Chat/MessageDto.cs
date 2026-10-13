@@ -11,6 +11,7 @@ public class MessageDto
     public int SenderUserId { get; set; }
 
     public string Content { get; set; } = null!;
+    public ChatAttachmentDto? Attachment { get; set; }
 
     public DateTime SentAt { get; set; }
 

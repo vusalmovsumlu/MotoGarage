@@ -31,6 +31,11 @@ public class AppointmentNamesTests
         using var context = TestSupport.Context();
         await Seed(context);
         var service = Service(context);
+        var mechanics = new MechanicService(new MechanicRepository(context), TestSupport.Mapper(), new TestUnitOfWork(context), new TestImages());
+        var selection = Assert.Single(await mechanics.GetAllAsync());
+        Assert.Equal("Servis adı", selection.BusinessName);
+        Assert.Equal("Əli Məmmədov", selection.FullName);
+        Assert.Equal("Əli Məmmədov", Assert.Single(await mechanics.SearchAsync("Servis", null)).FullName);
         var outgoing = Assert.Single(await service.GetMyAppointmentsAsync(1));
         Assert.Equal("Toyota Corolla", outgoing.VehicleName);
         Assert.Equal("Əli Məmmədov", outgoing.MechanicName);

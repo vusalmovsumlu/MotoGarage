@@ -9,6 +9,11 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
     public void Configure(EntityTypeBuilder<Order> builder)
     {
         builder.Property(x => x.RowVersion).IsRowVersion();
+        builder.Property(x => x.RecipientName).HasMaxLength(150);
+        builder.Property(x => x.DeliveryPhone).HasMaxLength(30);
+        builder.Property(x => x.DeliveryCity).HasMaxLength(100);
+        builder.Property(x => x.DeliveryAddress).HasMaxLength(500);
+        builder.Property(x => x.DeliveryNote).HasMaxLength(500);
         builder.Property(x => x.TotalAmount)
             .HasPrecision(18, 2)
             .IsRequired();

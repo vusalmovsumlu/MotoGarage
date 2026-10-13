@@ -12,6 +12,12 @@ public class Order
 
     public int StoreId { get; set; }
 
+    public string? RecipientName { get; set; }
+    public string? DeliveryPhone { get; set; }
+    public string? DeliveryCity { get; set; }
+    public string? DeliveryAddress { get; set; }
+    public string? DeliveryNote { get; set; }
+
     public decimal TotalAmount { get; set; }
 
     public OrderStatus Status { get; set; }

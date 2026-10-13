@@ -2,6 +2,7 @@ import { Resource } from "../../../components/feedback/Resource.jsx";
 import { date } from "../../../shared/utils/format.js";
 import { CheckCheck, MessageCircle } from "lucide-react";
 import { Empty } from "../../../components/feedback/Empty.jsx";
+import { ChatMedia } from "./ChatMedia.jsx";
 
 export function MessageHistory({
   scroll,
@@ -9,6 +10,7 @@ export function MessageHistory({
   history,
   user,
   readThrough,
+  conversationId,
 }) {
   return (
     <div
@@ -24,7 +26,13 @@ export function MessageHistory({
               key={item.id}
               className={`message ${item.senderUserId === user.id ? "outgoing" : "incoming"}`}
             >
-              <p>{item.content}</p>
+              {item.attachment && (
+                <ChatMedia
+                  attachment={item.attachment}
+                  conversationId={conversationId}
+                />
+              )}
+              {item.content && <p>{item.content}</p>}
               <span>
                 {date(item.sentAt, true)}
                 {item.senderUserId === user.id && (

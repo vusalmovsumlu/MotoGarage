@@ -19,12 +19,14 @@ public class MechanicRepository
     public async Task<Mechanic?> GetByUserIdAsync(int userId)
     {
         return await _context.Mechanics
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.UserId == userId);
     }
 
     public async Task<Mechanic?> GetBySlugAsync(string slug)
     {
         return await _context.Mechanics
+            .Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Slug == slug);
     }
 
@@ -32,6 +34,7 @@ public class MechanicRepository
         GetActiveMechanicsAsync()
     {
         return await _context.Mechanics.AsNoTracking()
+            .Include(x => x.User)
             .Where(x => x.IsActive)
             .OrderByDescending(x => x.Rating)
             .ToListAsync();
@@ -42,6 +45,7 @@ public class MechanicRepository
         string? address)
     {
         var query = _context.Mechanics.AsNoTracking()
+            .Include(x => x.User)
             .Where(x => x.IsActive)
             .AsQueryable();
 

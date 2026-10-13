@@ -87,6 +87,14 @@ public class ChatHub : Hub
                 message);
     }
 
+    public async Task<MessageDto> SendMediaMessage(int conversationId, SendMessageDto dto)
+    {
+        var userId = await GetAuthorizedUserIdAsync();
+        var message = await _chatService.SendMessageAsync(conversationId, userId, dto);
+        await Clients.Group(GetConversationGroup(conversationId)).SendAsync("ReceiveMessage", message);
+        return message;
+    }
+
     // =========================
     // Mark messages as read
     // =========================

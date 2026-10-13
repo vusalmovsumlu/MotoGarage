@@ -11,6 +11,8 @@ public class Message
     public int SenderUserId { get; set; }
 
     public string Content { get; set; } = null!;
+    public Guid? AttachmentId { get; set; }
+    public ChatAttachment? Attachment { get; set; }
 
     public DateTime SentAt { get; set; }
 

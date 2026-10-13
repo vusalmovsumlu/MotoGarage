@@ -9,10 +9,21 @@ import { appointmentsApi } from "../api/appointmentsApi.js";
 import { WorkingHoursEditor } from "../components/WorkingHoursEditor.jsx";
 import { bakuDay, bakuTime, shiftDay } from "../../../shared/utils/bakuTime.js";
 import { date } from "../../../shared/utils/format.js";
+import { useUrlQuery } from "../../../shared/hooks/useUrlQuery.js";
+import {
+  queryChoice,
+  queryText,
+  isQueryDate,
+} from "../../../shared/utils/routeQuery.js";
 
 export function AppointmentCalendar() {
-  const [day, setDay] = useState(bakuDay());
-  const [view, setView] = useState("week");
+  const { params, update } = useUrlQuery();
+  const requestedDay = queryText(params, "date");
+  const day = isQueryDate(requestedDay) ? requestedDay : bakuDay();
+  const view = queryChoice(params, "view", ["day", "week"], "week");
+  const setDay = (value) => update({ date: value });
+  const setView = (value) =>
+    update({ view: value }, { defaults: { view: "week" } });
   const [edit, setEdit] = useState(false);
   const end = shiftDay(day, view === "week" ? 6 : 0);
   const state = useResource(appointmentsApi.calendarPath(day, end));

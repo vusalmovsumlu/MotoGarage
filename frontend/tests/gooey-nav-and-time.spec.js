@@ -162,6 +162,14 @@ test("Appointments use available Baku slots and displayed midnight is 00:00", as
   await page.getByRole("button", { name: "Görüş yarat", exact: true }).click();
   const dialog = page.getByRole("dialog");
   const day = await dialog.locator('input[type="date"]').inputValue();
+  await expect(
+    dialog
+      .getByRole("combobox", { name: "Usta", exact: true })
+      .getByRole("option", {
+        name: "Baku Auto & Moto Servis · Əli Məmmədov",
+        exact: true,
+      }),
+  ).toHaveCount(1);
   const expected = new Date(`${day}T11:00:00+04:00`).toISOString();
   await dialog
     .getByRole("combobox", { name: "Boş saat" })

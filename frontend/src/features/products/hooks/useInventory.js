@@ -3,20 +3,18 @@ import { storesApi } from "../../stores/api/storesApi.js";
 import { productsApi } from "../api/productsApi.js";
 import { useState } from "react";
 import { useApp } from "../../../shared/hooks/useApp.js";
+import { useUrlQuery } from "../../../shared/hooks/useUrlQuery.js";
+import { queryChoice } from "../../../shared/utils/routeQuery.js";
 
-export function useInventory(route) {
+export function useInventory() {
   const profile = useResource(storesApi.ownPath());
   const state = useResource(
     profile.data
       ? productsApi.storeProductsPath(profile.data.slug, false)
       : null,
   );
-  const requestedFilter = new URLSearchParams(route?.split("?")[1]).get(
-    "stock",
-  );
-  const filter = ["low", "out"].includes(requestedFilter)
-    ? requestedFilter
-    : "all";
+  const { params, update } = useUrlQuery();
+  const filter = queryChoice(params, "stock", ["low", "out", "all"], "all");
   const items = (state.data || []).filter((item) =>
     filter === "out"
       ? item.stock === 0
@@ -25,8 +23,7 @@ export function useInventory(route) {
         : true,
   );
   function updateFilter(value) {
-    window.location.hash =
-      value === "all" ? "/inventory" : `/inventory?stock=${value}`;
+    update({ stock: value }, { defaults: { stock: "all" } });
   }
   const [edit, setEdit] = useState(null);
   const [stock, setStock] = useState(null);

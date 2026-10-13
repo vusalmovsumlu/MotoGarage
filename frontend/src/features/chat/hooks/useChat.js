@@ -12,6 +12,7 @@ import { getAccessToken } from "../../../shared/api/client.js";
 import { profileApi } from "../../profile/api/profileApi.js";
 import { replaceRoute } from "../../../app/router/useRoute.js";
 import { conversationPath } from "../utils/conversationRoutes.js";
+import { useChatAttachment } from "./useChatAttachment.js";
 
 export function useChat({ selectedId }) {
   const { user, notificationReload, notificationVersion } = useApp();
@@ -27,6 +28,7 @@ export function useChat({ selectedId }) {
       ? Number(selectedId)
       : null);
   const messages = useResource(active ? chatApi.messagesPath(active) : null);
+  const media = useChatAttachment(active);
   const [liveMessages, setMessages] = useState([]);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
@@ -211,7 +213,13 @@ export function useChat({ selectedId }) {
   ]);
   async function send(event) {
     event.preventDefault();
-    if (!content.trim() || !active || sending) return;
+    if (
+      (!content.trim() && !media.attachment) ||
+      !active ||
+      sending ||
+      media.busy
+    )
+      return;
     setSending(true);
     setError("");
     const conversationId = active;
@@ -219,10 +227,31 @@ export function useChat({ selectedId }) {
       if (
         connection.current?.state === HubConnectionState.Connected &&
         joined.current === active
-      )
-        await connection.current.invoke("SendMessage", active, content.trim());
-      else {
-        const result = await chatApi.send(active, content.trim());
+      ) {
+        if (media.attachment) {
+          const result = await connection.current.invoke(
+            "SendMediaMessage",
+            active,
+            { content: content.trim(), attachmentId: media.attachment.id },
+          );
+          if (result && activeRef.current === conversationId)
+            setMessages((current) => [
+              ...new Map(
+                [...current, result].map((item) => [item.id, item]),
+              ).values(),
+            ]);
+        } else
+          await connection.current.invoke(
+            "SendMessage",
+            active,
+            content.trim(),
+          );
+      } else {
+        const result = await chatApi.send(
+          active,
+          content.trim(),
+          media.attachment?.id,
+        );
         if (activeRef.current === conversationId)
           setMessages((current) => [
             ...new Map(
@@ -230,7 +259,10 @@ export function useChat({ selectedId }) {
             ).values(),
           ]);
       }
-      if (activeRef.current === conversationId) setContent("");
+      if (activeRef.current === conversationId) {
+        setContent("");
+        media.sent();
+      }
       reloadConversations();
     } catch (failure) {
       if (activeRef.current === conversationId) setError(failure.message);
@@ -252,7 +284,8 @@ export function useChat({ selectedId }) {
     history,
     user,
     readThrough,
-    error,
+    error: error || media.error,
+    media,
     send,
     content,
     sending,

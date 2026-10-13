@@ -3,14 +3,21 @@ import { useState, useEffect } from "react";
 import { useApp } from "./useApp.js";
 import { Fuel, Wrench, Wallet, Bell } from "lucide-react";
 import { vehiclePath, vehicleSlugFromRoute } from "../utils/vehicleRoutes.js";
-import { navigate, replaceRoute } from "../../app/router/useRoute.js";
+import { replaceRoute } from "../../app/router/useRoute.js";
+import { useUrlFilterForm } from "./useUrlFilterForm.js";
+import { queryDateRange } from "../utils/routeQuery.js";
+
+const dateKeys = ["startDate", "endDate"];
+const readRange = (params) =>
+  queryDateRange(params, "startDate", "endDate", {
+    startDate: "",
+    endDate: "",
+  });
 
 export function useVehicleRecords({ kind, route, definition, vehicleApi }) {
   const recordApi = definition.recordApi;
   const vehicles = useResource(vehicleApi.listPath());
-  const [selectedVehicleId, setSelectedVehicleId] = useState(
-    new URLSearchParams(route.split("?")[1]).get("vehicle") || "",
-  );
+  const query = useUrlFilterForm(readRange, dateKeys);
   const slug = vehicleSlugFromRoute(route);
   const legacyVehicleId = new URLSearchParams(route.split("?")[1]).get(
     "vehicle",
@@ -35,17 +42,34 @@ export function useVehicleRecords({ kind, route, definition, vehicleApi }) {
     ? routedVehicle
       ? String(routedVehicle.id)
       : ""
-    : selectedVehicleId ||
+    : legacyVehicleId ||
       (vehicles.data?.length ? String(vehicles.data[0].id) : "");
   const setVehicleId = (id) => {
     const vehicle = vehicles.data?.find((item) => item.id === Number(id));
-    if (slug && vehicle) navigate(vehiclePath(vehicle, kind));
-    else setSelectedVehicleId(id);
+    if (vehicle)
+      query.update(
+        {},
+        { path: vehiclePath(vehicle, kind), remove: ["vehicle"] },
+      );
   };
-  const [startDate, setStart] = useState("");
-  const [endDate, setEnd] = useState("");
-  const [range, setRange] = useState({});
-  const [filterError, setFilterError] = useState("");
+  const range = ["fuel", "expenses"].includes(kind) ? query.filters : {};
+  const startDate = query.form.startDate,
+    endDate = query.form.endDate;
+  const setStart = (value) =>
+    query.setForm((current) => ({ ...current, startDate: value }));
+  const setEnd = (value) =>
+    query.setForm((current) => ({ ...current, endDate: value }));
+  const filterError = query.error,
+    setFilterError = query.setError;
+  const setRange = (values) => {
+    const vehicle = vehicles.data?.find(
+      (item) => item.id === Number(vehicleId),
+    );
+    query.apply(values, {
+      ...(vehicle?.slug ? { path: vehiclePath(vehicle, kind) } : {}),
+      remove: ["vehicle"],
+    });
+  };
   const [edit, setEdit] = useState(null);
   const { toast, confirm, act } = useApp();
   const state = useResource(

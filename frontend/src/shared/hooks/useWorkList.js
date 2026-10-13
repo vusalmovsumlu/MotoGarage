@@ -1,11 +1,21 @@
 import { useResource } from "./useResource.js";
 import { useState } from "react";
 import { useApp } from "./useApp.js";
+import { useUrlQuery } from "./useUrlQuery.js";
+import { queryChoice } from "../utils/routeQuery.js";
 
 export function useWorkList({ type, incoming, resourceApi }) {
   const orders = type === "orders";
   const state = useResource(resourceApi.listPath(incoming));
-  const [filter, setFilter] = useState("all");
+  const { params, update } = useUrlQuery();
+  const filter = queryChoice(
+    params,
+    "status",
+    ["all", "active", "finished"],
+    "all",
+  );
+  const setFilter = (value) =>
+    update({ status: value }, { defaults: { status: "all" } });
   const [create, setCreate] = useState(false);
   const [pending, setPending] = useState(null);
   const { act, confirm, toast } = useApp();

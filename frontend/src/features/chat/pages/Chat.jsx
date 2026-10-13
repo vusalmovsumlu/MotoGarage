@@ -26,6 +26,7 @@ export default function Chat({ selectedId }) {
     content,
     sending,
     setContent,
+    media,
   } = useChat({ selectedId });
   return (
     <Page
@@ -80,6 +81,7 @@ export default function Chat({ selectedId }) {
                 history={history}
                 user={user}
                 readThrough={readThrough}
+                conversationId={active}
               />
               {error && (
                 <p className="form-error" role="alert">
@@ -92,6 +94,7 @@ export default function Chat({ selectedId }) {
                 sending={sending}
                 messages={messages}
                 setContent={setContent}
+                media={media}
               />
             </>
           ) : (

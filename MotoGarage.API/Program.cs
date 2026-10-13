@@ -509,6 +509,10 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IImageService,
     CloudinaryImageService>();
+builder.Services.AddHttpClient<IChatMediaStorage, CloudinaryChatMediaStorage>(client => client.Timeout = TimeSpan.FromMinutes(2))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddScoped<IChatAttachmentService, ChatAttachmentService>();
+builder.Services.AddHostedService<ChatAttachmentCleanupWorker>();
 builder.Services.AddScoped<IVehicleHistoryExportService, VehicleHistoryExportService>();
 
 

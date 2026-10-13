@@ -10,9 +10,20 @@ import { Badge } from "../../../components/ui/Badge.jsx";
 import { Button } from "../../../components/ui/Button.jsx";
 import { Modal } from "../../../components/ui/Modal.jsx";
 import { date } from "../../../shared/utils/format.js";
+import { useUrlQuery } from "../../../shared/hooks/useUrlQuery.js";
+import { queryChoice } from "../../../shared/utils/routeQuery.js";
 
 export function BusinessApplications() {
-  const [status, setStatus] = useState("Pending");
+  const { params, update } = useUrlQuery();
+  const choice = queryChoice(
+    params,
+    "status",
+    ["Pending", "Approved", "Rejected", "all"],
+    "Pending",
+  );
+  const status = choice === "all" ? "" : choice;
+  const setStatus = (value) =>
+    update({ status: value || "all" }, { defaults: { status: "Pending" } });
   const state = useResource(businessApplicationsApi.adminPath(status));
   const [decline, setDecline] = useState(null);
   const [comment, setComment] = useState("");

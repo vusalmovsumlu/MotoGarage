@@ -11,7 +11,7 @@ namespace MotoGarage.Tests;
 
 public class NotificationRealtimeSqlTests
 {
-    [LocalSqlFact]
+    [LocalReminderSqlFact]
     public async Task LiveHintsWaitForCommitAndNeverPublishRolledBackOrFailedNotifications()
     {
         using var configured = new AppDbContextFactory().CreateDbContext([]);
@@ -51,7 +51,9 @@ public class NotificationRealtimeSqlTests
             Assert.Empty(queue.Users);
             c.ChangeTracker.Clear();
             Assert.Equal(1, await c.Notifications.CountAsync());
-            // Two inserts exercise EF's implicit SaveChanges transaction too.
+            // Multiple tables force EF's implicit SaveChanges transaction;
+            // same-table inserts can be batched into one atomic SQL statement.
+            (await c.Users.SingleAsync()).FullName = "Updated recipient";
             c.Notifications.AddRange(Notification(id), Notification(id));
             await c.SaveChangesAsync();
             Assert.Equal([id], queue.Users);

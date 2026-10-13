@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Page } from "../../../components/layout/Page.jsx";
 import { Resource } from "../../../components/feedback/Resource.jsx";
 import { Empty } from "../../../components/feedback/Empty.jsx";
@@ -8,15 +7,30 @@ import { useApp } from "../../../shared/hooks/useApp.js";
 import { money, number } from "../../../shared/utils/format.js";
 import { bakuDay, shiftDay } from "../../../shared/utils/bakuTime.js";
 import { statisticsApi } from "../api/statisticsApi.js";
+import { useUrlFilterForm } from "../../../shared/hooks/useUrlFilterForm.js";
+import { queryDateRange } from "../../../shared/utils/routeQuery.js";
+
+const keys = ["from", "to"];
+const readPeriod = (params) => {
+  const today = bakuDay();
+  return queryDateRange(
+    params,
+    "from",
+    "to",
+    { from: shiftDay(today, -29), to: today },
+    366,
+  );
+};
 
 export function BusinessStatistics() {
-  const today = bakuDay();
-  const [period, setPeriod] = useState({
-    from: shiftDay(today, -29),
-    to: today,
-  });
-  const [form, setForm] = useState(period);
-  const [error, setError] = useState("");
+  const {
+    filters: period,
+    form,
+    setForm,
+    apply: setPeriod,
+    error,
+    setError,
+  } = useUrlFilterForm(readPeriod, keys);
   const { user } = useApp();
   const state = useResource(statisticsApi.path(period.from, period.to));
   const mechanic = user.role === "Mechanic";

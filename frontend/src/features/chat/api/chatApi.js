@@ -8,9 +8,27 @@ export const chatApi = {
   start: (type, id) => api(`/chat/${type}/${id}`, { method: "POST" }),
   read: (id, signal) =>
     api(`/chat/conversations/${id}/read`, { method: "PATCH", signal }),
-  send: (id, content) =>
+  upload: (id, file, signal) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api(`/chat/conversations/${id}/attachments`, {
+      method: "POST",
+      body: form,
+      signal,
+    });
+  },
+  removeAttachment: (id, attachmentId) =>
+    api(`/chat/conversations/${id}/attachments/${attachmentId}`, {
+      method: "DELETE",
+    }),
+  attachmentContent: (id, attachmentId, signal) =>
+    api(`/chat/conversations/${id}/attachments/${attachmentId}/content`, {
+      signal,
+      responseType: "blob",
+    }),
+  send: (id, content, attachmentId) =>
     api(`/chat/conversations/${id}/messages`, {
       method: "POST",
-      body: { content },
+      body: { content, ...(attachmentId ? { attachmentId } : {}) },
     }),
 };

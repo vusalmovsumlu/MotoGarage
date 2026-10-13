@@ -21,6 +21,7 @@ public class MessageRepository
         int conversationId)
     {
         return await _context.Messages.AsNoTracking()
+            .Include(x => x.Attachment)
             .Include(x => x.SenderUser)
             .Where(x => x.ConversationId == conversationId)
             .OrderBy(x => x.SentAt)

@@ -9,7 +9,7 @@ import { Empty } from "../../../components/feedback/Empty.jsx";
 import { ProductEditor } from "../components/ProductEditor.jsx";
 import { StockEditor } from "../components/StockEditor.jsx";
 
-export function Inventory({ route }) {
+export function Inventory() {
   const {
     profile,
     setEdit,
@@ -22,7 +22,7 @@ export function Inventory({ route }) {
     filter,
     updateFilter,
     items,
-  } = useInventory(route);
+  } = useInventory();
   return (
     <Page
       title="Məhsullarım"

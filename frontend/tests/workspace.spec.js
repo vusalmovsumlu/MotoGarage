@@ -87,7 +87,7 @@ test("Car and motorcycle are both available; vehicle payload matches API", async
       .body.vehicleType,
   ).toBe("Car");
 });
-test("Shopping cart rejects mixing stores and sends IDs/quantities only", async ({
+test("Shopping cart rejects mixing stores and sends delivery details with IDs/quantities", async ({
   page,
 }) => {
   const { requests } = await mockApi(page);
@@ -99,6 +99,9 @@ test("Shopping cart rejects mixing stores and sends IDs/quantities only", async 
     page.getByText(/Bir sifarişdə yalnız bir mağazanın/),
   ).toBeVisible();
   await page.goto("/#/cart");
+  await page.getByLabel("Telefon nömrəsi").fill("+994501234567");
+  await page.getByLabel("Şəhər / rayon").fill("Bakı");
+  await page.getByLabel("Tam ünvan").fill("Test küçəsi 10");
   await page.getByRole("button", { name: "Sifarişi təsdiqlə" }).click();
   await expect(
     page.getByRole("heading", { name: "Sifarişlərim" }),
@@ -106,7 +109,14 @@ test("Shopping cart rejects mixing stores and sends IDs/quantities only", async 
   expect(
     requests.find((item) => item.method === "POST" && item.path === "/orders")
       .body,
-  ).toEqual({ items: [{ productId: 30, quantity: 1 }] });
+  ).toEqual({
+    items: [{ productId: 30, quantity: 1 }],
+    recipientName: "Vüqar Məmmədov",
+    deliveryPhone: "+994501234567",
+    deliveryCity: "Bakı",
+    deliveryAddress: "Test küçəsi 10",
+    deliveryNote: "",
+  });
 });
 test("Mechanic only sees legal transitions for pending appointments", async ({
   page,

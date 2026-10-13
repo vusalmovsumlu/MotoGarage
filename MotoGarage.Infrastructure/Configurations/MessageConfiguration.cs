@@ -8,6 +8,8 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
 {
     public void Configure(EntityTypeBuilder<Message> builder)
     {
+        builder.HasOne(x => x.Attachment).WithMany().HasForeignKey(x => x.AttachmentId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.AttachmentId).IsUnique().HasFilter("[AttachmentId] IS NOT NULL");
         builder.Property(x => x.Content)
             .IsRequired()
             .HasMaxLength(2000);

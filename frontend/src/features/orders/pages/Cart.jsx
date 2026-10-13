@@ -6,7 +6,17 @@ import { Empty } from "../../../components/feedback/Empty.jsx";
 import { ShoppingBag } from "lucide-react";
 
 export function Cart() {
-  const { cart, busy, update, setCart, total, error, checkout } = useCheckout();
+  const {
+    cart,
+    busy,
+    update,
+    setCart,
+    total,
+    error,
+    checkout,
+    delivery,
+    setDelivery,
+  } = useCheckout();
   return (
     <Page
       title="Səbətiniz"
@@ -31,6 +41,8 @@ export function Cart() {
             error={error}
             busy={busy}
             checkout={checkout}
+            delivery={delivery}
+            setDelivery={setDelivery}
           />
         </div>
       ) : (

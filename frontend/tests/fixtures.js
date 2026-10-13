@@ -66,6 +66,7 @@ export async function mockApi(
     id: 10,
     userId: role === "Mechanic" ? 1 : 20,
     businessName: "Baku Auto & Moto Servis",
+    fullName: "Əli Məmmədov",
     slug: "baku-servis",
     description: "Avtomobil və motosiklet üçün texniki qulluq.",
     address: "Bakı, Nərimanov",

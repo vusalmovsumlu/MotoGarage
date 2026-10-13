@@ -87,7 +87,8 @@ public class MappingProfile : Profile
         // Mechanic
         // =========================
 
-        CreateMap<Mechanic, MechanicDto>();
+        CreateMap<Mechanic, MechanicDto>()
+            .ForMember(x => x.FullName, o => o.MapFrom(x => x.User != null ? x.User.FullName : ""));
         CreateMap<CreateMechanicDto, Mechanic>();
         CreateMap<UpdateMechanicDto, Mechanic>();
 
@@ -167,6 +168,7 @@ public class MappingProfile : Profile
             .ForMember(x => x.Slug, o => o.Ignore());
 
         CreateMap<Message, MessageDto>();
+        CreateMap<ChatAttachment, ChatAttachmentDto>();
 
 
         // =========================

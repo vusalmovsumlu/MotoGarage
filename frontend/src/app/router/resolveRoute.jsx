@@ -128,8 +128,7 @@ export function resolveRoute(route, user) {
     return <BusinessApplications />;
   if (path === "/business" && ["Mechanic", "Store"].includes(user.role))
     return <BusinessPage />;
-  if (path === "/inventory" && user.role === "Store")
-    return <Inventory route={route} />;
+  if (path === "/inventory" && user.role === "Store") return <Inventory />;
   if (path === "/work/orders" && user.role === "Store")
     return <Orders key={path} incoming />;
   if (path === "/work/appointments" && user.role === "Mechanic")

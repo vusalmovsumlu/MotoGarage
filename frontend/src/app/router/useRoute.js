@@ -1,24 +1,20 @@
-import { useState, useEffect } from "react";
+import { useSyncExternalStore, useEffect, useRef } from "react";
+import {
+  getHashRoute,
+  subscribeHashRoute,
+} from "../../shared/utils/routeQuery.js";
 
 export function useRoute() {
-  const [route, setRoute] = useState(
-    () => window.location.hash.slice(1) || "/home",
-  );
+  const route = useSyncExternalStore(subscribeHashRoute, getHashRoute);
+  const previousPath = useRef(route.split("?")[0]);
   useEffect(() => {
-    const change = () => {
-      setRoute(window.location.hash.slice(1) || "/home");
-      window.scrollTo(0, 0);
-    };
-    window.addEventListener("hashchange", change);
-    return () => window.removeEventListener("hashchange", change);
-  }, []);
+    const path = route.split("?")[0];
+    if (previousPath.current !== path) window.scrollTo(0, 0);
+    previousPath.current = path;
+  }, [route]);
   return route;
 }
-export const navigate = (path) => {
-  window.location.hash = path;
-};
-
-export const replaceRoute = (path) => {
-  window.history.replaceState(null, "", `#${path}`);
-  window.dispatchEvent(new HashChangeEvent("hashchange"));
-};
+export {
+  navigateHashRoute as navigate,
+  replaceHashRoute as replaceRoute,
+} from "../../shared/utils/routeQuery.js";

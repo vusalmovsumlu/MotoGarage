@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useResource } from "../../../shared/hooks/useResource.js";
 import { notificationsApi } from "../api/notificationsApi.js";
 import { useApp } from "../../../shared/hooks/useApp.js";
 import { navigate } from "../../../app/router/useRoute.js";
+import { useUrlQuery } from "../../../shared/hooks/useUrlQuery.js";
 
 export function useNotifications() {
-  const [unread, setUnread] = useState(false);
+  const { params, update } = useUrlQuery();
+  const unread = params.get("unreadOnly") === "true";
+  const setUnread = (value) =>
+    update({ unreadOnly: value }, { defaults: { unreadOnly: false } });
   const state = useResource(notificationsApi.listPath(unread));
   const reload = state.reload;
   useEffect(() => {

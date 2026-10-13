@@ -21,6 +21,7 @@ public class ChatService : IChatService
     private readonly IMechanicRepository _mechanicRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IMapper _mapper;
+    private readonly IChatAttachmentService? _attachments;
 
     public ChatService(
         IConversationRepository conversationRepository,
@@ -29,9 +30,10 @@ public class ChatService : IChatService
         IStoreRepository storeRepository,
         IMapper mapper,
         IUnitOfWork unitOfWork,
-        INotificationService notifications)
+        INotificationService notifications, IChatAttachmentService? attachments = null)
     {
         _notifications = notifications;
+        _attachments = attachments;
         _unitOfWork = unitOfWork;
         _conversationRepository = conversationRepository;
         _messageRepository = messageRepository;
@@ -257,7 +259,7 @@ public class ChatService : IChatService
         DtoValidation.Validate(dto);
         return await _unitOfWork.ExecuteAsync(async () =>
         {
-            if (string.IsNullOrWhiteSpace(dto.Content))
+            if (string.IsNullOrWhiteSpace(dto.Content) && dto.AttachmentId == null)
             {
                 throw new DomainException(
                     "Mesaj boş ola bilməz.");
@@ -272,10 +274,17 @@ public class ChatService : IChatService
             {
                 ConversationId = conversation.Id,
                 SenderUserId = senderUserId,
-                Content = dto.Content.Trim(),
+                Content = dto.Content?.Trim() ?? "",
                 SentAt = DateTime.UtcNow,
                 Status = MessageStatus.Sent
             };
+
+            if (dto.AttachmentId.HasValue)
+            {
+                var attachment = await (_attachments ?? throw new InvalidOperationException("Chat media service is not registered."))
+                    .ClaimAsync(dto.AttachmentId.Value, conversationId, senderUserId);
+                message.Attachment = attachment;
+            }
 
             conversation.LastMessageAt = DateTime.UtcNow;
 

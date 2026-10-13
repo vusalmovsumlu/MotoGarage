@@ -1,21 +1,31 @@
-import { useState } from "react";
 import { useResource } from "../../../shared/hooks/useResource.js";
 import { adminApi } from "../api/adminApi.js";
 import { useApp } from "../../../shared/hooks/useApp.js";
+import { useUrlFilterForm } from "../../../shared/hooks/useUrlFilterForm.js";
+import { queryText, queryChoice } from "../../../shared/utils/routeQuery.js";
+
+const keys = ["search", "role"];
+const readFilters = (params) => ({
+  search: queryText(params, "search"),
+  role: queryChoice(params, "role", ["User", "Mechanic", "Store", "Admin"], ""),
+});
 
 export function useAdminUsers() {
-  const [search, setSearch] = useState("");
-  const [role, setRole] = useState("");
-  const [filters, setFilters] = useState({});
+  const {
+    filters,
+    form,
+    setForm,
+    apply: setFilters,
+  } = useUrlFilterForm(readFilters, keys);
   const state = useResource(adminApi.usersPath(filters));
   const { user, confirm, toast } = useApp();
 
   return {
     setFilters,
-    search,
-    role,
-    setSearch,
-    setRole,
+    search: form.search,
+    role: form.role,
+    setSearch: (search) => setForm((current) => ({ ...current, search })),
+    setRole: (role) => setForm((current) => ({ ...current, role })),
     state,
     user,
     confirm,

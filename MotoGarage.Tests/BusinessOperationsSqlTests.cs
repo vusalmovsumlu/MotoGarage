@@ -94,7 +94,7 @@ public class BusinessOperationsSqlTests
             async Task Buy()
             {
                 await using var attempt = new AppDbContext(options);
-                await Orders(attempt).CreateAsync(owner.Id, new() { Items = [new() { ProductId = product.Id, Quantity = 1 }] });
+                await Orders(attempt).CreateAsync(owner.Id, TestSupport.Order(product.Id));
             }
             await Task.WhenAll(Buy(), Buy());
             database.ChangeTracker.Clear(); Assert.Equal(4, (await database.Products.SingleAsync(x => x.Id == product.Id)).Stock);

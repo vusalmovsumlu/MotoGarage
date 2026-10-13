@@ -59,7 +59,9 @@ export function AppointmentEditor({ mechanicId, onClose, onDone }) {
                         label: "Usta",
                         options: mechanics.data.map((item) => ({
                           value: String(item.id),
-                          label: item.businessName,
+                          label: [item.businessName, item.fullName?.trim()]
+                            .filter(Boolean)
+                            .join(" · "),
                         })),
                         required: true,
                         default: String(mechanics.data[0].id),

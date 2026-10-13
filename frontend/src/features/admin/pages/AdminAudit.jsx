@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Page } from "../../../components/layout/Page.jsx";
 import { Resource } from "../../../components/feedback/Resource.jsx";
 import { Empty } from "../../../components/feedback/Empty.jsx";
@@ -6,6 +6,8 @@ import { Button } from "../../../components/ui/Button.jsx";
 import { useResource } from "../../../shared/hooks/useResource.js";
 import { date } from "../../../shared/utils/format.js";
 import { adminApi } from "../api/adminApi.js";
+import { useUrlQuery } from "../../../shared/hooks/useUrlQuery.js";
+import { queryChoice, queryPage } from "../../../shared/utils/routeQuery.js";
 
 const actions = {
   UserBlocked: "Hesab bloklandı",
@@ -15,9 +17,17 @@ const actions = {
   ApplicationRejected: "Müraciət rədd edildi",
 };
 export function AdminAudit() {
-  const [page, setPage] = useState(1);
-  const [action, setAction] = useState("");
+  const { params, update } = useUrlQuery();
+  const page = queryPage(params);
+  const action = queryChoice(params, "action", Object.keys(actions), "");
+  const setPage = (value) => update({ page: value }, { defaults: { page: 1 } });
   const state = useResource(adminApi.auditPath(page, action));
+  const total = state.data?.total || 0;
+  const pageSize = state.data?.pageSize || 25;
+  useEffect(() => {
+    if (state.data && page > 1 && (page - 1) * pageSize >= total)
+      update({ page: null }, { replace: true });
+  }, [state.data, page, pageSize, total, update]);
   return (
     <Page
       title="Əməliyyat tarixçəsi"
@@ -26,10 +36,10 @@ export function AdminAudit() {
       <label className="field audit-filter">
         Əməliyyat
         <select
+          aria-label="Əməliyyat"
           value={action}
           onChange={(event) => {
-            setAction(event.target.value);
-            setPage(1);
+            update({ action: event.target.value, page: null });
           }}
         >
           <option value="">Hamısı</option>
@@ -70,7 +80,28 @@ export function AdminAudit() {
             </table>
           </div>
         ) : (
-          <Empty title="Əməliyyat tarixçəsi boşdur" />
+          <Empty
+            title={
+              action
+                ? "Bu əməliyyat üzrə qeyd tapılmadı"
+                : "Əməliyyat tarixçəsi boşdur"
+            }
+            description={
+              action
+                ? `“${actions[action]}” filterinə uyğun əməliyyat yoxdur.`
+                : "Admin qərarları verildikcə əməliyyatlar burada görünəcək."
+            }
+            action={
+              action && (
+                <Button
+                  variant="secondary"
+                  onClick={() => update({ action: null, page: null })}
+                >
+                  Filteri təmizlə
+                </Button>
+              )
+            }
+          />
         )}
         <div className="planning-toolbar audit-pagination">
           <Button
@@ -81,11 +112,11 @@ export function AdminAudit() {
             Əvvəlki
           </Button>
           <span>
-            Səhifə {page} · {state.data?.total || 0} əməliyyat
+            Səhifə {page} · {total} əməliyyat
           </span>
           <Button
             variant="secondary"
-            disabled={page * 25 >= (state.data?.total || 0)}
+            disabled={page * pageSize >= total}
             onClick={() => setPage(page + 1)}
           >
             Növbəti

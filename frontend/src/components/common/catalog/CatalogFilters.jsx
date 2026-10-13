@@ -20,7 +20,11 @@ export function CatalogFilters({
         event.preventDefault();
         if (
           products &&
-          (Number(min) < 0 ||
+          (!Number.isFinite(Number(min)) ||
+            !Number.isFinite(Number(max)) ||
+            Number(min) > 1e12 ||
+            Number(max) > 1e12 ||
+            Number(min) < 0 ||
             Number(max) < 0 ||
             (min !== "" && max !== "" && Number(min) > Number(max)))
         ) {

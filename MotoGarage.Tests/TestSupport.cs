@@ -20,6 +20,14 @@ namespace MotoGarage.Tests;
 
 internal static class TestSupport
 {
+    public static MotoGarage.Application.DTOs.Order.CreateOrderDto Order(int productId = 1, int quantity = 1) => new()
+    {
+        RecipientName = "Test recipient",
+        DeliveryPhone = "+994501234567",
+        DeliveryCity = "Bakı",
+        DeliveryAddress = "Test küçəsi 10, mənzil 2",
+        Items = [new() { ProductId = productId, Quantity = quantity }]
+    };
     public static AppDbContext Context() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 

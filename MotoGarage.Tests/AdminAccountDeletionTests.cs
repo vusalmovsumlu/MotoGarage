@@ -161,8 +161,8 @@ public class AdminAccountDeletionTests
         using var users = TestSupport.Users(context);
         await new AdminService(context, users, new TestUnitOfWork(context), new UserConnectionRegistry()).DeleteUserAsync(1, 99);
         var orders = TestSupport.Orders(context);
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => orders.CreateAsync(1, new() { Items = [new() { ProductId = 30, Quantity = 1 }] }));
-        await Assert.ThrowsAsync<ForbiddenException>(() => orders.CreateAsync(99, new() { Items = [new() { ProductId = 30, Quantity = 1 }] }));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => orders.CreateAsync(1, TestSupport.Order(30)));
+        await Assert.ThrowsAsync<ForbiddenException>(() => orders.CreateAsync(99, TestSupport.Order(30)));
         Assert.Single(context.Orders);
         Assert.Equal(3, (await context.Products.SingleAsync()).Stock);
     }

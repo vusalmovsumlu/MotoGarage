@@ -141,5 +141,5 @@ public class BusinessTests
         Assert.Equal(UserRole.User, (await users.FindByEmailAsync("admin@test.example"))!.Role);
     }
 
-    private static CreateOrderDto OrderRequest() => new() { Items = new() { new() { ProductId = 1, Quantity = 1 } } };
+    private static CreateOrderDto OrderRequest() => TestSupport.Order();
 }
