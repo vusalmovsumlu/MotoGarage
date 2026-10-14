@@ -23,7 +23,7 @@ public class AppointmentNamesTests
 
     static AppointmentService Service(AppDbContext context) => new(
         new AppointmentRepository(context), new MechanicRepository(context), new VehicleRepository(context),
-        TestSupport.Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new MotoGarage.Infrastructure.Authentication.AccountAccessService(context), TestSupport.Planning(context));
+        TestSupport.Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new MotoGarage.Infrastructure.Authentication.AccountAccessService(context), TestSupport.Planning(context), TestSupport.WorkflowEmails(context));
 
     [Fact]
     public async Task ExistingAppointmentsReturnRealNamesInBothListsDetailAndDashboardWithoutTrackerFixup()

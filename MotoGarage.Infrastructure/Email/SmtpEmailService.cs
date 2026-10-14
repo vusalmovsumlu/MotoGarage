@@ -74,6 +74,14 @@ public class SmtpEmailService : IEmailService
     public Task SendAppointmentReminderAsync(string email, MotoGarage.Application.DTOs.Appointment.AppointmentReminderEmail reminder, CancellationToken cancellationToken = default) =>
         SendAsync(email, AppointmentReminderEmailBuilder.Create(reminder), cancellationToken);
 
+    public Task SendWorkflowUpdateAsync(string email, MotoGarage.Application.DTOs.Notification.WorkflowEmailContent content, CancellationToken cancellationToken = default) =>
+        SendAsync(email, new MimeMessage
+        {
+            MessageId = $"{content.DeliveryId:N}@motogarage.local",
+            Subject = content.Subject,
+            Body = new BodyBuilder { TextBody = content.TextBody, HtmlBody = content.HtmlBody }.ToMessageBody()
+        }, cancellationToken);
+
     private async Task SendAsync(string email, MimeMessage message, CancellationToken cancellationToken)
     {
         var host = _configuration["Email:SmtpHost"] ?? throw new InvalidOperationException("SMTP host tapılmadı.");

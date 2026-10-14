@@ -77,6 +77,7 @@ public class AppointmentEmailReminderTests
 
     internal sealed class ReminderMail : IEmailService
     {
+        public Task SendWorkflowUpdateAsync(string email, MotoGarage.Application.DTOs.Notification.WorkflowEmailContent content, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public System.Collections.Concurrent.ConcurrentQueue<(string Recipient, AppointmentReminderEmail Reminder)> Sent { get; } = new();
         public int Attempts;
         public bool Fail { get; set; }

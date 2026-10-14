@@ -178,7 +178,7 @@ public class AdminAccountDeletionTests
         await new AdminService(context, users, new TestUnitOfWork(context), new UserConnectionRegistry()).DeleteUserAsync(1, 99);
         var appointments = new AppointmentService(new AppointmentRepository(context), new MechanicRepository(context),
             new VehicleRepository(context), TestSupport.Mapper(), new TestUnitOfWork(context),
-            new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), TestSupport.Planning(context));
+            new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), TestSupport.Planning(context), TestSupport.WorkflowEmails(context));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => appointments.CreateAsync(1, new() { MechanicId = 10, VehicleId = 40, AppointmentDate = DateTime.UtcNow.AddDays(1) }));
         await Assert.ThrowsAsync<ForbiddenException>(() => appointments.CreateAsync(99, new() { MechanicId = 10, VehicleId = 40, AppointmentDate = DateTime.UtcNow.AddDays(1) }));
         Assert.Single(context.Appointments);

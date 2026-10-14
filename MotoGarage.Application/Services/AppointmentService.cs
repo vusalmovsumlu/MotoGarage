@@ -20,6 +20,7 @@ public class AppointmentService : IAppointmentService
     private readonly IMapper _mapper;
     private readonly IAccountAccessService _accountAccess;
     private readonly IAppointmentPlanningService _planning;
+    private readonly IWorkflowEmailQueue _emails;
 
     public AppointmentService(
         IAppointmentRepository appointmentRepository,
@@ -28,11 +29,12 @@ public class AppointmentService : IAppointmentService
         IMapper mapper,
         IUnitOfWork unitOfWork,
         INotificationService notifications,
-        IAccountAccessService accountAccess, IAppointmentPlanningService planning)
+        IAccountAccessService accountAccess, IAppointmentPlanningService planning, IWorkflowEmailQueue emails)
     {
         _notifications = notifications;
         _accountAccess = accountAccess;
         _planning = planning;
+        _emails = emails;
         _unitOfWork = unitOfWork;
         _appointmentRepository = appointmentRepository;
         _mechanicRepository = mechanicRepository;
@@ -171,6 +173,8 @@ public class AppointmentService : IAppointmentService
 
             await _appointmentRepository.SaveChangesAsync();
 
+            await _emails.AppointmentAsync(appointment.Id);
+
             await _notifications.CreateAsync(mechanic.UserId, NotificationType.Appointment,
                 "Yeni randevu", $"Yeni randevu yaradıldı: #{appointment.Id}.", $"/appointments/{appointment.Id}");
             return _mapper.Map<AppointmentDto>(await _appointmentRepository.GetDetailsByIdAsync(appointment.Id));
@@ -228,6 +232,7 @@ public class AppointmentService : IAppointmentService
             await _appointmentRepository.UpdateAsync(appointment);
 
             await _appointmentRepository.SaveChangesAsync();
+            await _emails.AppointmentAsync(appointment.Id);
             await _notifications.CreateAsync(appointment.UserId, NotificationType.Appointment,
                 "Randevu statusu", $"Randevu #{appointment.Id}: {appointment.Status}.", $"/appointments/{appointment.Id}");
         });
@@ -268,6 +273,7 @@ public class AppointmentService : IAppointmentService
             await _appointmentRepository.UpdateAsync(appointment);
 
             await _appointmentRepository.SaveChangesAsync();
+            await _emails.AppointmentAsync(appointment.Id);
             await _notifications.CreateAsync(appointment.UserId, NotificationType.Appointment,
                 "Randevu statusu", $"Randevu #{appointment.Id}: {appointment.Status}.", $"/appointments/{appointment.Id}");
         });

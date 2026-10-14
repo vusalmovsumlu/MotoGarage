@@ -461,6 +461,13 @@ builder.Services.AddOptions<AppointmentEmailReminderOptions>()
     .ValidateOnStart();
 builder.Services.AddScoped<IAppointmentEmailReminderDispatcher, AppointmentEmailReminderDispatcher>();
 builder.Services.AddHostedService<AppointmentEmailReminderWorker>();
+builder.Services.AddOptions<WorkflowEmailOptions>()
+    .Bind(builder.Configuration.GetSection(WorkflowEmailOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddScoped<IWorkflowEmailQueue, WorkflowEmailQueue>();
+builder.Services.AddScoped<IWorkflowEmailDispatcher, WorkflowEmailDispatcher>();
+builder.Services.AddHostedService<WorkflowEmailWorker>();
 
 builder.Services.AddScoped<
     IServiceRecordService,

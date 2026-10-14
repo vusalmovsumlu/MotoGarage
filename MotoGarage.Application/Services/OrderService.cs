@@ -20,6 +20,7 @@ public class OrderService : IOrderService
     private readonly IMapper _mapper;
     private readonly IStockAlertService _stockAlerts;
     private readonly IAccountAccessService _accountAccess;
+    private readonly IWorkflowEmailQueue _emails;
 
     public OrderService(
         IOrderRepository orderRepository,
@@ -28,7 +29,7 @@ public class OrderService : IOrderService
         IMapper mapper,
         IUnitOfWork unitOfWork,
         INotificationService notifications,
-        IAccountAccessService accountAccess, IStockAlertService stockAlerts)
+        IAccountAccessService accountAccess, IStockAlertService stockAlerts, IWorkflowEmailQueue emails)
     {
         _notifications = notifications;
         _accountAccess = accountAccess;
@@ -38,6 +39,7 @@ public class OrderService : IOrderService
         _storeRepository = storeRepository;
         _mapper = mapper;
         _stockAlerts = stockAlerts;
+        _emails = emails;
     }
 
     // =========================
@@ -233,6 +235,8 @@ public class OrderService : IOrderService
             // bir SaveChanges ilə DB-yə yazılır.
             await _orderRepository.SaveChangesAsync();
 
+            await _emails.OrderAsync(order.Id);
+
             await _notifications.CreateAsync(store.UserId, NotificationType.Order,
                 "Yeni sifariş", $"Yeni sifariş yaradıldı: #{order.Id}.", $"/orders/{order.Id}");
             return _mapper.Map<OrderDto>(order);
@@ -282,6 +286,7 @@ public class OrderService : IOrderService
             await _orderRepository.UpdateAsync(order);
 
             await _orderRepository.SaveChangesAsync();
+            await _emails.OrderAsync(order.Id);
             await _notifications.CreateAsync(order.UserId, NotificationType.Order,
                 "Sifariş statusu", $"Sifariş #{order.Id}: {order.Status}.", $"/orders/{order.Id}");
         });
@@ -324,6 +329,7 @@ public class OrderService : IOrderService
             await _orderRepository.UpdateAsync(order);
 
             await _orderRepository.SaveChangesAsync();
+            await _emails.OrderAsync(order.Id);
             await _notifications.CreateAsync(order.UserId, NotificationType.Order,
                 "Sifariş statusu", $"Sifariş #{order.Id}: {order.Status}.", $"/orders/{order.Id}");
         });

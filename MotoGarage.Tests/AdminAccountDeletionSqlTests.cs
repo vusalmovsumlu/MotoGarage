@@ -63,7 +63,7 @@ public class AdminAccountDeletionSqlTests
             async Task<Exception?> Order()
             {
                 await using var context = new AppDbContext(options);
-                var service = new OrderService(new OrderRepository(context), new ProductRepository(context), new StoreRepository(context), TestSupport.Mapper(), new UnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context));
+                var service = new OrderService(new OrderRepository(context), new ProductRepository(context), new StoreRepository(context), TestSupport.Mapper(), new UnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context), TestSupport.WorkflowEmails(context));
                 try { await service.CreateAsync(customer.Id, TestSupport.Order(product.Id)); return null; }
                 catch (Exception failure) { return failure; }
             }

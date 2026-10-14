@@ -34,11 +34,11 @@ public class BusinessOperationsSqlTests
             sql => { sql.EnableRetryOnFailure(3, TimeSpan.FromMilliseconds(300), [1205]); sql.CommandTimeout(120); })
             .LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Error).Options;
         await using var database = new AppDbContext(options);
-        AppointmentPlanningService Planning(AppDbContext c) => new(c, new UnitOfWork(c), new AccountAccessService(c), TestSupport.Mapper());
+        AppointmentPlanningService Planning(AppDbContext c) => new(c, new UnitOfWork(c), new AccountAccessService(c), TestSupport.Mapper(), TestSupport.WorkflowEmails(c));
         AppointmentService Appointments(AppDbContext c) => new(new AppointmentRepository(c), new MechanicRepository(c), new VehicleRepository(c),
-            TestSupport.Mapper(), new UnitOfWork(c), new NotificationService(new NotificationRepository(c), TestSupport.Mapper()), new AccountAccessService(c), Planning(c));
+            TestSupport.Mapper(), new UnitOfWork(c), new NotificationService(new NotificationRepository(c), TestSupport.Mapper()), new AccountAccessService(c), Planning(c), TestSupport.WorkflowEmails(c));
         OrderService Orders(AppDbContext c) => new(new OrderRepository(c), new ProductRepository(c), new StoreRepository(c), TestSupport.Mapper(),
-            new UnitOfWork(c), new NotificationService(new NotificationRepository(c), TestSupport.Mapper()), new AccountAccessService(c), new StockAlertService(c));
+            new UnitOfWork(c), new NotificationService(new NotificationRepository(c), TestSupport.Mapper()), new AccountAccessService(c), new StockAlertService(c), TestSupport.WorkflowEmails(c));
         try
         {
             var previous = database.Database.GetMigrations().TakeWhile(x => !x.EndsWith("BusinessOperations")).Last();

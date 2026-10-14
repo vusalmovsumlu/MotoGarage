@@ -78,7 +78,7 @@ public class BusinessOperationsTests
         using var context = TestSupport.Context(); await Seed(context);
         var service = new AppointmentService(new AppointmentRepository(context), new MechanicRepository(context), new VehicleRepository(context),
             TestSupport.Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), TestSupport.Mapper()),
-            new MotoGarage.Infrastructure.Authentication.AccountAccessService(context), TestSupport.Planning(context));
+            new MotoGarage.Infrastructure.Authentication.AccountAccessService(context), TestSupport.Planning(context), TestSupport.WorkflowEmails(context));
         await Assert.ThrowsAsync<ConflictException>(() => service.CreateAsync(3, new() { MechanicId = 10, VehicleId = 6, AppointmentDate = Slot().AddMinutes(15) }));
         await Assert.ThrowsAsync<DomainException>(() => service.CreateAsync(3, new() { MechanicId = 10, VehicleId = 6, AppointmentDate = Slot().AddHours(10) }));
         await Assert.ThrowsAsync<DomainException>(() => service.CreateAsync(3, new() { MechanicId = 10, VehicleId = 6, AppointmentDate = Slot().AddMinutes(61) }));

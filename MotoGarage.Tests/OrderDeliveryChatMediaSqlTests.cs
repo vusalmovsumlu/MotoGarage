@@ -57,7 +57,7 @@ public class OrderDeliveryChatMediaSqlTests
             Assert.Equal("Legacy message", (await c.Messages.SingleAsync()).Content);
             var product = new Product { StoreId = 1, Name = "Product", Slug = "product", Price = 10, Stock = 5, IsActive = true };
             c.Products.Add(product); await c.SaveChangesAsync();
-            var orderService = new OrderService(new OrderRepository(c), new ProductRepository(c), new StoreRepository(c), TestSupport.Mapper(), new UnitOfWork(c), new NotificationService(new NotificationRepository(c), TestSupport.Mapper()), new AccountAccessService(c), new StockAlertService(c));
+            var orderService = new OrderService(new OrderRepository(c), new ProductRepository(c), new StoreRepository(c), TestSupport.Mapper(), new UnitOfWork(c), new NotificationService(new NotificationRepository(c), TestSupport.Mapper()), new AccountAccessService(c), new StockAlertService(c), TestSupport.WorkflowEmails(c));
             var order = await orderService.CreateAsync(1, TestSupport.Order(product.Id));
             Assert.Equal("Test küçəsi 10, mənzil 2", order.DeliveryAddress);
 

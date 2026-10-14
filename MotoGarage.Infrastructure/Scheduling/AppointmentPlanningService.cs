@@ -11,7 +11,7 @@ using MotoGarage.Infrastructure.Data;
 namespace MotoGarage.Infrastructure.Scheduling;
 
 public sealed class AppointmentPlanningService(AppDbContext context, IUnitOfWork work,
-    IAccountAccessService accounts, IMapper mapper) : IAppointmentPlanningService
+    IAccountAccessService accounts, IMapper mapper, IWorkflowEmailQueue emails) : IAppointmentPlanningService
 {
     // Working hours are wall-clock time in Baku; persisted appointments remain UTC.
     public static DateTime StartOfDay(DateOnly day) => DateTime.SpecifyKind(day.ToDateTime(TimeOnly.MinValue).AddHours(-4), DateTimeKind.Utc);
@@ -174,6 +174,7 @@ public sealed class AppointmentPlanningService(AppDbContext context, IUnitOfWork
             Notify(recipient, a.Id, "Görüş vaxtı təklifi", dto.Approve ? "Yeni görüş vaxtı təsdiqləndi." : withdrawing ? "Vaxt təklifi geri götürüldü. Əvvəlki vaxt qüvvədədir." : "Yeni vaxt təklifi rədd edildi. Əvvəlki vaxt qüvvədədir.");
             a.ProposedAppointmentDateUtc = null; a.RescheduleProposedByUserId = null;
             await context.SaveChangesAsync();
+            if (dto.Approve) await emails.AppointmentAsync(a.Id, timeChanged: true);
         });
     }
     static ServiceReportDto ReportDto(AppointmentServiceReport r) => new(r.Id, r.AppointmentId, r.ServiceName, r.Description,

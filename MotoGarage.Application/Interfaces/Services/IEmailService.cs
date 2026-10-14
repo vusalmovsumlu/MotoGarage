@@ -2,6 +2,7 @@
 
 public interface IEmailService
 {
+    Task SendWorkflowUpdateAsync(string email, MotoGarage.Application.DTOs.Notification.WorkflowEmailContent content, CancellationToken cancellationToken = default);
     Task SendAppointmentReminderAsync(string email, MotoGarage.Application.DTOs.Appointment.AppointmentReminderEmail reminder, CancellationToken cancellationToken = default);
     Task SendVehicleHistoryAsync(string email, string vehicleName, byte[] attachment, string fileName, CancellationToken cancellationToken = default);
     Task SendVerificationCodeAsync(

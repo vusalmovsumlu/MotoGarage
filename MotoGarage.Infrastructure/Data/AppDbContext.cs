@@ -40,6 +40,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<WorkflowEmail> WorkflowEmails { get; set; }
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try { return await base.SaveChangesAsync(cancellationToken); }

@@ -125,6 +125,7 @@ public class VehicleHistoryExportTests
 
     sealed class HistoryEmail : IEmailService
     {
+        public Task SendWorkflowUpdateAsync(string email, MotoGarage.Application.DTOs.Notification.WorkflowEmailContent content, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task SendAppointmentReminderAsync(string email, MotoGarage.Application.DTOs.Appointment.AppointmentReminderEmail reminder, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public string? Recipient { get; private set; }
         public byte[]? Attachment { get; private set; }
