@@ -26,14 +26,19 @@ public class DashboardQuery : IDashboardQuery
         var now = DateTime.UtcNow;
         var start = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddMonths(1);
+        var monthlyAmounts = _context.Expenses
+            .Where(x => x.Vehicle.UserId == userId && x.ExpenseDate >= start && x.ExpenseDate < end)
+            .Select(x => (decimal?)x.Amount)
+            .Concat(_context.FuelRecords
+                .Where(x => x.Vehicle.UserId == userId && x.FuelDate >= start && x.FuelDate < end)
+                .Select(x => (decimal?)x.TotalPrice));
         var reminders = _context.Reminders.AsNoTracking()
             .Where(x => x.Vehicle.UserId == userId && !x.IsCompleted);
         var appointments = _context.Appointments.AsNoTracking().Where(x => x.UserId == userId);
         return new DashboardDto
         {
             TotalVehicles = await _context.Vehicles.CountAsync(x => x.UserId == userId),
-            ThisMonthExpenses = await _context.Expenses.Where(x => x.Vehicle.UserId == userId &&
-                x.ExpenseDate >= start && x.ExpenseDate < end).SumAsync(x => (decimal?)x.Amount) ?? 0,
+            ThisMonthExpenses = await monthlyAmounts.SumAsync() ?? 0m,
             ActiveRemindersCount = await reminders.CountAsync(),
             PendingAppointmentsCount = await appointments.CountAsync(x => x.Status == AppointmentStatus.Pending),
             UpcomingReminders = await reminders.OrderBy(x => x.ReminderDate).ThenBy(x => x.Id).Take(5)

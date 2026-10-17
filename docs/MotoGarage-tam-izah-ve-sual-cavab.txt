@@ -1,0 +1,1633 @@
+MOTOGARAGE — LAYİHƏNİ BAŞA DÜŞMƏK VƏ TƏQDİMATA HAZIRLAŞMAQ
+Hazırlanma tarixi: 17 oktyabr 2026
+Dil: Azərbaycan dili
+
+Bu sənəd layihənin mövcud koduna əsaslanır. Məqsəd texnologiya adlarını
+əzbərləməkdən əlavə, onların hansı problemi həll etdiyini başa düşməkdir.
+İzahlar mövcud versiyaya aiddir; gələcək üçün nəzərdə tutulan imkanlar
+hazır funksiyalar kimi təqdim edilmir.
+
+Necə oxumaq olar:
+- Əvvəl 1–6-cı bölmələrlə layihənin ümumi məntiqini öyrən.
+- Sonra login, görüş, sifariş və chat axınlarını oxu.
+- Sonda sual-cavab və qısa yaddaş vərəqi ilə özünü yoxla.
+- Cavabı unutsan, konkret nümunə üzərindən izah et: “İstifadəçi görüş
+  yaradır, server boş saatı yoxlayır, bazaya yazır və bildiriş hazırlayır.”
+
+MÜNDƏRİCAT
+1. Layihəni necə təqdim etmək olar?
+2. Rollar və əsas funksiyalar
+3. İstifadə olunan texnologiyalar
+4. Backend arxitekturası və project references
+5. Bir sorğu frontend-dən bazaya necə gedir?
+6. Controller, Service, Repository, DTO və DI
+7. Məlumat bazası, əlaqələr və migration
+8. React frontend necə təşkil olunub?
+9. Qeydiyyat, şifrə, OTP və Google Login
+10. JWT, Refresh Token və logout
+11. Rol, ownership və admin bloklaması
+12. Usta və mağaza müraciətlərinin təsdiqi
+13. Qaraj, nəqliyyat və slug
+14. Yanacaq, xərc və servis tarixçəsi
+15. Görüşün planlaşdırılması və servis hesabatı
+16. Sifariş, ünvan və stok
+17. SignalR chat və şəkil/video göndərilməsi
+18. Bildirişlər və avtomatik xatırlatmalar
+19. Email-lər və davamlı göndəriş növbəsi
+20. Cloudinary və secret management
+21. Rəylər, reytinq və biznes statistikası
+22. Excel ilə nəqliyyat tarixçəsinin paylaşılması
+23. URL filterləri, responsive dizayn və skeleton
+24. Validation və xəta cavabları
+25. Transaction, concurrency və performans
+26. Testlər və layihəni işə salmaq
+27. Təqdimat üçün demo ssenarisi
+28. Verilə biləcək suallar və hazır cavablar
+29. Mövcud imkanların sərhədləri
+30. Qısa yaddaş vərəqi
+31. Kodu göstərmək üçün əsas fayllar
+
+
+1. LAYİHƏNİ NECƏ TƏQDİM ETMƏK OLAR?
+
+Qısa təqdimat:
+“MotoGarage avtomobil və motosiklet sahiblərini ustalar və ehtiyat hissələri
+mağazaları ilə birləşdirən veb platformadır. İstifadəçi nəqliyyatının
+yanacaq, xərc və servis tarixçəsini idarə edir, ustanın boş saatını seçərək
+görüş yaradır, mağazadan məhsul sifariş edir və bizneslə canlı yazışır.”
+
+Daha texniki təqdimat:
+“Backend C# və ASP.NET Core Web API ilə, frontend React ilə hazırlanıb.
+Məlumatlar SQL Server-də saxlanılır və Entity Framework Core vasitəsilə
+idarə olunur. Giriş üçün Identity, JWT, refresh token, email OTP və
+Google Login istifadə edilir. SignalR canlı chat və bildirişlərə,
+Cloudinary media saxlanmasına, SMTP email-lərə, ClosedXML Excel
+hesabatlarına xidmət edir.”
+
+Layihənin həll etdiyi problem:
+Nəqliyyat tarixçəsi, servis planı, usta ilə əlaqə və ehtiyat hissəsi
+sifarişi bir-birindən ayrı yerlərdə qalır. MotoGarage bunları eyni hesab
+və əlaqəli məlumat modeli daxilində toplamağa imkan verir.
+
+Bu, React frontend və vahid ASP.NET Core backend-dən ibarət tətbiqdir.
+Qovluqların və C# project-lərinin ayrılması onların ayrıca microservice
+olması demək deyil.
+
+
+2. ROLLAR VƏ ƏSAS FUNKSİYALAR
+
+USER — adi istifadəçi:
+- Avtomobil və motosikletlərini qaraja əlavə edir.
+- Yanacaq, xərc, servis qeydləri və xatırlatmalar yaradır.
+- Usta axtarır, boş saatı seçir, görüş yaradır və ləğv edə bilir.
+- Məhsul sifariş edir və çatdırılma məlumatlarını daxil edir.
+- Usta və ya mağaza ilə yazışır.
+- Tamamlanmış xidmət aldığı ustaya rəy verir.
+- Öz nəqliyyat tarixçəsini Excel ilə paylaşır.
+
+MECHANIC — usta:
+- Biznes profilini və həftəlik iş saatlarını idarə edir.
+- Gələn görüşləri qəbul, rədd və tamamlayır.
+- Gündəlik və həftəlik təqvimə baxır.
+- Görülən iş haqqında servis hesabatı hazırlayır.
+- Müştəri ilə yazışır və biznes statistikasını görür.
+
+STORE — mağaza:
+- Məhsullarını, qiymətini, stokunu və xəbərdarlıq həddini idarə edir.
+- Gələn sifarişləri görür və statuslarını dəyişir.
+- Müştərinin çatdırılma ünvanını və telefonunu görə bilir.
+- Azalan stok haqqında bildiriş və satış statistikası alır.
+- Müştəri ilə yazışır.
+
+ADMIN — administrator:
+- İstifadəçiləri yoxlayır, bloklayır, blokdan çıxarır və hesab silir.
+- Yeni usta və mağaza müraciətlərinə qərar verir.
+- Qərarların əməliyyat tarixçəsinə baxır.
+- Menyusunda əsasən idarəetmə üçün lazım olan bölmələr göstərilir.
+
+Vacib fərq:
+Rol üzrə menyu göstərmək frontend işidir. Faktiki icazəni backend verir.
+Menyudan düymənin gizlədilməsi təkbaşına təhlükəsizlik yaratmır.
+
+
+3. İSTİFADƏ OLUNAN TEXNOLOGİYALAR
+
+Təqdimatın bir slaydına yerləşəcək əsas beşlik:
+1) ASP.NET Core (.NET 8) — backend və API.
+2) React 19 — frontend.
+3) React Bits — hazır əsasdan uyğunlaşdırılmış animasiyalı UI komponentləri.
+4) Microsoft SQL Server — relational məlumat bazası.
+5) Entity Framework Core 8 — C# modelləri ilə baza arasında işləyən ORM.
+
+Digər istifadə olunan hissələr:
+
+C#:
+Backend-in əsas proqramlaşdırma dilidir. Biznes qaydaları, servislər,
+modellər və controller-lər bu dildə yazılıb.
+
+JavaScript və JSX:
+React komponentləri və frontend məntiqi üçün istifadə olunur. JSX,
+JavaScript daxilində interfeysin quruluşunu yazmağa imkan verir.
+
+Vite:
+Frontend development server-i və production build alətidir. Brauzerin
+işlədəcəyi JavaScript/CSS fayllarını hazırlayır.
+
+CSS:
+Layout, rənglər, responsive görünüş, açıq/tünd tema və bəzi animasiyalar
+xüsusi CSS vasitəsilə qurulub.
+
+React Bits və Motion:
+GooeyNav, BranchedMenu, PeekRating, CodeSlots və SwipeToast kimi
+komponentlər React Bits nümunələrindən uyğunlaşdırılıb. Motion
+animasiya üçün istifadə olunur. Bunlar backend biznes qaydalarını
+yerinə yetirmir; istifadəçi təcrübəsini yaxşılaşdırır.
+
+Lucide və Hugeicons:
+Menyu, düymə və digər interfeys ikonları üçündür.
+
+ASP.NET Core Identity:
+İstifadəçi hesabı, password hash, login yoxlaması, lockout və xarici
+giriş əlaqələrini idarə etməyə kömək edir.
+
+JWT Bearer Authentication:
+API-yə göndərilən access token-i yoxlayaraq istifadəçini tanıyır.
+
+Google.Apis.Auth:
+Google tərəfindən verilmiş ID token-in backend-də yoxlanması üçündür.
+
+SignalR:
+Serverlə brauzer arasında canlı hadisələr ötürür. Chat mesajları və
+bildiriş yenilənmələri üçün istifadə olunur.
+
+Cloudinary:
+Şəkil və videoları saxlayan xarici media xidmətidir.
+
+MailKit və MimeKit:
+SMTP bağlantısı, email mətnləri və Excel kimi əlavələrin hazırlanması
+və göndərilməsi üçün istifadə olunur.
+
+ClosedXML:
+Backend-də Excel (.xlsx) faylı yaratmaq üçündür.
+
+AutoMapper:
+Entity ilə DTO arasında uyğun sahələrin çevrilməsini asanlaşdırır.
+
+Swagger / OpenAPI:
+API endpoint-lərini sənədləşdirir və onları brauzerdən sınamağa imkan verir.
+
+xUnit:
+Backend-in avtomatlaşdırılmış testləri üçündür.
+
+Playwright:
+Brauzerdə səhifə, forma, navigation və istifadəçi davranışı testləri üçündür.
+
+Oxlint və Prettier:
+JavaScript kodunun statik yoxlanması və formatlanması üçün istifadə olunur.
+
+Git:
+Layihədəki dəyişikliklərin versiya tarixçəsini saxlayır.
+
+
+4. BACKEND ARXİTEKTURASI VƏ PROJECT REFERENCES
+
+Layihədə Clean Architecture yanaşmasına uyğun dörd əsas project var:
+
+MotoGarage.Domain:
+User, Vehicle, Appointment, Order, Product və digər entity-lər,
+enum-lar və domain exception-lar burada yerləşir.
+
+MotoGarage.Application:
+Biznes servisləri, interface-lər, DTO-lar, validation köməkçiləri və
+mapping qaydaları burada yerləşir. Məsələn, OrderService sifarişin
+hansı qaydalarla yaradılmasını müəyyən edir.
+
+MotoGarage.Infrastructure:
+EF Core DbContext, repository implementasiyaları, migration-lar,
+Identity/Google girişinin tətbiqi, Cloudinary, SMTP, Excel və bəzi
+planlaşdırma/idarəetmə servisləri burada yerləşir.
+
+MotoGarage.API:
+HTTP controller-lər, SignalR hub, middleware, background worker-lər və
+Dependency Injection qeydiyyatları burada yerləşir. Program.cs
+tətbiqin hissələrini bir-birinə bağlayır.
+
+Project reference istiqamətləri:
+- Application → Domain.
+- Infrastructure → Application və Domain.
+- API → Application və Infrastructure.
+- Tests → API və onun asılılıqları.
+
+Niyə bu cür ayrılıb?
+HTTP cavabları, stok qaydaları və SMTP bağlantısı eyni məsuliyyət deyil.
+Onları ayırmaq kodu tapmağı, dəyişməyi və test etməyi asanlaşdırır.
+
+Mövcud tətbiq haqqında dəqiq danış:
+Bu, qatlara ayrılmış arxitekturadır. “Hər şey yalnız repository-dən
+keçir” demək düzgün olmaz: Infrastructure daxilində bəzi sorğu,
+administrasiya və planlaşdırma servisləri AppDbContext-dən birbaşa
+istifadə edir. Domain-də User modeli IdentityUser<int>-dən miras alır,
+ona görə Domain-in bütün framework-lərdən tam müstəqil olduğunu
+iddia etmək də dəqiq deyil.
+
+
+5. BİR SORĞU FRONTEND-DƏN BAZAYA NECƏ GEDİR?
+
+Adi HTTP əməliyyatının məntiqi:
+
+İstifadəçi düyməni basır
+→ React forma məlumatını toplayır
+→ frontend API modulu fetch ilə sorğu göndərir
+→ ASP.NET Core istifadəçini və icazəsini yoxlayır
+→ Controller sorğunu Service-ə ötürür
+→ Service biznes qaydalarını yoxlayır
+→ Repository/DbContext EF Core ilə bazaya müraciət edir
+→ nəticə DTO və JSON şəklində frontend-ə qayıdır
+→ React yeni nəticəni göstərir.
+
+Məsələn, sifariş yaradılması:
+POST /api/orders
+
+Sorğuda məhsulun ID-si, sayı və çatdırılma məlumatları gəlir.
+Backend qiyməti bazadan oxuyur, stoku yoxlayır, məbləği hesablayır,
+sifarişi saxlayır, stoku azaldır və email növbəsi yaradır.
+
+İstifadəçi kimdir?
+Backend bunu sorğuda yazılmış customerId-yə kor-koranə baxaraq yox,
+yoxlanmış JWT daxilindəki istifadəçi identifikatorundan müəyyən edir.
+
+JSON nədir?
+Frontend və backend arasında məlumat ötürmək üçün mətn formatıdır.
+Məsələn: { "quantity": 2, "productId": 15 }.
+
+REST nədir?
+Resursları URL və HTTP metodları ilə idarə etmə yanaşmasıdır:
+GET oxumaq, POST yaratmaq, PUT yeniləmək, PATCH status kimi qismən
+dəyişiklik, DELETE silmək üçün işlədilir.
+
+
+6. CONTROLLER, SERVICE, REPOSITORY, DTO VƏ DI
+
+Controller:
+Sorğunu qəbul edir, route/body məlumatını götürür, istifadəçi ID-sini
+müəyyən edir, uyğun servisi çağırır və HTTP cavabı qaytarır.
+
+Service:
+“Bu əməliyyata icazə varmı və hansı qayda tətbiq olunmalıdır?”
+sualına cavab verir. Məsələn: başqa istifadəçinin avtomobilinə servis
+qeydi yazmaq olmaz; eyni sifarişdə müxtəlif mağazalar ola bilməz.
+
+Repository:
+Məlumatın bazadan necə oxunması və saxlanması ilə məşğuldur.
+Generic Repository<T> ümumi əməliyyatları, xüsusi repository-lər
+isə əlavə filter və Include-ları təqdim edir.
+
+DTO — Data Transfer Object:
+API-yə daxil olan və ya API-dən çıxan məlumat modelidir.
+Entity-nin bütün sahələrini müştəriyə açmaq əvəzinə lazım olan
+sahələri qəbul etməyə və qaytarmağa imkan verir.
+
+Nümunə:
+User entity-sində password hash ola bilər. İstifadəçiyə göstərilən
+profil DTO-sunda password hash göndərmək lazım deyil.
+
+AutoMapper:
+Uyğun DTO və entity sahələrini köçürür. Bəzi hesablamalar mapping-də
+də təyin olunur; yanacaq məbləği buna nümunədir. Bununla yanaşı,
+icazə və biznes qaydaları servisdə ayrıca yoxlanır.
+
+DI — Dependency Injection:
+Sinfin ehtiyac duyduğu obyektləri constructor vasitəsilə almasıdır.
+OrderService öz daxilində konkret repository yaratmır; interface-ləri
+qəbul edir. Program.cs hansı interface üçün hansı sinfin verilməsini
+qeydiyyata alır.
+
+Məsələn:
+IOrderService → OrderService
+IUnitOfWork → UnitOfWork
+IWorkflowEmailQueue → WorkflowEmailQueue
+
+Scoped:
+HTTP sorğusu daxilində DbContext və onunla işləyən servislər uyğun
+scope paylaşır. Background worker isə hər iş dövrü üçün ayrıca
+DI scope açır.
+
+Singleton:
+Tətbiq müddətində bir instance saxlanılır. Məsələn, bağlantı
+reyestri və bəzi yaddaşdakı hadisə növbələri üçün istifadə olunur.
+
+Interface və DI-nin testdə faydası:
+Həqiqi SMTP əvəzinə saxta email servisi vermək olur. Beləliklə,
+test müştəriyə məktub göndərmədən biznes qaydasını yoxlayır.
+
+
+7. MƏLUMAT BAZASI, ƏLAQƏLƏR VƏ MIGRATION
+
+SQL Server relational bazadır. Məlumatlar cədvəllərdə saxlanılır,
+foreign key-lər isə cədvəllər arasındakı əlaqəni qoruyur.
+
+Əsas əlaqələr:
+- Bir istifadəçinin bir neçə nəqliyyat vasitəsi ola bilər.
+- Nəqliyyatın bir neçə yanacaq, xərc, servis və xatırlatma qeydi var.
+- Görüş istifadəçiyə, ustaya və nəqliyyata bağlıdır.
+- Məhsul mağazaya bağlıdır.
+- Sifariş istifadəçiyə və mağazaya bağlıdır.
+- Sifarişin daxilində bir neçə OrderItem ola bilər.
+- Conversation iştirakçıları müəyyən edir, Message həmin söhbətə bağlıdır.
+- ChatAttachment faylın kimə və hansı söhbətə aid olduğunu saxlayır.
+
+Primary key:
+Qeydin identifikatorudur. Məsələn, Order.Id.
+
+Foreign key:
+Qeydin başqa cədvəldəki hansı qeydə bağlı olduğunu bildirir.
+Məsələn, Order.StoreId.
+
+Unique index:
+Eyni dəyərin təkrar saxlanmasını məhdudlaşdırır. Slug-lar, müəyyən
+conversation cütləri, rəy cütləri və email hadisə açarlarında var.
+
+ORM nədir?
+Entity Framework Core kimi vasitə C# obyektləri və LINQ sorğuları ilə
+SQL bazası arasında işləyir. SQL Server ilə EF Core eyni şey deyil:
+biri saxlanc sistemidir, digəri ona müraciət edən proqram qatıdır.
+
+Code First:
+Model və konfiqurasiyalar kodda təsvir olunur, schema dəyişiklikləri
+migration-larla bazaya tətbiq edilir.
+
+Migration:
+“Yeni sütun/cədvəl/indeks lazımdır” dəyişikliklərini versiyalı şəkildə
+saxlayır. dotnet ef database update gözləyən migration-ları tətbiq edir.
+Migration istifadəçi məlumatının backup-ı deyil.
+
+Cascade və Restrict:
+Bəzi alt qeydlər parent silinəndə silinə bilər. Amma sifariş, görüş və
+tarixçə üçün əhəmiyyətli əlaqələrdə Restrict istifadə olunur.
+Mövcud layihədə bütün əlaqələr eyni silinmə qaydasına malik deyil.
+
+LocalDB:
+Development üçün istifadə olunan lokal SQL Server mühitidir.
+Layihə sadəcə müvəqqəti yaddaş massivləri ilə işləmir.
+
+
+8. REACT FRONTEND NECƏ TƏŞKİL OLUNUB?
+
+Frontend feature-based quruluşa malikdir:
+- app: tətbiqin qurulması, provider və router.
+- features: auth, garage, appointments, orders, chat və digər funksiyalar.
+- components: ümumi UI, layout və feedback komponentləri.
+- shared: API client, ümumi hook və köməkçi funksiyalar.
+- styles və assets: görünüş və vizual resurslar.
+
+Component:
+İnterfeysin təkrar istifadə olunan hissəsidir. Məsələn, Button,
+ReviewCard, AppointmentEditor və ya AvailabilityPicker.
+
+Props:
+Parent komponentdən gələn məlumat və callback-lərdir.
+
+State:
+Komponentin dəyişən vəziyyətidir: seçilmiş tarix, açıq modal,
+loading vəziyyəti və s. State dəyişəndə React görünüşü yeniləyir.
+
+Hook:
+State və yan təsirlərin idarəsi üçün funksiyadır.
+Layihədə useResource, useAuthSession, useUrlQuery kimi xüsusi hook-lar var.
+
+Context:
+Sessiya, tema, səbət, toast və digər ortaq məlumatları komponentlərə
+ötürmək üçün istifadə olunur.
+
+API client:
+fetch vasitəsilə sorğu göndərir, Bearer token əlavə edir, JSON
+cavabını oxuyur, xətaları uyğunlaşdırır və lazım gəlsə token yeniləyir.
+
+Routing:
+Mövcud frontend-də #/garage/... kimi hash URL-lərlə işləyən xüsusi
+router var. React Router istifadə etdiyini söyləmək dəqiq olmaz.
+
+Skeleton:
+Məlumat gözlənərkən ekranın təxmini quruluşunu göstərir.
+useResource-un loading vəziyyətinə bağlıdır; sırf skeleton görünsün
+deyə bu hook-a əlavə süni gözləmə qoyulmayıb.
+
+AbortController:
+İstifadəçi başqa səhifəyə/filterə keçəndə əvvəlki sorğunu dayandırır.
+Gecikmiş köhnə cavab yeni nəticənin üzərinə yazılmamalıdır.
+
+
+9. QEYDİYYAT, ŞİFRƏ, OTP VƏ GOOGLE LOGIN
+
+Adi qeydiyyat:
+1) İstifadəçi məlumatlarını göndərir.
+2) Backend DTO və hesab qaydalarını yoxlayır.
+3) Identity istifadəçini və password hash-i saxlayır.
+4) Emailə altırəqəmli təsdiqləmə kodu göndərilir.
+5) Düzgün kod təsdiqlənəndə EmailConfirmed aktivləşir.
+6) Müvafiq login sessiyası yaradılır.
+
+Şifrələr:
+Açıq şifrə bazada saxlanılmır. Identity-nin password hasher-i
+istifadə olunur. Login zamanı daxil edilmiş şifrə saxlanmış hash-ə
+qarşı yoxlanır. Şifrəni geri açmaq məqsədi daşımayan hash ilə
+ikiyönlü encryption eyni şey deyil.
+
+OTP:
+Kriptoqrafik random generatorla altırəqəmli kod yaranır.
+Kodun hash-i, istifadəçi əlaqəsi, bitmə vaxtı və səhv cəhd sayı saxlanır.
+Hazırkı kod 10 dəqiqəlikdir və maksimum 5 səhv cəhd məhdudiyyəti var.
+Uğurla istifadə edilmiş və ya vaxtı bitmiş kod yenidən qəbul edilmir.
+
+OTP nəyi sübut edir?
+İstifadəçinin həmin email ünvanına çıxışı olduğunu. Bu axını
+avtomatik olaraq “hər login üçün iki faktorlu giriş” kimi təqdim etmə:
+burada əsas məqsəd emailin təsdiqidir.
+
+Login:
+Email və şifrə yoxlanır, blok/lockout vəziyyətinə və email təsdiqinə
+baxılır. Uğurlu halda access token və refresh token qaytarılır.
+Səhv şifrə cəhdləri üçün Identity lockout və auth endpoint-lərində
+rate limit mexanizmləri də istifadə olunur.
+
+Google Login:
+Frontend Google-dan aldığı ID token-i backend-ə göndərir.
+Backend Google.Apis.Auth ilə token-i, layihəyə uyğun audience
+məlumatını və təsdiqlənmiş emaili yoxlayır. Sonra yerli hesabı tapır
+və ya yaradır, xarici login əlaqəsini qurur, MotoGarage token-lərini verir.
+Google şifrəsi MotoGarage-ə göndərilmir və bizdə saxlanılmır.
+
+
+10. JWT, REFRESH TOKEN VƏ LOGOUT
+
+Access token:
+API-yə giriş üçün istifadə edilən qısaömürlü JWT-dir.
+İstifadəçinin ID-si, adı, emaili, rolu və biznes təsdiq statusu kimi
+claim-lər daşıyır. Hazırkı konfiqurasiyada müddəti 30 dəqiqədir.
+
+Token necə göndərilir?
+Authorization: Bearer <access-token>
+
+JWT-nin təhlükəsizliyi:
+Backend onu HMAC-SHA256 ilə imzalayır. Server imzanı, issuer,
+audience və vaxt məhdudiyyətlərini yoxlayır.
+JWT-nin payload-u adi oxuna bilən kodlaşdırılmış məlumatdır;
+“JWT bütün məlumatı şifrələyir” demək düzgün deyil.
+
+Refresh token:
+64 random baytdan yaradılan ayrıca təsadüfi dəyərdir.
+Məqsədi access token bitəndə yenisini almaqdır.
+Hazırkı müddəti 7 gündür. Bazada onun açıq dəyəri yox, SHA-256 hash-i
+saxlanılır.
+
+Rotation:
+Refresh edəndə köhnə refresh token ləğv olunur və yeni cütlük verilir.
+Ləğv edilmiş refresh token təkrar istifadə olunsa, həmin istifadəçinin
+refresh sessiyaları ləğv edilir. Bu, oğurlanmış tokenin təkrar istifadəsini
+aşkar etmək üçün mexanizmdir.
+
+Frontend:
+Token-in bitməsinə az qalıbsa refresh edir. Bir neçə sorğu eyni anda
+refresh istəsə, eyni davam edən yeniləmə promise-i paylaşılır.
+401 cavabından sonra uyğun halda token yenilənib sorğu təkrar edilir.
+
+Harada saxlanılır?
+Mövcud frontend sessiyanı sessionStorage və yaddaşda saxlayır.
+HttpOnly cookie istifadə olunduğunu iddia etmək olmaz.
+Bu seçimdə XSS-dən qorunma xüsusi əhəmiyyət daşıyır.
+
+Logout:
+Aktiv refresh token backend-də ləğv edilir və frontend sessiyanı
+təmizləyir. Bu, ayrıca bir access-token denylist mexanizmi deyil:
+imzalanmış access token-in təbii vaxtı və serverdəki hesab yoxlamaları
+öz qaydaları ilə işləyir.
+
+
+11. ROL, OWNERSHIP VƏ ADMIN BLOKLAMASI
+
+Authentication:
+“Sən kimsən?” — token və hesab vasitəsilə müəyyən edilir.
+
+Authorization:
+“Bu əməliyyatı edə bilərsən?” — rol və resurs icazəsinə görə yoxlanır.
+
+Role-based authorization:
+[Authorize(Roles = "Store")] kimi qaydalar yalnız uyğun rolun
+mağaza statusunu dəyişməsinə icazə verir.
+
+Ownership:
+Eyni rolda olan iki istifadəçinin şəxsi məlumatları yenə ayrıdır.
+Avtomobili oxuyarkən və dəyişərkən onun UserId-si cari istifadəçi
+ilə uyğunlaşdırılır. Sifarişə yalnız sahibi və uyğun mağaza,
+söhbətə isə yalnız həmin söhbətin iştirakçısı baxa bilər.
+
+Nümunə:
+İstifadəçi URL-də avtomobilin ID-sini və ya slug-ını dəyişsə də
+başqasının tarixçəsini açmaq hüququ qazanmır.
+
+Admin bloklaması:
+JWT hələ bitməsə belə, OnTokenValidated mərhələsində hesab bazadan
+yoxlanır: silinibmi, bloklanıbmı, email təsdiqlənibmi, cari rol
+token roluna uyğundurmu?
+
+Biznes təsdiqi də canlı bazadan yoxlanır. Təsdiq gözləyən/rədd edilmiş
+biznesə köhnə tokenlə biznes əməliyyatı etmək icazəsi verilmir.
+
+SignalR:
+Hub metodlarında da istifadəçinin cari hesab vəziyyəti və söhbətə
+aidiyyəti yoxlanır. Bağlantı reyestri admin blokundan sonra mövcud
+canlı bağlantıların dayandırılmasına imkan verir.
+
+
+12. USTA VƏ MAĞAZA MÜRACİƏTLƏRİNİN TƏSDİQİ
+
+Yeni usta/mağaza qeydiyyatında dəqiq 3 fərqli şəkil tələb olunur.
+Frontend bir neçə şəkli birlikdə seçməyə imkan verir.
+Server say, format, ölçü və təkrar fayl qaydalarını yoxlayır.
+
+Qeydiyyat şəkilləri:
+JPG/JPEG, PNG və WEBP qəbul edilir; hər fayl maksimum 5 MB-dır.
+Eyni məzmunlu şəkillər başqa adla yüklənsə də hash yoxlaması ilə
+təkrar kimi aşkarlana bilər.
+
+Axın:
+Qeydiyyat → email təsdiqi → Pending müraciət → admin baxışı
+→ Approved və ya Rejected.
+
+Admin şəkillərə baxaraq real iş yeri/məhsul barədə qərar verir.
+Şəkildəki obyektləri süni intellektin avtomatik təsdiqlədiyini
+söyləmək olmaz.
+
+Rədd zamanı şərh məcburidir. Qərar, canlı biznes icazəsi, audit qeydi
+və uyğun tətbiqdaxili bildiriş əlaqəli DB əməliyyatları ilə saxlanılır.
+
+Pending istifadəçi hesabına və müraciətinə baxa bilər, amma aktiv
+biznesin əməliyyat imkanlarını avtomatik əldə etmir.
+
+Şəkillər Cloudinary-də, müraciət və media metadata-sı bazada saxlanılır.
+Yükləmə yarımçıq alınarsa xarici fayllar üçün kompensasiya cleanup
+edilir; Cloudinary ilə SQL arasında vahid SQL transaction yoxdur.
+
+
+13. QARAJ, NƏQLİYYAT VƏ SLUG
+
+Qarajda həm avtomobil, həm də motosiklet saxlanıla bilər.
+Marka, model, il, mühərrik, növ, VIN, dövlət nömrəsi və cari kilometr
+kimi məlumatlar qeyd olunur.
+
+Slug:
+URL-də oxunaqlı identifikatordur. Nümunə:
+#/garage/toyota-corolla-<unikal-hissə>
+
+Niyə var?
+İstifadəçinin gördüyü ünvanı daha anlaşıqlı edir.
+Qaraj slug-ı marka/model və təsadüfi unikal hissədən yaranır.
+DB-də unique index təkrarlanmanı məhdudlaşdırır.
+
+Vacib:
+- Slug avtomobil redaktə olunanda dəyişmir.
+- VIN və dövlət nömrəsini URL-ə yazmaq üçün istifadə edilmir.
+- Backend daxilində ID-lər yenə istifadə olunur.
+- Slug gizli şifrə deyil və ownership yoxlamasını əvəz etmir.
+- Köhnə rəqəmli frontend ünvanları uyğun halda yeni slug-a yönləndirilir.
+
+Məsələn, avtomobilin servis səhifəsi:
+#/garage/toyota-corolla-<unikal-hissə>/service
+
+
+14. YANACAQ, XƏRC VƏ SERVİS TARİXÇƏSİ
+
+Yanacaq qeydində:
+Tarix, odometr, litr, bir litrin qiyməti və ümumi məbləğ saxlanır.
+
+Ümumi məbləğ:
+Litrlər × bir litrin qiyməti.
+Məsələn, 30 litr × 1,10 AZN = 33 AZN.
+
+Cari kilometr:
+Yeni yanacaq qeydi avtomobilin cari kilometrindən böyük odometr
+göstərirsə CurrentKm artırılır. Köhnə qeydi daxil etmək avtomatik
+olaraq odometri geri endirmək demək deyil.
+
+Sərfiyyat hesabı:
+Qeydlər kilometrə, sonra tarixə görə sıralanır.
+Məsafə = son odometr − ilk odometr.
+İlk dolum başlanğıc nöqtəsi sayılır.
+Hesaba ilk qeyddən SONRAKI dolumların litrləri daxil edilir.
+
+Orta sərfiyyat =
+(ilk qeyddən sonrakı litrlərin cəmi / məsafə) × 100.
+
+Nümunə:
+10 000 km-də 40 litr — başlanğıc.
+10 500 km-də 35 litr — növbəti dolum.
+Məsafə 500 km, hesablanan sərf 35 litrdir.
+35 / 500 × 100 = 7 litr / 100 km.
+Amma bütün alınmış yanacaq cəmi yenə 75 litrdir.
+
+Ən azı iki qeyd və müsbət məsafə olmadıqda orta sərf 0 göstərilir.
+Bu göstərici daxil edilən dolum qeydlərinə əsaslanır. Bakın doluluq
+səviyyəsi və real istifadə qaydası nəzərə alınmadığı üçün onu
+sensorla ölçülmüş dəqiq fiziki sərf kimi təqdim etmək olmaz.
+
+Xərc:
+Tarix, kateqoriya, açıqlama və məbləğ kimi məlumatları saxlayır.
+Mövcud xərc modelində ayrıca kilometr sahəsi yoxdur.
+
+Servis qeydi:
+Görülən işi, tarixi, kilometri, hissələri/açıqlamanı və məbləği
+izləmək üçündür. Sahib özü qeyd yarada bilər; ustanın hesabatından
+gələn servis üçün isə ayrıca təsdiq axını var.
+
+Hər qeyd əməliyyatında uyğun nəqliyyatın cari istifadəçiyə aid olması
+yoxlanır. Tarix aralığı ilə baxış və hesabat almaq mümkündür.
+
+
+15. GÖRÜŞÜN PLANLAŞDIRILMASI VƏ SERVİS HESABATI
+
+Görüş yaratmaq:
+İstifadəçi öz nəqliyyatını, ustanı, günü və boş saatı seçir.
+Saatlar Bakı vaxtı ilə 24 saatlıq formatda göstərilir.
+
+Boş saatlar necə tapılır?
+1) Ustanın həmin həftə günü üçün iş saatı alınır.
+2) Pending və Accepted görüşlərin tutduğu intervallar tapılır.
+3) İş intervalında 15 dəqiqəlik addımlarla başlanğıc vaxtları yoxlanır.
+4) Görüş müddətinin tam sığdığı və üst-üstə düşməyən vaxtlar qaytarılır.
+
+Hazırkı frontend-də standart görüş müddəti 60 dəqiqədir.
+Backend 15–240 dəqiqə arasında, 15-in qatları olan müddətləri dəstəkləyir.
+Planlama qarşıdakı 90 gün daxilindədir.
+Usta ayrıca cədvəl yazmayıbsa ilkin qrafik bazar ertəsi–şənbə
+09:00–18:00, bazar günü bağlıdır.
+
+İnterval toqquşmasının məntiqi:
+Yeni başlanğıc < mövcud bitiş
+VƏ yeni bitiş > mövcud başlanğıc.
+
+Məsələn, 10:00–11:00 görüş varsa, yeni 10:30–11:30 görüş toqquşur.
+11:00-da başlayan növbəti görüş isə bitişə bitişik ola bilər.
+
+Save zamanı təkrar yoxlama:
+İki nəfər eyni boş saatı görmüş ola bilər. Ona görə backend görüş
+yazılan transaction daxilində yenidən yoxlayır. Ustanın və seçilmiş
+nəqliyyatın başqa aktiv görüşü ilə üst-üstə düşmək rədd edilir.
+Boş saat siyahısı ustaya görədir; avtomobilin başqa rezervasiyası da
+yaratma zamanı ayrıca yoxlanır.
+
+Görüş statusları:
+Pending → Accepted, Rejected və ya Cancelled.
+Accepted → Completed və ya Cancelled.
+Terminal statusdan özbaşına əvvəlki statusa qayıtmaq olmur.
+Usta qəbul/rədd/tamamlanma, istifadəçi isə ləğv axınından istifadə edir.
+
+Vaxt dəyişməsi:
+İştirakçılardan biri yeni vaxt təklif edir. Qarşı tərəf qəbul edənə
+qədər əvvəlki vaxt qüvvədə qalır. Öz təklifini özü təsdiqləmək olmaz.
+Revision köhnə və ya artıq cavablandırılmış təklifin təkrar
+təsdiqlənməsinin qarşısını almağa kömək edir.
+
+Servis hesabatı:
+Usta tamamlanmış görüş üçün görülən iş, dəyişən hissə, kilometr,
+tarix və məbləğ yazır. Nəqliyyat sahibi qəbul və ya səbəb yazaraq
+rədd edir. Yalnız qəbul ediləndə servis tarixçəsinə ServiceRecord
+əlavə olunur və uyğun halda cari kilometr artırılır.
+Təsdiqlənmiş hesabat yenidən yazılmır.
+
+Burada iki ayrı təsdiq var:
+Görüşü usta qəbul edir; görülmüş işin hesabatını nəqliyyat sahibi
+təsdiqləyir. Bunları bir-biri ilə qarışdırma.
+
+16. SİFARİŞ, ÜNVAN VƏ STOK
+
+İstifadəçi sifariş zamanı alıcının adını, telefonu, şəhər/rayonu və
+tam ünvanı yazır. Çatdırılma qeydi istəyə bağlıdır.
+Bu məlumatlar sifarişdə snapshot kimi saxlanılır: hesab profilinin
+sonradan dəyişməsi əvvəlki sifarişin ünvanını dəyişmir.
+
+Sifariş yaradılmasının server axını:
+1) DTO, ünvan və məhsul siyahısı yoxlanır.
+2) İstifadəçinin aktiv hesab olması yoxlanır.
+3) Məhsullar bazadan oxunur; aktivlik və stok yoxlanır.
+4) Bir sifarişin yalnız bir mağazaya aid olması yoxlanır.
+5) Qiymət bazadakı məhsul qiymətindən götürülür.
+6) OrderItem məbləğləri və TotalAmount hesablanır.
+7) Stok azaldılır, sifariş yaradılır, email növbəsi yazılır.
+8) Mağaza üçün tətbiqdaxili bildiriş yaradılır.
+9) Transaction uğurlu olarsa nəticələr birlikdə təsdiqlənir.
+
+Üç fərqli mağazadan almaq:
+Mümkündür, amma hər mağaza üçün ayrıca sifariş yaradılır. Səbətə
+başqa mağazanın məhsulu əlavə ediləndə mövcud səbəti əvvəl tamamlamaq
+tələb olunur. Birinci sifariş yaradıldıqdan sonra ikinci və üçüncü
+mağazadan almaq olar; əvvəlki mağazanın qəbulunu gözləmək tələb edilmir.
+Üç sifarişin statusu və mağaza tərəfindən idarəsi bir-birindən ayrıdır.
+Bir səbətin avtomatik üç mağaza sifarişinə bölünməsi hazırda yoxdur.
+
+Frontend-dən qiyməti dəyişmək niyə kifayət etmir?
+Backend istifadəçinin təqdim etdiyi ekrandakı qiymətə etibar etmir.
+Məhsulun qiyməti və stok bazadan alınır.
+
+OrderItem:
+Məhsulun ID-si, sayı, sifariş vaxtındakı UnitPrice və TotalPrice
+məlumatını saxlayır. Məhsulun qiyməti sonradan dəyişsə, əvvəlki
+sifarişdə saxlanmış UnitPrice yenidən hesablanmır.
+
+Sifariş statuslarının əsas yolu:
+Pending → Confirmed → Preparing → Shipped → Completed.
+
+Ləğv:
+- Pending, Confirmed və Preparing mərhələlərindən mağaza ləğvi mümkündür.
+- Müştərinin ləğvi Pending və Confirmed mərhələləri ilə məhdudlaşır.
+- Shipped mərhələsindən yalnız Completed keçidi nəzərdə tutulub.
+- Ləğv olunan sifarişin stoku geri qaytarılır.
+- Təkrar ləğv stoku ikinci dəfə artırmamalıdır.
+
+Son məhsula iki nəfər eyni anda sifariş versə:
+Stok yoxlanışı və azaltma eyni transaction-da həyata keçirilir.
+Serializable isolation və concurrency qaydaları köhnə stokla
+iki uğurlu satışın yaranmasının qarşısını almaq üçün istifadə olunur.
+Məhsul həqiqətən bitibsə, sonrakı cəhd stok xətası alır.
+
+Stok xəbərdarlığı:
+Stock, LowStockThreshold həddinə və ya aşağısına düşəndə bildiriş yaranır.
+LowStockAlertActive eyni azalma epizodunda təkrar bildirişin qarşısını alır.
+Stok həddən yuxarı qaldırılıb yenidən azalarsa yeni epizod başlaya bilər.
+
+Bu modul sifariş və stok idarə edir. Mövcud kodda bank kartından
+pul çəkən onlayn ödəniş/payment gateway inteqrasiyası yoxdur.
+
+
+17. SIGNALR CHAT VƏ ŞƏKİL/VİDEO GÖNDƏRİLMƏSİ
+
+Adi HTTP sorğusu:
+Brauzer sorğu verir, server cavab qaytarır.
+
+SignalR:
+Serverin yeni hadisəni aktiv brauzer bağlantısına ötürməsinə imkan verir.
+Uyğun olduqda WebSocket nəqliyyatından istifadə edir; SignalR ilə
+WebSocket eyni səviyyədə anlayışlar deyil.
+
+Chat axını:
+1) İstifadəçi JWT ilə hub-a qoşulur.
+2) Server hesabın hazırkı vəziyyətini yoxlayır.
+3) Söhbət açılarkən iştirakçı olması yoxlanır.
+4) Bağlantı conversation-{id} qrupuna daxil edilir.
+5) Mesaj əvvəl bazaya yazılır.
+6) Sonra qrupa ReceiveMessage hadisəsi göndərilir.
+7) React həmin məlumatla mesaj tarixçəsini yeniləyir.
+
+Niyə əvvəl DB?
+Canlı hadisə təkbaşına davamlı saxlanc deyil. Səhifə yeniləndə və ya
+bağlantı qopanda tarixçə database-dən yenidən oxunmalıdır.
+
+Təhlükəsizlik:
+Söhbətin ID-sini bilmək kifayət deyil. Hub və chat servisi istifadəçinin
+həmin söhbətə aid olduğunu yoxlayır. Başqa söhbətin qrupuna daxil
+olmaq və mesajını oxumaq sərbəst deyil.
+
+Adlar və slug:
+Biznes müştərinin adını, istifadəçi biznesin adını görür.
+Frontend URL-i ad əsaslı slug ilə açır; server daxilində conversation
+ID-si və iştirakçı yoxlaması saxlanılır.
+
+Şəkil və video:
+- JPG/JPEG, PNG, WEBP şəkillər: maksimum 5 MB.
+- MP4, WEBM videolar: maksimum 25 MB.
+- Mətnlə birlikdə və ya tək əlavə kimi göndərilə bilər.
+- Faylın uzantısı, MIME tipi, ilkin məzmun imzası və ölçüsü yoxlanır.
+
+Əlavə necə bağlanır?
+Fayl əvvəl söhbətə aid pending əlavə kimi yüklənir. Mesaj
+göndəriləndə attachment həmin mesaja transaction daxilində bağlanır.
+Başqa şəxsin və ya başqa conversation-ın faylını götürüb əlavə etmək
+olmaz. Eyni əlavə bir neçə mesaja təkrar bağlanmır.
+
+Private media:
+Chat faylları Cloudinary-də authenticated rejimdə saxlanır.
+Frontend-ə açıq Cloudinary URL-i və public ID verilmir.
+Backend iştirakçını yoxlayıb faylı qorunan mənbədən alır və brauzerə
+ötürür. Brauzer alınan bytes üçün lokal blob URL yaradır.
+
+Göndərilməmiş köhnə əlavələr:
+24 saatdan köhnə, mesaja bağlanmamış əlavələr saatlıq cleanup worker
+tərəfindən məhdud batch-lərlə silinir. Göndərilmiş fayllar bu cleanup-a
+daxil deyil.
+
+Canlı bağlantı olmadıqda HTTP fallback axını da var.
+Bu, end-to-end encrypted messencer kimi təqdim edilməməlidir:
+server mesajları saxlayır və icazəli oxuma axınında onlara çıxışı var.
+
+
+18. BİLDİRİŞLƏR VƏ AVTOMATİK XATIRLATMALAR
+
+Tətbiqdaxili bildiriş:
+Notification cədvəlində istifadəçi, başlıq, mətn, link, oxunma
+və tarix məlumatları ilə saxlanır.
+İstifadəçi öz bildirişini oxunmuş edə və silə bilər.
+
+Bildiriş sayğacı necə dərhal dəyişir?
+İstifadəçi, usta və mağaza üçün chat səhifəsindən asılı olmayan
+SignalR bağlantısı var. Server user-{id} qrupuna NotificationsChanged
+siqnalı göndərir. Frontend həmin siqnaldan sonra icazəli API-dən
+bildirişləri/sayı yenidən alır.
+
+Niyə hadisədə tam bildiriş yoxdur?
+Hadisə “məlumat dəyişdi” siqnalıdır. Əsl məlumat normal icazə yoxlaması
+olan API-dən oxunur. Database əsas məlumat mənbəyi olaraq qalır.
+
+Commit nə üçün vacibdir?
+EF Core interceptor-ları notification dəyişikliklərini izləyir.
+Bildirişlə bağlı canlı siqnal uğurlu saxlanmadan, explicit
+transaction olduqda isə commit-dən sonra növbəyə verilir.
+Rollback olmuş məlumat üçün yanlış canlı xəbər göndərilməməlidir.
+
+Bağlantı qoparsa:
+Yenidən qoşulanda və brauzerə qayıdanda API yenilənir.
+Mövcud 30 saniyəlik yoxlamalar da ehtiyat yenilənmə mexanizmidir.
+
+Avtomatik avtomobil xatırlatması:
+ReminderNotificationWorker təxminən hər 30 saniyədə yoxlayır:
+- xatırlatma tamamlanmayıb;
+- həmin plan üçün bildiriş göndərilməyib;
+- tarix çatıb VƏ YA avtomobilin cari kilometri həddə çatıb.
+
+NotificationSentAtUtc təkrar göndərişi məhdudlaşdırır.
+Tarix və ya kilometr həddi dəyişdirilərsə yeni plan üçün yenidən
+aktivləşə bilər. Avtomatik olaraq sonsuz təkrarlanan yeni reminder
+qeydləri yaradılmır.
+
+Kilometr haradan gəlir?
+Bazada saxlanan CurrentKm-dən. GPS və ya avtomobilə qoşulmuş cihazdan
+canlı kilometr oxunmur.
+
+Brauzer açıq olmalıdır?
+Bildirişin bazada yaranması üçün yox. Backend işləməlidir.
+İstifadəçi sonradan daxil olanda saxlanmış bildirişi görür.
+
+Vacib fərq:
+Tətbiqdaxili notification, email, SMS və browser push ayrı kanallardır.
+Mövcud reminder axınını SMS/push xidməti kimi təqdim etmə.
+
+
+19. EMAIL-LƏR VƏ DAVAMLI GÖNDƏRİŞ NÖVBƏSİ
+
+Email sistemi MailKit/MimeKit və SMTP istifadə edir.
+Gmail ünvanına göndərmək mümkündür; bu, Gmail API inteqrasiyası
+olması demək deyil. Serverdə konfiqurasiya edilən SMTP istifadə olunur.
+
+Layihədə email axınları:
+1) Qeydiyyatın təsdiqləmə kodu.
+2) Görüşə təxminən iki saat qalmış xatırlatma.
+3) Görüş və sifarişin status hadisələri.
+4) Sahibin istəyi ilə Excel tarixçəsinin alıcıya göndərilməsi.
+
+Status email-ləri:
+Görüş yaradılması, qəbul, rədd, tamamlanma, ləğv və razılaşdırılmış
+yeni vaxt üçün müştərinin hesabındakı emailə məktub hazırlanır.
+Sifariş yaradılması, təsdiq, hazırlanma, göndərilmə, tamamlanma
+və ləğv üçün də məktub hazırlanır.
+
+Niyə request daxilində birbaşa SMTP çağırılmır?
+SMTP serverinin yavaşlığı sifarişi gecikdirməməlidir. Email
+uğursuzluğu uğurla saxlanmış biznes əməliyyatını yanlış “alınmadı”
+kimi göstərməməlidir.
+
+Outbox — bazada göndəriş növbəsi:
+Status dəyişikliyi ilə WorkflowEmails qeydi eyni transaction-da
+saxlanılır. Məktubun həmin an üçün mətni snapshot kimi qorunur.
+Transaction geri qaytarılsa, email qeydi də geri qaytarılır.
+
+WorkflowEmailWorker:
+Standart olaraq hər 10 saniyədə növbəni yoxlayır.
+SMTP vasitəsilə arxa planda göndərir.
+Eyni müştərinin məktubları növbə sırası ilə işlənir.
+Server yenidən açılsa, göndərilməmiş qeydlər bazada qaldığından
+yenidən emal oluna bilir.
+
+Təkrarların idarəsi:
+Unikal EventKey eyni status hadisəsinə ikinci növbə qeydi
+yaradılmasının qarşısını alır.
+Lease bir neçə worker arasında həmin qeydin müvəqqəti kimə aid
+olduğunu müəyyən edir. Standart lease 5 dəqiqədir.
+
+Xəta:
+İlkin retry gecikməsi 60 saniyədir, sonrakı cəhdlərdə artır.
+Standart maksimum 10 cəhddən sonra məktub failed kimi işarələnir
+və xəta log-a yazılır. Limitsiz və xəbərsiz retry edilmir.
+Hesab təsdiqsiz, bloklanmış və ya silinmişdirsə göndərişdən əvvəl
+yenidən yoxlanaraq məktub buraxıla bilər.
+
+İki saatlıq görüş email-i:
+Ayrıca worker, standart 60 saniyəlik yoxlama və 2 saatlıq lead time
+istifadə edir. Pending və Accepted gələcək görüşlər nəzərə alınır.
+Pending məktubunda ustanın hələ təsdiqləmədiyi ayrıca göstərilir.
+Bu, saniyəsinə qədər dəqiq timer deyil; interval əsaslı yoxlamadır.
+
+Excel email-i:
+İstifadəçinin göndərmə əmri ilə işləyir, status outbox-u ilə eyni
+avtomatik retry mexanizmi deyil. Xətada istifadəçi yenidən cəhd edir.
+
+SMTP nəyi təsdiqləyir?
+Serverin məktubu qəbul etməsini. Alıcının mütləq Inbox qovluğunda
+görünəcəyinə zəmanət vermir. SMTP qəbulundan dərhal sonra proses
+dayansa, nadir təkrar çatdırılma mümkündür. Sabit Message-ID və
+lease kömək edir, amma “tam exactly-once email” iddiası düzgün deyil.
+
+
+20. CLOUDINARY VƏ SECRET MANAGEMENT
+
+Faylların özü:
+Cloudinary-də saxlanılır.
+
+Database:
+URL/public ID kimi metadata, istifadəçi və resurs əlaqələri,
+format və uyğun hallarda ölçü/status saxlanılır.
+
+Ümumi şəkillərlə chat faylları eyni giriş modelinə malik deyil.
+Məhsul/profil şəkilləri görünüş üçün istifadə olunur; chat əlavələri
+authenticated media və icazəli backend oxuması ilə qorunur.
+
+Cloudinary açarları:
+Server konfiqurasiyasında qalmalıdır. Frontend-ə API secret vermək
+olmaz. Layihədə User Secrets/environment konfiqurasiyası və
+startup yoxlamaları istifadə edilir.
+
+Eyni qayda JWT signing key və SMTP şifrəsinə də aiddir.
+Bu sənəddə heç bir real açar, parol və ya token göstərilmir.
+
+User Secrets:
+Development konfiqurasiyasını source code-dan ayrı saxlama üsuludur.
+Onu production üçün ayrıca şifrəli secret vault ilə eyni hesab etmə.
+Production-da mühitə uyğun secret saxlancı və HTTPS tələb olunur.
+
+SQL transaction ilə media upload fərqi:
+SQL rollback Cloudinary-dəki faylı öz-özünə silmir.
+Ona görə xarici yükləmə uğursuz/yarımçıq axınlarında kompensasiya
+silməsi və istifadə olunmayan media üçün cleanup məntiqi var.
+
+
+21. RƏYLƏR, REYTİNQ VƏ BİZNES STATİSTİKASI
+
+Ustaya rəy:
+İstifadəçinin həmin usta ilə Completed görüşü olmalıdır.
+Bu yoxlama sadəcə hər kəsin istənilən ustaya xidmət almadan rəy
+yazmasının qarşısını almaq üçündür.
+
+Reytinq:
+1–5 aralığında qiymətləndirilir.
+İstifadəçi bir ustaya təkrar ayrıca rəy yarada bilməz.
+Öz rəyini redaktə/silə bilər. Başqasının rəyini dəyişə bilməz.
+
+Ümumi bal:
+Ustanın rəylərinin orta qiyməti yenidən hesablanır.
+PeekRating həmin qiymətin UI-da seçilməsi/göstərilməsi üçündür;
+uyğunluq və qiymət qaydalarını backend yoxlayır.
+Rəyin müəllifinin adı author məlumatından qaytarılır.
+
+Mağaza statistikası:
+Seçilmiş dövrdə tamamlanmış sifarişlərin məbləği və sayı, ləğvlər,
+açıq sifarişlər, azalan/bitən stok və çox satılan məhsullar göstərilir.
+Satış məbləği Completed sifarişlərdən hesablanır.
+
+Usta statistikası:
+Tamamlanmış və gözləyən görüşlər, rəy sayı/ortalaması və təsdiqlənmiş
+servis hesabatlarının məbləği göstərilir.
+
+Bu, bank əməliyyatlarını yoxlayan mühasibat və ya ödəniş sistemi deyil.
+Statistika tətbiqdə saxlanmış sifariş/hesabat məlumatlarından alınır.
+
+
+22. EXCEL İLƏ NƏQLİYYAT TARİXÇƏSİNİN PAYLAŞILMASI
+
+Ssenari:
+Sahib nəqliyyatını satarkən alıcıya “hansı tarixdə, neçə kilometrdə
+hansı işi görmüşəm?” məlumatını Excel kimi paylaşa bilər.
+
+ClosedXML backend-də dörd worksheet yaradır:
+1) Avtomobil — əsas məlumatlar, odometr və bölmə məbləğləri.
+2) Servis tarixçəsi — iş, tarix, kilometr, hissələr və məbləğ.
+3) Xərclər — tarix, kateqoriya, açıqlama və məbləğ.
+4) Yanacaq — tarix, kilometr, litr, litr qiyməti və məbləğ.
+
+İstifadəçi faylı yükləyə və razılıq verdikdən sonra seçdiyi emailə
+göndərə bilər. Alıcının MotoGarage hesabı olması tələb edilmir.
+Email ünvanı dəyişəndə paylaşma razılığı yenidən seçilir.
+
+Sahiblik:
+Backend slug və cari istifadəçinin ID-si ilə nəqliyyatı seçir.
+Başqasının nəqliyyatını export etmək hüququ verilmir.
+
+Məlumatın mahiyyəti:
+Fayl sistemə daxil edilmiş tarixçənin hesabatıdır. Rəsmi ekspertiza
+və ya işlərin faktiki icrasına xarici zəmanət deyil.
+Export avtomobilin hesabdakı sahibini dəyişmir və qeydləri silmir.
+
+Məxfilik:
+VIN və dövlət nömrəsi hesabatda ola bilər; hesabın şifrə/token
+məlumatları paylaşılmır. İstifadəçi mətnləri Excel formulu kimi
+icra olunmaması üçün mətn kimi saxlanılır.
+
+Məhdudiyyət:
+Hər tarixçə bölməsi üçün 10 000 qeyd, hazırlanmış fayl üçün 10 MB
+həddi var. Limitdən artıq məlumat səssiz kəsilib yanlış hesabat
+yaradılmır; xəta qaytarılır.
+
+Xərc modelində kilometr olmadığı üçün həmin bölməyə təxmini kilometr
+uydurulmur. Eyni pul müxtəlif bölmələrdə qeyd oluna bildiyindən
+bütün bölmələri kor-koranə bir ümumi xərc kimi toplamaq da edilməyib.
+
+
+23. URL FİLTERLƏRİ, RESPONSIVE DİZAYN VƏ SKELETON
+
+Query string:
+URL-in ? işarəsindən sonrakı filter hissəsidir.
+Məsələn:
+#/mechanics?search=Əli&address=Bakı
+#/products?brand=Motul&minPrice=10&maxPrice=50
+#/admin/audit?action=UserBlocked&page=2
+
+Niyə filter URL-də saxlanılır?
+Səhifəni yeniləyəndə, geri/irəli keçəndə və ya uyğun hesaba link
+göndərəndə həmin seçim bərpa olunsun.
+
+Draft və tətbiq edilmiş filter:
+Mətn sahəsinə yazmaq ilə Axtar düyməsini basmaq eyni mərhələ deyil.
+Uyğun formalar əvvəl draft saxlayır; təsdiqlənəndə URL və API
+sorğusu dəyişir. Select/status filterləri isə dərhal tətbiq oluna bilər.
+
+URLSearchParams:
+Azərbaycan hərfləri, boşluq, + və & kimi simvolların encode/decode
+edilməsini idarə edir.
+Boş/default filterlər silinir, qiymət kimi 0 isə qorunur.
+Səhv tarix/səhifə/enum qiymətlərinə uyğun ilkin dəyər seçilir.
+
+Slug ilə query string fərqi:
+Slug hansı resursu açdığını, query isə siyahını necə süzdüyünü bildirir.
+Heç biri icazə yoxlamasını əvəz etmir.
+
+Responsive:
+CSS layout və media qaydaları ekran ölçüsünə uyğunlaşır.
+Bu, ayrıca native Android/iOS tətbiqi demək deyil.
+
+Tema və UI:
+Ortaq rəng dəyişənləri, açıq/tünd tema, modal, kart, toast,
+skeleton və reytinq komponentləri var.
+React Bits uyğunlaşdırmaları mövcud dizayn rəngləri ilə işləyir.
+
+Loading, empty və error:
+- Loading: məlumat hələ gəlir — skeleton.
+- Empty: sorğu uğurludur, amma qeyd yoxdur.
+- Error: sorğu uğursuzdur — xəta və yenidən cəhd seçimi.
+Bu üç vəziyyət bir-birindən fərqli göstərilməlidir.
+
+Admin audit filterində boş nəticə:
+Həmin əməliyyat üzrə qeyd olmadığı ayrıca izah edilir və filteri
+təmizləmək olur. Köhnə səhifə nömrəsi nəticədən kənarda qalırsa
+seçim saxlanılaraq ilk səhifəyə qayıdılır.
+
+
+24. VALIDATION VƏ XƏTA CAVABLARI
+
+Frontend validation:
+İstifadəçiyə tez geribildirim verir: boş sahə, yanlış format,
+fayl sayı/ölçüsü və s.
+
+Backend validation:
+Əsas etibarlı yoxlamadır, çünki frontend və HTTP payload dəyişdirilə
+bilər. DataAnnotations və DtoValidation ilə giriş məlumatları,
+servislərdə isə biznes və ownership qaydaları yoxlanır.
+
+Məsələn:
+- Sifariş ünvanı boş ola bilməz.
+- Məhsul sayı müsbət olmalıdır.
+- Yanacaq litri və litr qiyməti müsbət olmalıdır.
+- Rəy 1–5 aralığında olmalıdır.
+- Keçmiş və ya məşğul görüş saatı seçilə bilməz.
+- Rədd qərarı üçün tələb olunan şərh boş qala bilməz.
+
+Database səviyyəsində:
+Foreign key, unique index, precision, check constraint və concurrency
+qaydaları əlavə müdafiə verir.
+
+Əsas HTTP kodları:
+200 — uğurlu oxuma/cavab.
+201 — yeni resurs yaradıldı.
+204 — əməliyyat uğurludur, cavab body-si yoxdur.
+400 — giriş məlumatı və ya biznes qaydası düzgün deyil.
+401 — etibarlı giriş sessiyası yoxdur.
+403 — istifadəçi tanınır, amma əməliyyata icazəsi yoxdur.
+404 — resurs tapılmadı; bəzi ownership axınları da 404 qaytarır.
+409 — paralel dəyişiklik və ya resurs vəziyyəti toqquşması.
+429 — sorğu limiti aşılıb.
+500 — gözlənilməz server xətası.
+
+ExceptionMiddleware:
+Domain və digər tanınmış xətaları uyğun HTTP cavabına çevirir.
+Frontend API client cavabı oxuyaraq istifadəçiyə mesaj göstərir.
+
+CORS:
+Brauzerdə hansı origin-in API cavabına çıxış ala bildiyini idarə edir.
+JWT və ownership əvəzi deyil; Postman kimi müştəriyə qarşı tək
+təhlükəsizlik mexanizmi kimi düşünülməməlidir.
+
+
+25. TRANSACTION, CONCURRENCY VƏ PERFORMANS
+
+Transaction:
+Bir neçə əlaqəli bazadakı dəyişiklik ya birlikdə uğurlu olur,
+ya da birlikdə geri qaytarılır.
+
+Nümunə:
+Stok azaldı, amma sifariş saxlanmadı — bu yarımçıq vəziyyət olmamalıdır.
+UnitOfWork bunu transaction sərhədi ilə idarə edir.
+Mövcud implementasiya Serializable isolation istifadə edir.
+
+Serializable:
+Paralel əməliyyatların uyğunluğunu qorumaq üçün güclü isolation
+səviyyəsidir. Bunun əvəzində lock gözləməsi və deadlock yarana bilər.
+Ona görə düzgün index və retry strategiyası da əhəmiyyətlidir.
+
+Retry:
+EF execution strategy keçici SQL xətalarında yenidən cəhd edə bilir.
+UnitOfWork retry-dan əvvəl ChangeTracker-i təmizləyir ki, köhnə
+tracked obyektlərlə səhv qərar verməsin.
+
+RowVersion:
+Bəzi entity-lərdə SQL Server tərəfindən dəyişən versiya sahəsidir.
+İki əməliyyat eyni köhnə versiyanı dəyişməyə çalışsa, ikinci əməliyyatın
+konflikt almasına kömək edir. Bu, optimistic concurrency mexanizmidir.
+
+Idempotency:
+Eyni əmrin təkrarının əlavə zərərli nəticə yaratmamasıdır.
+Məsələn, təkrar ləğv stoku yenidən artırmır; eyni email hadisəsi
+ikinci outbox qeydi yaratmır. Bütün API-lərin idempotent olduğunu
+iddia etmək olmaz.
+
+AsNoTracking:
+Yalnız oxuma üçün olan sorğuda EF-in dəyişiklik izləməsini azaldır.
+Yaddaş və tracking yükünü azaltmağa kömək edir.
+
+Include / projection:
+Əlaqəli məlumatı uyğun sorğuda almaq üçün istifadə olunur.
+Məsələn, görüşün ustasını və nəqliyyatını götürmək.
+
+N+1:
+Bir siyahı sorğusundan sonra hər sətir üçün ayrıca əlavə sorğu
+göndərilməsi problemidir. Include/projection uyğun hallarda bunu
+azaltmağa kömək edir. “Layihədə heç yerdə performans problemi
+ola bilməz” kimi mütləq iddia etmə.
+
+Index və pagination:
+Slug, əlaqə və planlaşdırma sorğularında index-lər var.
+Admin tarixçəsi kimi bəzi siyahılarda pagination tətbiq olunur.
+Index-i olan hər sorğunun avtomatik sürətli olması zəmanət deyil;
+böyük məlumatda execution plan və ölçmə lazımdır.
+
+Pul üçün decimal:
+Qiymət və məbləğlərdə decimal və SQL precision istifadə edilir.
+Bu, pul hesablarında binary floating-point yuvarlaqlaşdırma
+problemlərini azaltmaq üçündür.
+
+Async/await:
+Database və şəbəkə I/O-su gözlənəndə thread-i boş yerə bloklamamaq
+üçündür. Bu, öz-özünə bütün əməliyyatların paralel icrası demək deyil.
+
+
+26. TESTLƏR VƏ LAYİHƏNİ İŞƏ SALMAQ
+
+Backend:
+xUnit ilə biznes qaydaları, icazələr, status keçidləri, tokenlər,
+hesab idarəsi, yanacaq, bildirişlər və digər axınlar yoxlanır.
+EF InMemory sürətli məntiq testlərində istifadə olunur.
+
+Real SQL testləri:
+SQL Server lock, transaction, migration, unique constraint və
+paralel əməliyyat davranışını InMemory tam təqlid etmir.
+Ona görə ayrıca təsadüfi adlı LocalDB bazalarında inteqrasiya
+testləri də var. Testin sonunda həmin test bazası silinir.
+
+Bu testlər MOTOGARAGE_RUN_SQL_TESTS=1 ilə ayrıca aktivləşdirilir.
+Konfiqurasiyası uyğun olmayan mühitdə təsadüfən real tətbiq
+bazasını silməmək üçün təhlükəsizlik yoxlamaları var.
+
+Frontend:
+Playwright brauzeri idarə edərək login ekranını, formaları,
+role navigation, slug, URL filterləri, chat, skeleton/xəta vəziyyətləri
+və mobil görünüşü yoxlayır.
+
+Mock / fake:
+Test üçün nəzarət olunan əvəzləyicidir. Məsələn, fake SMTP real
+email göndərmədən “hansı məktub hazırlanır?” sualını yoxlamağa imkan verir.
+Frontend testlərində mock API işləməsi production-un saxta data ilə
+işləməsi demək deyil.
+
+Testin sərhədi:
+Mock browser testi real Google hesabı, Cloudinary və SMTP ilə bütün
+sistemin işlədiyini təkbaşına sübut etmir. Xarici xidmətlərlə ayrıca
+inteqrasiya və manual yoxlama da lazımdır.
+
+Əsas əmrlər, layihə qovluğunda:
+dotnet build MotoGarage.sln
+dotnet test MotoGarage.Tests/MotoGarage.Tests.csproj
+dotnet ef database update --project MotoGarage.Infrastructure --startup-project MotoGarage.API
+dotnet run --project MotoGarage.API --launch-profile https
+
+Frontend qovluğunda:
+npm install
+npm run dev
+npm run build
+npm run lint
+npm test
+
+Mövcud Vite development proxy-si:
+Frontend adətən localhost:5173 üzərindədir.
+/api və /hubs sorğuları development backend-inin
+https://localhost:7242 ünvanına yönləndirilir.
+Bu ünvanlar development konfiqurasiyasıdır, production domeni deyil.
+
+İşləmə üçün:
+Uyğun .NET və Node.js mühiti, SQL Server/LocalDB, tətbiq edilmiş
+migration-lar, JWT/Google/Cloudinary/SMTP konfiqurasiyası lazımdır.
+Frontend-in açılması backend-in də açıldığı mənasına gəlmir.
+
+Node.js burada əsas API backend-i deyil; Vite/npm development və
+build alətləri üçün istifadə olunur.
+
+27. TƏQDİMAT ÜÇÜN DEMO SSENARİSİ
+
+Demo zamanı funksiyanı göstər, sonra arxadakı bir texniki qaydanı izah et.
+Məsələn, “görüş yaratdım” dedikdən sonra “boş saat serverdə yenidən
+yoxlanır, ona görə iki müştəri eyni intervalı tuta bilmir” izahını ver.
+
+1) Ümumi təqdimat:
+İstifadəçi, usta, mağaza və admin rollarını qısaca göstər.
+Hər rolun niyə ayrı iş masası olduğunu izah et.
+
+2) Qaraj:
+Bir avtomobil və ya motosiklet aç. Marka/modeli və slug URL-ni göstər.
+ID-nin backend-də qaldığını, slug-ın ownership yoxlamasını əvəz
+etmədiyini qeyd et.
+
+3) Tarixçə:
+Yanacaq və servis qeydlərini göstər.
+Hesabı izah et: 500 km və 35 litr üçün nəticə 7 l/100 km olur.
+
+4) Görüş:
+Usta və gün seç, boş saat siyahısını göstər.
+Usta hesabında qəbul et, status və müştərinin bildirişini göstər.
+Görüşdən sonrakı servis hesabatının sahibin təsdiqi ilə tarixçəyə
+yazıldığını ayrıca izah et.
+
+5) Sifariş:
+Eyni mağazadan məhsullar seç, ünvanı yaz və sifariş yarat.
+Mağaza hesabında sifarişi və çatdırılma məlumatlarını göstər.
+Qiymətin bazadan götürüldüyünü, stokun transaction-da azaldığını izah et.
+
+6) Chat:
+İki test hesabında canlı mesajı, şəkil/video əlavəsini və bildiriş
+sayğacını göstər. Faylı yalnız iştirakçıların oxuya bildiyini qeyd et.
+
+7) Admin:
+Biznes müraciətinin şəkillərini, qəbul/rədd axınını və audit tarixçəsini
+göstər. Rədd şərhinin məcburiliyini izah et.
+
+Adminin hesab silməsi haqqında:
+Soft delete tətbiq olunur: tarixçə saxlanır, giriş dayandırılır,
+şəxsi hesab sahələrinin bir hissəsi təmizlənir və refresh sessiyaları
+ləğv edilir. Aktiv sifariş/görüşü olan hesabı silməzdən əvvəl həmin
+öhdəlikləri tamamlamaq/ləğv etmək tələb olunur. Admin özünü və digər
+admin hesablarını bu əməliyyatla silə bilməz.
+
+8) Excel:
+Nəqliyyat tarixçəsini yüklə, dörd worksheet-i göstər.
+Paylaşmanın sahiblik transferi olmadığını qeyd et.
+
+Email demosunda backend və SMTP işlək olmalıdır. Növbə intervalı və
+email xidmətinin emalı səbəbindən məktub dərhal görünməyə bilər.
+
+Çətin suala cavab vermək üçün ardıcıllıq:
+Əvvəl istifadəçi axınını, sonra server yoxlamasını, sonra məlumatın
+harada saxlandığını izah et. Texnologiya adlarını sadalamaqla kifayətlənmə.
+
+
+28. VERİLƏ BİLƏCƏK SUALLAR VƏ HAZIR CAVABLAR
+
+Sual 1: MotoGarage nə edir?
+Cavab: Avtomobil və motosikletin tarixçəsini, usta görüşlərini,
+mağaza sifarişlərini və bizneslə əlaqəni vahid platformada birləşdirir.
+
+Sual 2: Əsas beş texnologiya hansıdır?
+Cavab: ASP.NET Core, React, React Bits, SQL Server və Entity Framework
+Core. SignalR, Cloudinary və SMTP isə konkret əlavə ehtiyacları həll edir.
+
+Sual 3: React ilə React Bits eyni şeydir?
+Cavab: React interfeysin əsas kitabxanasıdır. React Bits-dən
+uyğunlaşdırılmış komponentlər animasiya, rating, OTP və toast
+kimi interfeys hissələri üçün istifadə olunur.
+
+Sual 4: Node.js backend-dir?
+Cavab: Əsas backend C# və ASP.NET Core-dur. Node.js frontend
+development server-i və build alətləri üçün lazımdır.
+
+Sual 5: Niyə frontend və backend ayrıdır?
+Cavab: İnterfeys və server qaydaları ayrı məsuliyyətdir. React
+görünüşü, API isə məlumat və icazə qaydalarını idarə edir.
+
+Sual 6: Clean Architecture burada necə görünür?
+Cavab: Domain, Application, Infrastructure və API project-ləri
+ayrılıb. Modellər, biznes axınları, xarici xidmətlər və HTTP
+interfeysi fərqli məsuliyyətlərdə saxlanır.
+
+Sual 7: Bu microservice layihəsidir?
+Cavab: Xeyr, qatlara ayrılmış vahid backend-dir. Ayrı C# project-ləri
+olması onların ayrıca deploy olunan microservice olması demək deyil.
+
+Sual 8: Controller ilə Service fərqi nədir?
+Cavab: Controller HTTP sorğusunu qəbul edib cavab verir. Service
+ownership, stok, görüş saatı və status kimi biznes qaydalarını icra edir.
+
+Sual 9: Repository niyə var?
+Cavab: Məlumat əməliyyatlarını təşkil edir, ümumi CRUD və xüsusi
+sorğuları ayırır. Bəzi Infrastructure servislərində DbContext-dən
+birbaşa istifadə də var.
+
+Sual 10: DTO niyə lazımdır?
+Cavab: API contract-ını entity-dən ayırır. Müştərinin hansı sahələri
+göndərə və görə biləcəyini idarə etməyə kömək edir.
+
+Sual 11: DI-nin faydası nədir?
+Cavab: Asılılıqlar constructor ilə verilir, implementasiya Program.cs-də
+seçilir. Testdə real SMTP əvəzinə fake servis vermək olur.
+
+Sual 12: SQL Server ilə EF Core fərqi nədir?
+Cavab: SQL Server məlumatı saxlayan database-dir. EF Core C# modelləri
+və sorğuları ilə həmin database arasında işləyən ORM-dir.
+
+Sual 13: Migration backup-dır?
+Cavab: Xeyr. Migration schema dəyişikliklərinin versiyalı təsviridir.
+Məlumatın bərpası üçün ayrıca database backup lazımdır.
+
+Sual 14: Şifrələr necə saxlanılır?
+Cavab: Identity-nin password hasher-i ilə hash şəklində saxlanılır.
+Açıq şifrə bazada saxlanılmır və frontend-ə qaytarılmır.
+
+Sual 15: JWT şifrələnmiş məlumatdır?
+Cavab: Mövcud JWT imzalanır; payload gizli encryption altında deyil.
+Server imza, müddət, issuer və audience yoxlaması aparır.
+
+Sual 16: Refresh token nə üçündür?
+Cavab: Access token bitəndə yeni token almaq üçündür. Bazada hash-i
+saxlanılır, yenilənəndə köhnəsi ləğv olunur. Ləğv edilmiş tokenin
+təkrar istifadəsi istifadəçinin refresh sessiyalarını ləğv edir.
+
+Sual 17: Token frontend-də harada saxlanılır?
+Cavab: Mövcud tətbiqdə sessionStorage və yaddaşda. HttpOnly cookie
+axını yoxdur; bunu ayrıca arxitektura seçimi kimi qiymətləndirmək olar.
+
+Sual 18: Admin bloklasa, köhnə JWT ilə davam etmək olar?
+Cavab: Token yoxlanışında hesabın cari blok/silinmə vəziyyəti
+bazadan oxunur. SignalR-da da cari hesab yoxlanır və bağlantıların
+dayandırılması üçün reyestr var.
+
+Sual 19: OTP necə işləyir?
+Cavab: Emailə altırəqəmli kod göndərilir; bazada hash, müddət və
+səhv sayğacı saxlanır. Kod 10 dəqiqəlikdir və 5 səhv cəhd limiti var.
+
+Sual 20: Google şifrəsi bizə gəlir?
+Cavab: Xeyr. Google ID token gəlir, backend onu Google.Apis.Auth ilə
+yoxlayır və MotoGarage-in öz sessiyasını yaradır.
+
+Sual 21: Rol yoxlaması kifayətdir?
+Cavab: Xeyr. Eyni roldakı iki şəxs bir-birinin avtomobilini idarə
+etməməlidir. Buna görə ownership yoxlaması da aparılır.
+
+Sual 22: Slug təhlükəsizlik üçündür?
+Cavab: Əsas məqsədi oxunaqlı URL-dir. Giriş icazəsini backend-in
+istifadəçi və resurs əlaqəsini yoxlaması qoruyur.
+
+Sual 23: Usta və mağaza niyə üç şəkil göndərir?
+Cavab: Admin müraciəti qiymətləndirsin deyə. Sistem faylın sayını,
+formatını və ölçüsünü yoxlayır, reallığı barədə qərarı admin verir.
+
+Sual 24: Boş görüş saatı necə tapılır?
+Cavab: İş cədvəli və aktiv görüşlərin intervalları yoxlanır.
+Uyğun başlanğıclar 15 dəqiqə addımla hesablanır. Hazırkı UI
+60 dəqiqəlik görüş üçün boş saatları göstərir.
+
+Sual 25: İki istifadəçi eyni boş saatı seçsə?
+Cavab: Server Save zamanı transaction daxilində yenidən yoxlayır.
+Uyğun olmayan paralel rezervasiya konflikt alır və yeni vaxt seçilməlidir.
+
+Sual 26: Usta mənim servis tarixçəmi özü dəyişə bilər?
+Cavab: Görüşün servis hesabatını usta hazırlayır. Onun servis tarixçəsinə
+əlavə edilməsi üçün nəqliyyat sahibinin təsdiqi tələb olunur.
+
+Sual 27: Üç fərqli mağazadan sifariş verə bilərəm?
+Cavab: Bəli, üç ayrı sifariş kimi. Bir səbət yalnız bir mağazanın
+məhsullarını qəbul edir. Birini yaradıb digərinə keçmək olar;
+birincinin qəbulunu gözləmək tələb olunmur.
+
+Sual 28: Müştəri qiyməti HTTP sorğusunda azaltsa?
+Cavab: Yekun qiymət bazadakı məhsul məlumatından hesablanır.
+İstifadəçinin ekrandakı qiyməti mənbə kimi qəbul edilmir.
+
+Sual 29: Son məhsulu eyni anda iki nəfər ala bilər?
+Cavab: Stok yoxlanması və azalması eyni transaction-da aparılır.
+Stokdan artıq uğurlu satışa icazə verilməməlidir; uyğun olmayan
+paralel cəhd xəta alır.
+
+Sual 30: İki dəfə ləğv etsəm stok iki dəfə artar?
+Cavab: Təkrar ləğv üçün yoxlama var. Artıq Cancelled sifarişin
+məhsulları stoka ikinci dəfə qaytarılmır.
+
+Sual 31: SignalR niyə istifadə olunub?
+Cavab: Mesaj və bildiriş səhifəni əl ilə yeniləmədən görünsün deyə.
+Mesajlar yenə bazada saxlanılır; SignalR davamlı saxlancın əvəzi deyil.
+
+Sual 32: Başqasının chat ID-sini bilsəm mesajlarını görə bilərəm?
+Cavab: ID-ni bilmək kifayət deyil. Hub qrupuna giriş, mesaj
+və fayl oxuma üçün söhbət iştirakçısı olmaq yoxlanır.
+
+Sual 33: Şəkil və video harada saxlanır?
+Cavab: Cloudinary-də, əlaqə və metadata SQL-də. Chat mediası
+authenticated rejimdədir və iştirakçıya backend vasitəsilə ötürülür.
+
+Sual 34: Brauzer bağlı olsa xatırlatma yaranır?
+Cavab: Backend işləyirsə, worker vaxtı/odometri yoxlayıb bildiriş yaradır.
+Backend dayanıbsa, növbəti açılışda uyğun qeydlər yoxlanır.
+
+Sual 35: SMTP işləməsə sifariş də alınmır?
+Cavab: Status email-i transaction-da növbəyə yazılır. SMTP sonradan
+worker ilə çağırılır və xətada retry edilir. SMTP xətası saxlanmış
+sifarişi ləğv etmir.
+
+Sual 36: Background işlər üçün Hangfire istifadə olunub?
+Cavab: Hazırda ASP.NET Core BackgroundService/hosted worker-lər var.
+Status email-lərinin davamlı növbəsi SQL-dədir. Hangfire və ya
+RabbitMQ istifadə olunduğunu iddia etmirəm.
+
+Sual 37: Sərfiyyatda niyə ilk litr hesabdan çıxır?
+Cavab: İlk qeyd ölçmə intervalının başlanğıcıdır. Orta sərf sonrakı
+dolumlarla hesablanır. Bütün alınmış yanacağın cəmi ayrıca göstəricidir.
+
+Sual 38: Skeleton üçün süni gözləmə var?
+Cavab: Mövcud useResource sorğunun real loading vəziyyətini göstərir.
+Köhnə sorğunun yeni nəticənin üzərinə yazılmaması üçün AbortController var.
+
+Sual 39: Testlər nəyi yoxlayır?
+Cavab: xUnit biznes/icazə qaydalarını, ayrıca LocalDB testləri SQL
+transaction/concurrency davranışını, Playwright brauzer axınlarını yoxlayır.
+Fake SMTP testi real Inbox çatdırılmasına zəmanət vermir.
+
+Sual 40: Excel göndərəndə nəqliyyatın sahibi dəyişir?
+Cavab: Xeyr. Tarixçənin hesabatı paylaşılır. Bu əməliyyat hesabdakı
+ownership-i dəyişmir və qeydləri silmir.
+
+
+29. MÖVCUD İMKANLARIN SƏRHƏDLƏRİ
+
+Təqdimatda bunları düzgün ayır:
+
+- Kartla onlayn ödəniş inteqrasiyası yoxdur; sifariş/stok idarəsi var.
+- Üç mağazadan eyni səbətlə checkout yoxdur; ayrı sifarişlər mümkündür.
+- GPS/OBD cihazından canlı odometr oxunmur; bazadakı kilometr işlədilir.
+- Chat end-to-end encrypted messencer deyil.
+- Tarixçəni paylaşmaq ownership transferi deyil.
+- İş cədvəli gün daxilində bir əsas interval dəstəkləyir; ayrıca fasilə
+  intervalları və gecəyarısını keçən növbə bu versiyada yoxdur.
+- Tətbiqdaxili bildiriş, email, SMS və browser push ayrı kanallardır.
+  Hazır SMS/push inteqrasiyası iddiası etmə.
+- Frontend JavaScript/JSX-dir; TypeScript layihəsi kimi təqdim etmə.
+- API client fetch, state Context/hooks, routing xüsusi hash router ilədir.
+  Axios, Redux və React Router istifadə olunduğunu söyləmək düzgün deyil.
+- UI xüsusi CSS və uyğunlaşdırılmış React Bits komponentləridir;
+  Tailwind/Bootstrap əsaslı layihə iddiası etmə.
+- Bir neçə backend instance ilə deployment üçün canlı hadisələrin
+  backplane/Azure SignalR kimi paylaşılmış ötürülməsi ayrıca
+  konfiqurasiya edilməlidir.
+- JWT-nin olması bütün təhlükəsizliyə avtomatik zəmanət deyil;
+  validation, ownership, konfiqurasiya və testlər birlikdə işləyir.
+
+İnkişaf istiqaməti barədə belə deyə bilərsən:
+“Bir səbəti mağazalara görə ayıran checkout, ödəniş inteqrasiyası,
+daha çevik iş cədvəli və production miqyaslanması əlavə edilə bilər.”
+Bunları hazır funksiya kimi yox, gələcək inkişaf kimi təqdim et.
+
+
+30. QISA YADDAŞ VƏRƏQİ
+
+LAYİHƏ:
+Avto/moto tarixçəsi + usta görüşü + mağaza sifarişi + canlı əlaqə.
+
+TEXNOLOGİYALAR:
+Backend — C#, ASP.NET Core, .NET 8.
+Frontend — React 19, JavaScript/JSX, Vite, CSS.
+UI — React Bits uyğunlaşdırmaları, Motion, Lucide, Hugeicons.
+Baza — SQL Server, EF Core 8, migrations.
+Giriş — Identity, JWT, refresh rotation, email OTP, Google ID token.
+Canlı hadisə — SignalR.
+Media — Cloudinary.
+Email — MailKit/MimeKit + SMTP.
+Excel — ClosedXML.
+Test — xUnit, LocalDB inteqrasiya testləri, Playwright.
+
+AXIN:
+React → API Controller → Service → Repository/DbContext → SQL.
+
+ARXİTEKTURA:
+Domain — əsas modellər.
+Application — interface, DTO, biznes servisləri.
+Infrastructure — EF, repository, xarici xidmət və tətbiq detalları.
+API — controller, hub, worker və DI quruluşu.
+
+TƏHLÜKƏSİZLİK:
+İstifadəçi kimdir? — Authentication.
+Bu işi edə bilər? — Authorization.
+Bu qeyd onundur? — Ownership.
+JWT imzalanır; payload gizli saxlanma formatı deyil.
+Password və refresh token bazada öz qaydalarına uyğun hash kimi saxlanır.
+Blok və biznes təsdiqi cari hesab məlumatı ilə yoxlanır.
+
+GÖRÜŞ:
+İş cədvəli + aktiv intervallar → boş saatlar.
+UI: 60 dəqiqə; saat seçimi 15 dəqiqə addımla.
+Görüşü usta qəbul edir; servis hesabatını sahibi təsdiqləyir.
+
+SİFARİŞ:
+Bir sifariş = bir mağaza. Üç mağaza = üç ayrı sifariş.
+Qiymət bazadan; stok və order eyni transaction-da.
+Ləğvdə stok bir dəfə qaytarılır.
+
+FORMULA:
+Sonrakı litrlər / ilk-son kilometr fərqi × 100.
+35 litr / 500 km × 100 = 7 l/100 km.
+
+EMAIL VƏ BİLDİRİŞ:
+Notification bazada saxlanır, canlı siqnalla UI yenilənir.
+Reminder tarix və ya kilometr həddinə görə yoxlanır.
+Status email-i SQL outbox + background worker + retry ilədir.
+İki saatlıq görüş xatırlatması ayrıca worker-dir.
+
+TEST:
+InMemory məntiq testidir; SQL locking davranışını tam əvəz etmir.
+Mock browser testi real xarici xidmət testi ilə eyni deyil.
+
+UNUTSAN BU ÜÇ SUALLA İZAH ET:
+1) İstifadəçi hansı əməliyyatı edir?
+2) Server hansı icazə və biznes qaydasını yoxlayır?
+3) Məlumat harada saxlanır və ekran necə yenilənir?
+
+
+31. KODU GÖSTƏRMƏK ÜÇÜN ƏSAS FAYLLAR
+
+Başlanğıc və DI:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.API/Program.cs
+
+DbContext və transaction:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Data/AppDbContext.cs
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Data/UnitOfWork.cs
+
+Login, OTP, Google və refresh:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Authentication/AuthService.cs
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Authentication/TokenService.cs
+
+Frontend sorğusu, sessiya və loading:
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/shared/api/client.js
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/shared/hooks/useResource.js
+
+App quruluşu və routing:
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/app/App.jsx
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/app/providers/AppProvider.jsx
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/app/router/useRoute.js
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/shared/utils/routeQuery.js
+
+Bir mağaza qaydası və sifariş:
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/src/features/orders/hooks/useCart.js
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Application/Services/OrderService.cs
+
+Boş saat və servis hesabatı:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Scheduling/AppointmentPlanningService.cs
+
+Yanacaq hesabı:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Application/Services/FuelRecordService.cs
+
+SignalR və media:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.API/Hubs/ChatHub.cs
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Storage/ChatAttachmentService.cs
+
+Avtomatik xatırlatma və status email-i:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Notifications/ReminderNotificationDispatcher.cs
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Email/WorkflowEmailQueue.cs
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Email/WorkflowEmailDispatcher.cs
+
+Excel və admin:
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Exports/VehicleHistoryExportService.cs
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/Administration/AdminService.cs
+
+Paket siyahıları:
+C:/Users/VUQAR/source/repos/MotoGarage/frontend/package.json
+C:/Users/VUQAR/source/repos/MotoGarage/MotoGarage.Infrastructure/MotoGarage.Infrastructure.csproj
+
+Bu sənəd üçün tətbiqin kodu və database dəyişdirilməyib.
+İzahlar mənbə kodu və layihədaxili texniki sənədlərlə yoxlanılıb.
