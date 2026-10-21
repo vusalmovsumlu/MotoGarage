@@ -29,6 +29,7 @@ public class ProductRepository
         GetByStoreIdAsync(int storeId)
     {
         return await _context.Products.AsNoTracking()
+            .Include(x => x.Store)
             .Where(x =>
                 x.StoreId == storeId &&
                 x.IsActive)
@@ -43,6 +44,7 @@ public class ProductRepository
         decimal? maxPrice)
     {
         var query = _context.Products.AsNoTracking()
+            .Include(x => x.Store)
             .Where(x =>
                 x.IsActive &&
                 x.Store.IsActive)
@@ -83,6 +85,15 @@ public class ProductRepository
 
         return await query
             .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Product>> GetForOrderAsync(IReadOnlyCollection<int> productIds)
+    {
+        return await _context.Products
+            .Include(x => x.Store)
+            .Where(x => productIds.Contains(x.Id))
+            .OrderBy(x => x.Id)
             .ToListAsync();
     }
 

@@ -10,6 +10,8 @@ public class OrderDto
 
     public int StoreId { get; set; }
 
+    public string? StoreName { get; set; }
+
     public string? RecipientName { get; set; }
     public string? DeliveryPhone { get; set; }
     public string? DeliveryCity { get; set; }

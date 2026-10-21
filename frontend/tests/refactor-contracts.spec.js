@@ -156,6 +156,7 @@ test("Feature API adapters preserve mutation URLs, verbs, bodies and anonymous a
     await reviews.save({ id: 9 }, 10, { rating: "3", comment: "Edit" });
     await reviews.remove(9);
     await orders.create({ items: [{ productId: 7, quantity: 2 }] });
+    await orders.checkout({ items: [{ productId: 7, quantity: 2 }] });
     await orders.updateStatus(5, "Confirmed");
     await orders.cancel(5);
     await appointments.create({ vehicleId: 2, mechanicId: 10 });
@@ -220,6 +221,7 @@ test("Feature API adapters preserve mutation URLs, verbs, bodies and anonymous a
     ["/reviews/9", "PUT", { rating: 3, comment: "Edit" }],
     ["/reviews/9", "DELETE", null],
     ["/orders", "POST", { items: [{ productId: 7, quantity: 2 }] }],
+    ["/orders/checkout", "POST", { items: [{ productId: 7, quantity: 2 }] }],
     ["/orders/5/status", "PATCH", { status: "Confirmed" }],
     ["/orders/5/cancel", "PATCH", null],
     ["/appointments", "POST", { vehicleId: 2, mechanicId: 10 }],

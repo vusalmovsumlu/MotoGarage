@@ -28,7 +28,7 @@ public sealed class ReminderNotificationWorker(
                             .GetRequiredService<IReminderNotificationDispatcher>();
                         var sent = await dispatcher.DispatchDueAsync(stoppingToken);
                         if (sent > 0)
-                            logger.LogInformation("Created {Count} reminder notifications.", sent);
+                            logger.LogInformation("Processed {Count} due reminders for notifications and email.", sent);
                         if (sent < options.Value.BatchSize)
                             break;
                     }

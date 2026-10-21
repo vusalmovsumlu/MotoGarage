@@ -40,12 +40,13 @@ public sealed class WorkflowEmailDispatcher(AppDbContext context, IEmailService 
             {
                 var item = await Pending.AsNoTracking().Where(x => x.Id == id && x.LeaseId == lease).Select(x => new
                 {
-                    x.Attempts, x.LeaseUntilUtc,
+                    x.Attempts, x.LeaseUntilUtc, x.EventKey, x.RecipientUserId,
                     Content = new WorkflowEmailContent(x.DeliveryId, x.Subject, x.TextBody, x.HtmlBody),
                     x.Recipient.Email, x.Recipient.EmailConfirmed, x.Recipient.IsAdminBlocked, x.Recipient.DeletedAtUtc
                 }).SingleOrDefaultAsync(cancellationToken);
                 if (item == null) continue;
-                if (!item.EmailConfirmed || item.IsAdminBlocked || item.DeletedAtUtc != null || string.IsNullOrWhiteSpace(item.Email))
+                if (!item.EmailConfirmed || item.IsAdminBlocked || item.DeletedAtUtc != null || string.IsNullOrWhiteSpace(item.Email)
+                    || !await ReminderIsCurrentAsync(item.EventKey, item.RecipientUserId, clock.GetUtcNow().UtcDateTime, cancellationToken))
                 {
                     await Owned(id.Value, lease).ExecuteUpdateAsync(set => set
                         .SetProperty(x => x.DiscardedAtUtc, (DateTime?)clock.GetUtcNow().UtcDateTime)
@@ -93,6 +94,15 @@ public sealed class WorkflowEmailDispatcher(AppDbContext context, IEmailService 
     }
 
     private IQueryable<WorkflowEmail> Owned(long id, Guid lease) => context.WorkflowEmails.Where(x => x.Id == id && x.LeaseId == lease);
+
+    private async Task<bool> ReminderIsCurrentAsync(string eventKey, int recipient, DateTime now, CancellationToken token)
+    {
+        if (!ReminderEmailBuilder.IsReminder(eventKey)) return true;
+        if (!ReminderEmailBuilder.TryReadSource(eventKey, out var id, out var revision)) return false;
+        return await context.Reminders.AsNoTracking().AnyAsync(x => x.Id == id && x.ScheduleRevision == revision
+            && !x.IsCompleted && x.EmailQueuedAtUtc != null && x.Vehicle.UserId == recipient
+            && (x.ReminderDate <= now || (x.ReminderKm.HasValue && x.Vehicle.CurrentKm >= x.ReminderKm.Value)), token);
+    }
 
     private async Task Failure(long id, Guid lease, int attempts, CancellationToken token)
     {

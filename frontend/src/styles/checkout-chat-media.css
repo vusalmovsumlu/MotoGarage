@@ -1,3 +1,29 @@
+.cart-groups {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.cart-store-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cart-store-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.cart-store-header > strong {
+  white-space: nowrap;
+}
 .delivery-fields {
   border: 0;
   padding: 0;

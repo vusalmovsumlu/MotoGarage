@@ -25,6 +25,13 @@ public class ReminderConfiguration : IEntityTypeConfiguration<Reminder>
         builder.Property(x => x.NotificationSentAtUtc)
             .IsConcurrencyToken();
 
+        builder.Property(x => x.EmailQueuedAtUtc)
+            .IsConcurrencyToken();
+
+        builder.Property(x => x.ScheduleRevision)
+            .HasDefaultValue(0)
+            .IsConcurrencyToken();
+
         builder.Property(x => x.IsCompleted)
             .IsRequired()
             .IsConcurrencyToken();
@@ -32,6 +39,10 @@ public class ReminderConfiguration : IEntityTypeConfiguration<Reminder>
         builder.HasIndex(x => new { x.ReminderDate, x.VehicleId })
             .HasDatabaseName("IX_Reminders_PendingNotification")
             .HasFilter("[IsCompleted] = 0 AND [NotificationSentAtUtc] IS NULL");
+
+        builder.HasIndex(x => new { x.ReminderDate, x.VehicleId, x.ScheduleRevision })
+            .HasDatabaseName("IX_Reminders_PendingEmail")
+            .HasFilter("[IsCompleted] = 0 AND [EmailQueuedAtUtc] IS NULL");
 
         builder.HasOne(x => x.Vehicle)
             .WithMany(x => x.Reminders)

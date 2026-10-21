@@ -102,6 +102,13 @@ public class OrderController : ControllerBase
             order);
     }
 
+    [HttpPost("checkout")]
+    public async Task<IActionResult> Checkout(CreateOrderDto dto)
+    {
+        var result = await _orderService.CheckoutAsync(GetCurrentUserId(), dto);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+
     // =========================
     // Store Changes Status
     // =========================

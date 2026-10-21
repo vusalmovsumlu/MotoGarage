@@ -25,7 +25,9 @@ export function WorkCard({
           </span>
           <h2>
             {orders
-              ? `${incoming ? "Müştəri" : "Mağaza"} #${incoming ? item.userId : item.storeId}`
+              ? incoming
+                ? `Müştəri #${item.userId}`
+                : item.storeName || `Mağaza #${item.storeId}`
               : item.description || "Servis görüşü"}
           </h2>
           <p className="meta">

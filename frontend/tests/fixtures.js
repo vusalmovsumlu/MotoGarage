@@ -91,6 +91,7 @@ export async function mockApi(
       id: 30,
       storeId: 20,
       name: "Mühərrik yağı 5W-40",
+      storeName: "Garage Parts",
       slug: "engine-oil",
       brand: "Motul",
       description: "Sintetik mühərrik yağı.",
@@ -103,6 +104,7 @@ export async function mockApi(
       id: 31,
       storeId: 21,
       name: "Əyləc dəsti",
+      storeName: "Brake Parts",
       slug: "brake-kit",
       brand: "Brembo",
       price: 75,
@@ -258,6 +260,45 @@ export async function mockApi(
         const item = { ...body, id: 3, userId: 1, slug: "new-vehicle-test" };
         vehicles.push(item);
         return respond(item, 201);
+      }
+      if (path === "/orders/checkout" && method === "POST") {
+        const groups = new Map();
+        for (const item of body.items) {
+          const product =
+            products.find((value) => value.id === item.productId) ||
+            products[0];
+          if (!groups.has(product.storeId)) groups.set(product.storeId, []);
+          groups.get(product.storeId).push({ ...item, product });
+        }
+        const orders = [...groups].map(([storeId, items], index) => ({
+          ...order,
+          ...body,
+          id: 71 + index,
+          storeId,
+          storeName: items[0].product.storeName,
+          totalAmount: items.reduce(
+            (sum, item) => sum + item.product.price * item.quantity,
+            0,
+          ),
+          items: items.map(({ productId, quantity, product }, itemIndex) => ({
+            id: itemIndex + 1,
+            productId,
+            quantity,
+            productName: product.name,
+            unitPrice: product.price,
+            totalPrice: product.price * quantity,
+          })),
+        }));
+        return respond(
+          {
+            orders,
+            totalAmount: orders.reduce(
+              (sum, item) => sum + item.totalAmount,
+              0,
+            ),
+          },
+          201,
+        );
       }
       if (path === "/orders" && method === "POST")
         return respond({ ...order, id: 71 }, 201);

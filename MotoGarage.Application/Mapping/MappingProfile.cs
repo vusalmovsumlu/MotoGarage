@@ -78,9 +78,13 @@ public class MappingProfile : Profile
 
         CreateMap<Reminder, ReminderDto>();
         CreateMap<CreateReminderDto, Reminder>()
-            .ForMember(dest => dest.NotificationSentAtUtc, opt => opt.Ignore());
+            .ForMember(dest => dest.NotificationSentAtUtc, opt => opt.Ignore())
+            .ForMember(dest => dest.EmailQueuedAtUtc, opt => opt.Ignore())
+            .ForMember(dest => dest.ScheduleRevision, opt => opt.Ignore());
         CreateMap<UpdateReminderDto, Reminder>()
-            .ForMember(dest => dest.NotificationSentAtUtc, opt => opt.Ignore());
+            .ForMember(dest => dest.NotificationSentAtUtc, opt => opt.Ignore())
+            .ForMember(dest => dest.EmailQueuedAtUtc, opt => opt.Ignore())
+            .ForMember(dest => dest.ScheduleRevision, opt => opt.Ignore());
 
 
         // =========================
@@ -130,7 +134,8 @@ public class MappingProfile : Profile
         // Product
         // =========================
 
-        CreateMap<Product, ProductDto>();
+        CreateMap<Product, ProductDto>()
+            .ForMember(x => x.StoreName, o => o.MapFrom(x => x.Store != null ? x.Store.StoreName : null));
         CreateMap<CreateProductDto, Product>();
         CreateMap<UpdateProductDto, Product>()
             .ForMember(dest => dest.LowStockThreshold, opt => opt.Condition(src => src.LowStockThreshold.HasValue));
@@ -150,6 +155,7 @@ public class MappingProfile : Profile
                             : string.Empty));
 
         CreateMap<Order, OrderDto>()
+            .ForMember(x => x.StoreName, o => o.MapFrom(x => x.Store != null ? x.Store.StoreName : null))
             .ForMember(
                 dest => dest.Items,
                 opt => opt.MapFrom(

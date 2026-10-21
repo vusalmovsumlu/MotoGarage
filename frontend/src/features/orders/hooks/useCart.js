@@ -12,23 +12,13 @@ export function useCart(user, toast) {
           : update,
     }));
   const addCart = (product) => {
-    if (cart.length && cart[0].storeId !== product.storeId) {
-      toast(
-        "Bir sifarişdə yalnız bir mağazanın məhsulları ola bilər. Əvvəl hazırkı səbəti tamamlayın.",
-        true,
-      );
-      return;
-    }
     const item = cart.find((value) => value.id === product.id);
     if (item && item.quantity >= Math.min(product.stock, 10000)) {
       toast("Stokda olan saydan çox əlavə edə bilməzsiniz.", true);
       return;
     }
     if (!item && cart.length >= 100) {
-      toast(
-        "Bir sifariş maksimum 100 fərqli məhsuldan ibarət ola bilər.",
-        true,
-      );
+      toast("Səbət maksimum 100 fərqli məhsuldan ibarət ola bilər.", true);
       return;
     }
     setCart((current) =>

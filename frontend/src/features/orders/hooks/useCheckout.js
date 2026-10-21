@@ -1,7 +1,8 @@
 import { useApp } from "../../../shared/hooks/useApp.js";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ordersApi } from "../api/ordersApi.js";
 import { navigate } from "../../../app/router/useRoute.js";
+import { groupCartByStore } from "../utils/cartGroups.js";
 
 export function useCheckout() {
   const { cart, setCart, toast, user } = useApp();
@@ -13,7 +14,9 @@ export function useCheckout() {
     deliveryNote: "",
   });
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState("");
+  const storeGroups = groupCartByStore(cart);
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const update = (id, quantity) =>
     setCart((current) =>
@@ -28,7 +31,7 @@ export function useCheckout() {
     );
   const checkout = async (event) => {
     event?.preventDefault();
-    if (busy || !cart.length) return;
+    if (submitting.current || !cart.length) return;
     const address = Object.fromEntries(
       Object.entries(delivery).map(([key, value]) => [key, value.trim()]),
     );
@@ -51,10 +54,11 @@ export function useCheckout() {
       setError("Düzgün telefon nömrəsi yazın.");
       return;
     }
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
-      await ordersApi.create({
+      const result = await ordersApi.checkout({
         ...address,
         items: cart.map((item) => ({
           productId: item.id,
@@ -62,17 +66,23 @@ export function useCheckout() {
         })),
       });
       setCart([]);
-      toast("Sifariş yaradıldı.");
+      toast(
+        result.orders.length > 1
+          ? `${result.orders.length} sifariş yaradıldı.`
+          : "Sifariş yaradıldı.",
+      );
       navigate("/orders");
     } catch (failure) {
       setError(failure.message);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
 
   return {
     cart,
+    storeGroups,
     busy,
     update,
     setCart,

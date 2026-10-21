@@ -18,6 +18,8 @@ public interface IOrderService
         int userId,
         CreateOrderDto dto);
 
+    Task<CheckoutDto> CheckoutAsync(int userId, CreateOrderDto dto);
+
     Task UpdateStatusAsync(
         int orderId,
         int storeUserId,

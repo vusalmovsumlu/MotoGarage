@@ -1101,6 +1101,10 @@ namespace MotoGarage.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<DateTime?>("EmailQueuedAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsCompleted")
                         .IsConcurrencyToken()
                         .HasColumnType("bit");
@@ -1117,6 +1121,12 @@ namespace MotoGarage.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("int");
 
+                    b.Property<int>("ScheduleRevision")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -1132,6 +1142,10 @@ namespace MotoGarage.Infrastructure.Migrations
                     b.HasIndex("ReminderDate", "VehicleId")
                         .HasDatabaseName("IX_Reminders_PendingNotification")
                         .HasFilter("[IsCompleted] = 0 AND [NotificationSentAtUtc] IS NULL");
+
+                    b.HasIndex("ReminderDate", "VehicleId", "ScheduleRevision")
+                        .HasDatabaseName("IX_Reminders_PendingEmail")
+                        .HasFilter("[IsCompleted] = 0 AND [EmailQueuedAtUtc] IS NULL");
 
                     b.ToTable("Reminders");
                 });

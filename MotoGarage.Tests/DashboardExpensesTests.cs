@@ -9,7 +9,7 @@ namespace MotoGarage.Tests;
 public class DashboardExpensesTests
 {
     [Fact]
-    public async Task MonthlyTotalIncludesFuelAndExpensesForOnlyTheCurrentUserAndMonth()
+    public async Task MonthlyTotalIncludesFuelExpensesServicesAndCompletedOrdersForOnlyTheCurrentUserAndMonth()
     {
         await using var context = TestSupport.Context();
         await VerifyMonthlyTotalsAsync(context);
@@ -89,6 +89,45 @@ public class DashboardExpensesTests
         Assert.Equal(47m, (await query.GetAsync(owner.Id)).ThisMonthExpenses);
         Assert.Equal(1600m, (await query.GetAsync(otherOwner.Id)).ThisMonthExpenses);
         Assert.Empty(context.ChangeTracker.Entries());
+
+        context.ServiceRecords.AddRange(
+            Service(car.Id, start, 20m), Service(motorcycle.Id, start.AddDays(1), 20m),
+            Service(car.Id, start.AddTicks(-1), 500m), Service(car.Id, end, 500m),
+            Service(otherCar.Id, start, 30m));
+        var store = new Store
+        {
+            User = new User { FullName = "Seller", Role = UserRole.Store }, StoreName = "Parts",
+            Slug = "parts", Description = "Parts", Address = "Baku", PhoneNumber = "123"
+        };
+        context.Stores.Add(store);
+        await context.SaveChangesAsync();
+        Order Order(int buyer, OrderStatus status, DateTime created, DateTime? completed, decimal amount) => new()
+        {
+            UserId = buyer, StoreId = store.Id, Status = status,
+            CreatedAt = created, CompletedAtUtc = completed, TotalAmount = amount
+        };
+        context.Orders.AddRange(
+            Order(owner.Id, OrderStatus.Completed, start.AddMonths(-1), start, 40m),
+            Order(owner.Id, OrderStatus.Completed, start, null, 10m), // Legacy completed order.
+            Order(owner.Id, OrderStatus.Completed, start, start.AddTicks(-1), 500m),
+            Order(owner.Id, OrderStatus.Completed, start, end, 500m),
+            Order(otherOwner.Id, OrderStatus.Completed, start, start, 25m));
+        foreach (var status in Enum.GetValues<OrderStatus>().Where(x => x != OrderStatus.Completed))
+            context.Orders.Add(Order(owner.Id, status, start, start, 500m));
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        Assert.Equal(137m, (await query.GetAsync(owner.Id)).ThisMonthExpenses);
+        Assert.Equal(1655m, (await query.GetAsync(otherOwner.Id)).ThisMonthExpenses);
+        Assert.Empty(context.ChangeTracker.Entries());
+
+        var service = await context.ServiceRecords.SingleAsync(x => x.VehicleId == car.Id && x.ServiceDate == start);
+        service.Cost = 30m;
+        await context.SaveChangesAsync();
+        Assert.Equal(147m, (await query.GetAsync(owner.Id)).ThisMonthExpenses);
+        context.ServiceRecords.Remove(service);
+        await context.SaveChangesAsync();
+        Assert.Equal(117m, (await query.GetAsync(owner.Id)).ThisMonthExpenses);
     }
 
     private static Vehicle Vehicle(User owner, string plate, VehicleType type = VehicleType.Car) => new()
@@ -109,5 +148,11 @@ public class DashboardExpensesTests
     {
         VehicleId = vehicleId, ExpenseDate = date, Amount = amount,
         ExpenseType = type, Description = "Test expense"
+    };
+
+    private static ServiceRecord Service(int vehicleId, DateTime date, decimal amount) => new()
+    {
+        VehicleId = vehicleId, ServiceDate = date, Cost = amount,
+        ServiceName = "Oil change", Kilometer = 100
     };
 }

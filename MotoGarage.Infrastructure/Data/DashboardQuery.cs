@@ -31,7 +31,14 @@ public class DashboardQuery : IDashboardQuery
             .Select(x => (decimal?)x.Amount)
             .Concat(_context.FuelRecords
                 .Where(x => x.Vehicle.UserId == userId && x.FuelDate >= start && x.FuelDate < end)
-                .Select(x => (decimal?)x.TotalPrice));
+                .Select(x => (decimal?)x.TotalPrice))
+            .Concat(_context.ServiceRecords
+                .Where(x => x.Vehicle.UserId == userId && x.ServiceDate >= start && x.ServiceDate < end)
+                .Select(x => (decimal?)x.Cost))
+            .Concat(_context.Orders
+                .Where(x => x.UserId == userId && x.Status == OrderStatus.Completed
+                    && (x.CompletedAtUtc ?? x.CreatedAt) >= start && (x.CompletedAtUtc ?? x.CreatedAt) < end)
+                .Select(x => (decimal?)x.TotalAmount));
         var reminders = _context.Reminders.AsNoTracking()
             .Where(x => x.Vehicle.UserId == userId && !x.IsCompleted);
         var appointments = _context.Appointments.AsNoTracking().Where(x => x.UserId == userId);

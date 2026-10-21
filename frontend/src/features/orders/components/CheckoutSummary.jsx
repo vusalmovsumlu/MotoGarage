@@ -5,6 +5,7 @@ import { DeliveryAddressForm } from "./DeliveryAddressForm.jsx";
 
 export function CheckoutSummary({
   cart,
+  storeCount,
   total,
   error,
   busy,
@@ -17,6 +18,10 @@ export function CheckoutSummary({
       <form onSubmit={checkout}>
         <h2>Sifarişin xülasəsi</h2>
         <div className="summary-row">
+          <span>Mağaza sayı</span>
+          <strong>{storeCount}</strong>
+        </div>
+        <div className="summary-row">
           <span>Məhsul sayı</span>
           <strong>{cart.reduce((sum, item) => sum + item.quantity, 0)}</strong>
         </div>
@@ -25,9 +30,15 @@ export function CheckoutSummary({
           <strong>{money(total)}</strong>
         </div>
         <p className="meta">
-          Yekun qiymət və stok sifariş yaradılarkən mağazanın cari məlumatlarına
-          görə yoxlanılır.
+          Yekun qiymət və stok sifariş yaradılarkən mağazaların cari
+          məlumatlarına görə yoxlanılır.
         </p>
+        {storeCount > 1 && (
+          <p className="meta">
+            Mağazalar üzrə {storeCount} ayrı sifariş yaradılacaq. Çatdırılma
+            ünvanı bütün sifarişlər üçün eynidir.
+          </p>
+        )}
         {error && (
           <p role="alert" className="form-error">
             {error}

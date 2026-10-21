@@ -31,7 +31,8 @@ test("Checkout requires a real address and sends trimmed delivery details withou
   await page.getByRole("button", { name: "Sifarişi təsdiqlə" }).click();
   expect(
     requests.some(
-      (request) => request.path === "/orders" && request.method === "POST",
+      (request) =>
+        request.path === "/orders/checkout" && request.method === "POST",
     ),
   ).toBe(false);
   await fillAddress(page);
@@ -40,7 +41,8 @@ test("Checkout requires a real address and sends trimmed delivery details withou
   await expect(page.getByRole("alert")).toContainText("Düzgün telefon");
   expect(
     requests.some(
-      (request) => request.path === "/orders" && request.method === "POST",
+      (request) =>
+        request.path === "/orders/checkout" && request.method === "POST",
     ),
   ).toBe(false);
   await page.getByLabel("Telefon nömrəsi").fill(address.deliveryPhone);
@@ -50,7 +52,8 @@ test("Checkout requires a real address and sends trimmed delivery details withou
   ).toBeVisible();
   expect(
     requests.find(
-      (request) => request.path === "/orders" && request.method === "POST",
+      (request) =>
+        request.path === "/orders/checkout" && request.method === "POST",
     ).body,
   ).toEqual({ ...address, items: [{ productId: 30, quantity: 1 }] });
 });
@@ -162,16 +165,14 @@ for (const kind of ["image", "video"]) {
     await login(page);
     await page.goto("/#/chat/moto-parts");
     await expect(page.getByLabel("Mesajınız")).toBeEnabled();
-    await page
-      .getByLabel("Şəkil və ya video əlavə et")
-      .setInputFiles({
-        name: file.fileName,
-        mimeType: file.contentType,
-        buffer:
-          kind === "image"
-            ? png
-            : Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50]),
-      });
+    await page.getByLabel("Şəkil və ya video əlavə et").setInputFiles({
+      name: file.fileName,
+      mimeType: file.contentType,
+      buffer:
+        kind === "image"
+          ? png
+          : Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50]),
+    });
     await expect(page.getByText("Göndərilməyə hazırdır")).toBeVisible();
     await page.getByRole("button", { name: "Göndər", exact: true }).click();
     if (kind === "video") {

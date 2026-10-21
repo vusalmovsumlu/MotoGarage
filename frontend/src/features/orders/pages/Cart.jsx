@@ -1,6 +1,6 @@
 import { useCheckout } from "../hooks/useCheckout.js";
 import { Page } from "../../../components/layout/Page.jsx";
-import { CartItem } from "../components/CartItem.jsx";
+import { CartStoreGroup } from "../components/CartStoreGroup.jsx";
 import { CheckoutSummary } from "../components/CheckoutSummary.jsx";
 import { Empty } from "../../../components/feedback/Empty.jsx";
 import { ShoppingBag } from "lucide-react";
@@ -8,6 +8,7 @@ import { ShoppingBag } from "lucide-react";
 export function Cart() {
   const {
     cart,
+    storeGroups,
     busy,
     update,
     setCart,
@@ -20,15 +21,15 @@ export function Cart() {
   return (
     <Page
       title="Səbətiniz"
-      description="Bir sifariş bir mağazanın məhsullarından ibarətdir."
+      description="Fərqli mağazalardan məhsullarınızı bir səbətdə sifariş edin."
     >
       {cart.length ? (
         <div className="cart-layout">
-          <div className="card rows-card">
-            {cart.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
+          <div className="cart-groups">
+            {storeGroups.map((group) => (
+              <CartStoreGroup
+                key={group.storeId}
+                group={group}
                 busy={busy}
                 update={update}
                 setCart={setCart}
@@ -37,6 +38,7 @@ export function Cart() {
           </div>
           <CheckoutSummary
             cart={cart}
+            storeCount={storeGroups.length}
             total={total}
             error={error}
             busy={busy}

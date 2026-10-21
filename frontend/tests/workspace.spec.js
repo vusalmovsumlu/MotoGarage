@@ -87,7 +87,7 @@ test("Car and motorcycle are both available; vehicle payload matches API", async
       .body.vehicleType,
   ).toBe("Car");
 });
-test("Shopping cart rejects mixing stores and sends delivery details with IDs/quantities", async ({
+test("Shopping cart accepts different stores and checks out with delivery details and IDs/quantities", async ({
   page,
 }) => {
   const { requests } = await mockApi(page);
@@ -95,10 +95,14 @@ test("Shopping cart rejects mixing stores and sends delivery details with IDs/qu
   await page.goto("/#/products");
   await page.getByRole("button", { name: "Səbətə əlavə et" }).first().click();
   await page.getByRole("button", { name: "Səbətə əlavə et" }).nth(1).click();
-  await expect(
-    page.getByText(/Bir sifarişdə yalnız bir mağazanın/),
-  ).toBeVisible();
   await page.goto("/#/cart");
+  await expect(page.locator(".cart-store-group")).toHaveCount(2);
+  await expect(
+    page.getByRole("heading", { name: "Garage Parts", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Brake Parts", exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Telefon nömrəsi").fill("+994501234567");
   await page.getByLabel("Şəhər / rayon").fill("Bakı");
   await page.getByLabel("Tam ünvan").fill("Test küçəsi 10");
@@ -107,10 +111,14 @@ test("Shopping cart rejects mixing stores and sends delivery details with IDs/qu
     page.getByRole("heading", { name: "Sifarişlərim" }),
   ).toBeVisible();
   expect(
-    requests.find((item) => item.method === "POST" && item.path === "/orders")
-      .body,
+    requests.find(
+      (item) => item.method === "POST" && item.path === "/orders/checkout",
+    ).body,
   ).toEqual({
-    items: [{ productId: 30, quantity: 1 }],
+    items: [
+      { productId: 30, quantity: 1 },
+      { productId: 31, quantity: 1 },
+    ],
     recipientName: "Vüqar Məmmədov",
     deliveryPhone: "+994501234567",
     deliveryCity: "Bakı",

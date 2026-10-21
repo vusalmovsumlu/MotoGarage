@@ -17,4 +17,6 @@ public interface IProductRepository : IRepository<Product>
         decimal? maxPrice);
 
     Task<Product?> GetDetailsByIdAsync(int id);
+
+    Task<IReadOnlyList<Product>> GetForOrderAsync(IReadOnlyCollection<int> productIds);
 }

@@ -116,130 +116,95 @@ public class OrderService : IOrderService
         int userId,
         CreateOrderDto dto)
     {
+        return (await CreateOrdersAsync(userId, dto, allowMultipleStores: false)).Single();
+    }
+
+    public async Task<CheckoutDto> CheckoutAsync(int userId, CreateOrderDto dto)
+    {
+        var orders = await CreateOrdersAsync(userId, dto, allowMultipleStores: true);
+        return new CheckoutDto { Orders = orders, TotalAmount = orders.Sum(x => x.TotalAmount) };
+    }
+
+    private Task<IReadOnlyList<OrderDto>> CreateOrdersAsync(
+        int userId, CreateOrderDto dto, bool allowMultipleStores)
+    {
         DtoValidation.Validate(dto);
-        return await _unitOfWork.ExecuteAsync(async () =>
+        return _unitOfWork.ExecuteAsync<IReadOnlyList<OrderDto>>(async () =>
         {
             await _accountAccess.RequireParticipantAsync(userId);
-            DtoValidation.Validate(dto);
-            if (dto.Items is null || dto.Items.Count == 0)
-            {
-                throw new DomainException(
-                    "Sifarişdə ən azı bir məhsul olmalıdır.");
-            }
-
-            var productIds =
-                dto.Items
-                    .Select(x => x.ProductId)
-                    .ToList();
-
+            var productIds = dto.Items.Select(x => x.ProductId).ToList();
             if (productIds.Count != productIds.Distinct().Count())
+                throw new DomainException("Eyni məhsulu sifarişə bir neçə dəfə əlavə etmək olmaz.");
+
+            var products = await _productRepository.GetForOrderAsync(productIds);
+            var productsById = products.ToDictionary(x => x.Id);
+            // Validate every store/product before changing any stock. Product IDs
+            // have a stable read/write order across concurrent checkout requests.
+            foreach (var itemDto in dto.Items.OrderBy(x => x.ProductId))
             {
-                throw new DomainException(
-                    "Eyni məhsulu sifarişə bir neçə dəfə əlavə etmək olmaz.");
+                if (!productsById.TryGetValue(itemDto.ProductId, out var product) || !product.IsActive)
+                    throw new KeyNotFoundException($"Məhsul tapılmadı. Id: {itemDto.ProductId}");
+                if (product.Store is null || !product.Store.IsActive)
+                    throw new DomainException("Mağaza aktiv deyil.");
+                if (product.Stock < itemDto.Quantity)
+                    throw new DomainException($"{product.Name} üçün kifayət qədər stok yoxdur.");
             }
 
-            var orderItems = new List<OrderItem>();
-
-            int? storeId = null;
-
-            decimal totalAmount = 0;
+            var stores = products.Select(x => x.Store).DistinctBy(x => x.Id).ToDictionary(x => x.Id);
+            if (!allowMultipleStores && stores.Count > 1)
+                throw new DomainException("Bir sifarişdə yalnız eyni mağazanın məhsulları ola bilər.");
+            foreach (var store in stores.Values.OrderBy(x => x.Id))
+                await _accountAccess.RequireParticipantAsync(store.UserId);
 
             foreach (var itemDto in dto.Items.OrderBy(x => x.ProductId))
             {
-                if (itemDto.Quantity <= 0)
-                {
-                    throw new DomainException(
-                        "Məhsul sayı 0-dan böyük olmalıdır.");
-                }
-
-                var product =
-                    await _productRepository
-                        .GetByIdAsync(itemDto.ProductId);
-
-                if (product is null || !product.IsActive)
-                {
-                    throw new KeyNotFoundException(
-                        $"Məhsul tapılmadı. Id: {itemDto.ProductId}");
-                }
-
-                // Bir sifariş yalnız bir mağazaya aid olsun
-                if (storeId is null)
-                {
-                    storeId = product.StoreId;
-                }
-                else if (storeId.Value != product.StoreId)
-                {
-                    throw new DomainException(
-                        "Bir sifarişdə yalnız eyni mağazanın məhsulları ola bilər.");
-                }
-
-                if (product.Stock < itemDto.Quantity)
-                {
-                    throw new DomainException(
-                        $"{product.Name} üçün kifayət qədər stok yoxdur.");
-                }
-
-                var itemTotal =
-                    product.Price * itemDto.Quantity;
-
-                orderItems.Add(new OrderItem
-                {
-                    ProductId = product.Id,
-                    Quantity = itemDto.Quantity,
-                    UnitPrice = product.Price,
-                    TotalPrice = itemTotal
-                });
-
-                totalAmount += itemTotal;
-
-                // stok azaldılır
+                var product = productsById[itemDto.ProductId];
                 product.Stock -= itemDto.Quantity;
-
                 await _stockAlerts.EvaluateAsync(product);
                 await _productRepository.UpdateAsync(product);
             }
 
-            if (storeId is null)
+            var orders = new List<Order>();
+            var createdAt = DateTime.UtcNow;
+            foreach (var group in dto.Items.GroupBy(x => productsById[x.ProductId].StoreId).OrderBy(x => x.Key))
             {
-                throw new DomainException(
-                    "Sifariş üçün mağaza müəyyən edilə bilmədi.");
+                var items = group.OrderBy(x => x.ProductId).Select(item => new OrderItem
+                {
+                    ProductId = item.ProductId,
+                    Product = productsById[item.ProductId],
+                    Quantity = item.Quantity,
+                    UnitPrice = productsById[item.ProductId].Price,
+                    TotalPrice = productsById[item.ProductId].Price * item.Quantity
+                }).ToList();
+                var order = new Order
+                {
+                    UserId = userId,
+                    StoreId = group.Key,
+                    Store = stores[group.Key],
+                    RecipientName = dto.RecipientName.Trim(),
+                    DeliveryPhone = dto.DeliveryPhone.Trim(),
+                    DeliveryCity = dto.DeliveryCity.Trim(),
+                    DeliveryAddress = dto.DeliveryAddress.Trim(),
+                    DeliveryNote = string.IsNullOrWhiteSpace(dto.DeliveryNote) ? null : dto.DeliveryNote.Trim(),
+                    TotalAmount = items.Sum(x => x.TotalPrice),
+                    Status = OrderStatus.Pending,
+                    CreatedAt = createdAt,
+                    OrderItems = items
+                };
+                await _orderRepository.AddAsync(order);
+                orders.Add(order);
             }
 
-            var store =
-                await _storeRepository.GetByIdAsync(storeId.Value);
-
-            if (store is null || !store.IsActive)
-            {
-                throw new DomainException(
-                    "Mağaza aktiv deyil.");
-            }
-
-            var order = new Order
-            {
-                UserId = userId,
-                StoreId = storeId.Value,
-                RecipientName = dto.RecipientName.Trim(),
-                DeliveryPhone = dto.DeliveryPhone.Trim(),
-                DeliveryCity = dto.DeliveryCity.Trim(),
-                DeliveryAddress = dto.DeliveryAddress.Trim(),
-                DeliveryNote = string.IsNullOrWhiteSpace(dto.DeliveryNote) ? null : dto.DeliveryNote.Trim(),
-                TotalAmount = totalAmount,
-                Status = OrderStatus.Pending,
-                CreatedAt = DateTime.UtcNow,
-                OrderItems = orderItems
-            };
-
-            await _orderRepository.AddAsync(order);
-
-            // Eyni DbContext olduğu üçün order və stock dəyişiklikləri
-            // bir SaveChanges ilə DB-yə yazılır.
+            // All store orders, stock, email snapshots and notifications share
+            // one UnitOfWork transaction; any failure rolls back the whole cart.
             await _orderRepository.SaveChangesAsync();
-
-            await _emails.OrderAsync(order.Id);
-
-            await _notifications.CreateAsync(store.UserId, NotificationType.Order,
-                "Yeni sifariş", $"Yeni sifariş yaradıldı: #{order.Id}.", $"/orders/{order.Id}");
-            return _mapper.Map<OrderDto>(order);
+            foreach (var order in orders)
+            {
+                await _emails.OrderAsync(order.Id);
+                await _notifications.CreateAsync(stores[order.StoreId].UserId, NotificationType.Order,
+                    "Yeni sifariş", $"Yeni sifariş yaradıldı: #{order.Id}.", $"/orders/{order.Id}");
+            }
+            return _mapper.Map<List<OrderDto>>(orders);
         });
     }
 

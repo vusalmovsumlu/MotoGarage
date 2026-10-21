@@ -146,7 +146,11 @@ public class ReminderService : IReminderService
             reminder.ReminderKm != dto.ReminderKm;
         _mapper.Map(dto, reminder);
         if (scheduleChanged)
+        {
             reminder.NotificationSentAtUtc = null;
+            reminder.EmailQueuedAtUtc = null;
+            reminder.ScheduleRevision = checked(reminder.ScheduleRevision + 1);
+        }
 
         await _reminderRepository.UpdateAsync(reminder);
 

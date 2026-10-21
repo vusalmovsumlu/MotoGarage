@@ -18,5 +18,9 @@ public class Reminder
 
     public DateTime? NotificationSentAtUtc { get; set; }
 
+    public DateTime? EmailQueuedAtUtc { get; set; }
+
+    public int ScheduleRevision { get; set; }
+
     public Vehicle Vehicle { get; set; } = null!;
 }

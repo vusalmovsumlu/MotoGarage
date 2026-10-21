@@ -49,9 +49,9 @@ internal static class TestSupport
         new EmailVerificationCodeRepository(context), email ?? new TestEmail(),
         new ConfigurationBuilder().Build(), new TestUnitOfWork(context), NullLogger<AuthService>.Instance, context, images ?? new TestImages());
 
-    public static OrderService Orders(AppDbContext context) => new(
+    public static OrderService Orders(AppDbContext context, IUnitOfWork? work = null) => new(
         new OrderRepository(context), new ProductRepository(context), new StoreRepository(context),
-        Mapper(), new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context), WorkflowEmails(context));
+        Mapper(), work ?? new TestUnitOfWork(context), new NotificationService(new NotificationRepository(context), Mapper()), new AccountAccessService(context), new MotoGarage.Infrastructure.Inventory.StockAlertService(context), WorkflowEmails(context));
 
     public static async Task SeedOrderData(AppDbContext context, int stock = 1)
     {

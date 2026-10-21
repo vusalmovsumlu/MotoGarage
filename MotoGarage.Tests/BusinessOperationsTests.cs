@@ -124,10 +124,13 @@ public class BusinessOperationsTests
         await Assert.ThrowsAsync<ForbiddenException>(() => service.SubmitReportAsync(20, 1, Report()));
         await service.SubmitReportAsync(20, 2, Report());
         Assert.Empty(context.ServiceRecords); Assert.Equal(1000, (await context.Vehicles.FindAsync(5))!.CurrentKm);
+        var dashboard = new DashboardQuery(context, TestSupport.Mapper());
+        Assert.Equal(0m, (await dashboard.GetAsync(1)).ThisMonthExpenses);
         await Assert.ThrowsAsync<ForbiddenException>(() => service.GetReportAsync(20, 3));
         await Assert.ThrowsAsync<ForbiddenException>(() => service.DecideReportAsync(20, 2, new() { Approve = true, Revision = 1 }));
         await service.DecideReportAsync(20, 1, new() { Approve = true, Revision = 1 });
         var record = Assert.Single(context.ServiceRecords); Assert.Equal("Oil filter", record.ReplacedParts); Assert.Equal(80, record.Cost);
+        Assert.Equal(80m, (await dashboard.GetAsync(1)).ThisMonthExpenses);
         Assert.Equal(1200, (await context.Vehicles.FindAsync(5))!.CurrentKm);
         await Assert.ThrowsAsync<ConflictException>(() => service.DecideReportAsync(20, 1, new() { Approve = true, Revision = 1 }));
         await Assert.ThrowsAsync<ConflictException>(() => service.SubmitReportAsync(20, 2, Report(1)));
